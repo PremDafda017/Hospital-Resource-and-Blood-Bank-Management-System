@@ -1,0 +1,42 @@
+[
+  {
+    "_id": "qznbnut",
+    "clerkId": "user_3FAzWzsO8ERqDOa57wE0kS1w2pa",
+    "fullName": "PremDafda",
+    "email": "xkqtm99275@minitts.net",
+    "role": "patient",
+    "isVerified": true,
+    "createdAt": "2026-06-15T14:11:37.797Z",
+    "updatedAt": "2026-06-15T14:11:37.797Z"
+  },
+  {
+    "_id": "3sfc1e4",
+    "clerkId": "user_3FB2f5URkfPpMNEfswJ9dYuWyqd",
+    "fullName": "PremDafda",
+    "email": "kkzsi41740@minitts.net",
+    "role": "patient",
+    "isVerified": true,
+    "createdAt": "2026-06-15T14:37:22.175Z",
+    "updatedAt": "2026-06-15T14:37:22.175Z"
+  },
+  {
+    "_id": "lrqphs4",
+    "clerkId": "user_3G7YKWSye26fEXRHWcySMQ1p2Er",
+    "fullName": "PremDafda",
+    "email": "hbuif03855@minitts.net",
+    "role": "administrator",
+    "isVerified": true,
+    "createdAt": "2026-07-06T07:46:51.183Z",
+    "updatedAt": "2026-07-06T07:46:51.183Z"
+  },
+  {
+    "_id": "v2wk0eb",
+    "clerkId": "user_3G7Z6LkNoJOh4X0bkXwp2Mhr0TG",
+    "fullName": "PremDafda",
+    "email": "jmjph45345@minitts.net",
+    "role": "patient",
+    "isVerified": true,
+    "createdAt": "2026-07-06T07:53:12.043Z",
+    "updatedAt": "2026-07-06T07:53:12.043Z"
+  }
+]

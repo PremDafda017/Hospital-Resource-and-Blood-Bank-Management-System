@@ -1,0 +1,58 @@
+[
+  {
+    "_id": "stock-a-pos",
+    "group": "A+",
+    "units": 120,
+    "status": "good",
+    "label": "Available"
+  },
+  {
+    "_id": "stock-a-neg",
+    "group": "A-",
+    "units": 45,
+    "status": "low",
+    "label": "Low Stock"
+  },
+  {
+    "_id": "stock-b-pos",
+    "group": "B+",
+    "units": 90,
+    "status": "good",
+    "label": "Available"
+  },
+  {
+    "_id": "stock-b-neg",
+    "group": "B-",
+    "units": 18,
+    "status": "low",
+    "label": "Low Stock"
+  },
+  {
+    "_id": "stock-ab-pos",
+    "group": "AB+",
+    "units": 35,
+    "status": "good",
+    "label": "Available"
+  },
+  {
+    "_id": "stock-ab-neg",
+    "group": "AB-",
+    "units": 12,
+    "status": "low",
+    "label": "Low Stock"
+  },
+  {
+    "_id": "stock-o-pos",
+    "group": "O+",
+    "units": 280,
+    "status": "good",
+    "label": "Available"
+  },
+  {
+    "_id": "stock-o-neg",
+    "group": "O-",
+    "units": 5,
+    "status": "critical",
+    "label": "Critical"
+  }
+]

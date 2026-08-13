@@ -1,0 +1,82 @@
+[
+  {
+    "_id": "bi001",
+    "bloodGroup": "A+",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi002",
+    "bloodGroup": "A-",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi003",
+    "bloodGroup": "B+",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi004",
+    "bloodGroup": "B-",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi005",
+    "bloodGroup": "AB+",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi006",
+    "bloodGroup": "AB-",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi007",
+    "bloodGroup": "O+",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  },
+  {
+    "_id": "bi008",
+    "bloodGroup": "O-",
+    "units": 100,
+    "hospital": "City General Hospital",
+    "expiryDate": "2024-12-31",
+    "lastUpdated": "2026-07-25",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2026-07-25T00:00:00.000Z"
+  }
+]

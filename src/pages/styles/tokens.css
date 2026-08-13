@@ -1,0 +1,125 @@
+/* ==========================================================================
+   HRBMS DESIGN TOKENS
+   Hospital Resource & Blood Bank Management System
+   A clinical-systems visual language built around blood-group typing
+   as the core design vocabulary — not generic healthcare-blue decoration.
+   ========================================================================== */
+
+/* @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap'); */
+
+:root {
+    /* ---- Core neutrals (control-room dark) ---- */
+    --navy-950: #060B16;
+    --navy-900: #0B1220;
+    --navy-850: #0F1830;
+    --navy-800: #131B2E;
+    --navy-700: #1C2740;
+    --navy-600: #2A3856;
+    --navy-border: #22304D;
+
+    /* ---- Light surface (auth / content areas) ---- */
+    --ink-50: #F7F9FC;
+    --ink-100: #EEF2F8;
+    --white: #FFFFFF;
+
+    /* ---- Text ---- */
+    --text-bright: #F4F7FD;
+    --text-dim: #9AABC9;
+    --text-muted: #64748B;
+    --text-body: #334155;
+    --text-heading: #0B1220;
+
+    /* ---- Brand / action ---- */
+    --blue-600: #2563EB;
+    --blue-500: #3B7BFF;
+    --blue-400: #5B93FF;
+    --cyan-400: #22D3EE;
+    --cyan-300: #67E8F9;
+
+    /* ---- Status (also used for blood-stock semantics) ---- */
+    --status-good: #34D399;
+    --status-good-bg: rgba(52, 211, 153, 0.12);
+    --status-low: #FBBF24;
+    --status-low-bg: rgba(251, 191, 36, 0.14);
+    --status-critical: #F87171;
+    --status-critical-bg: rgba(248, 113, 113, 0.14);
+
+    /* ---- Blood-group color system (the design's through-line) ----
+     Each group gets a fixed identity color used consistently in
+     chips, rings, bars, and table rows across the whole product. */
+    --bg-a-pos: #FB7185;
+    --bg-a-neg: #FDA4AF;
+    --bg-b-pos: #38BDF8;
+    --bg-b-neg: #7DD3FC;
+    --bg-ab-pos: #A78BFA;
+    --bg-ab-neg: #C4B5FD;
+    --bg-o-pos: #FBBF24;
+    --bg-o-neg: #FCD34D;
+
+    /* ---- Elevation / glass ---- */
+    --glass-fill: rgba(255, 255, 255, 0.04);
+    --glass-fill-strong: rgba(255, 255, 255, 0.07);
+    --glass-border: rgba(255, 255, 255, 0.09);
+    --shadow-panel: 0 20px 60px rgba(2, 6, 16, 0.45);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 30px rgba(2, 6, 16, 0.06);
+
+    /* ---- Radius ---- */
+    --r-sm: 10px;
+    --r-md: 14px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+    --r-pill: 999px;
+
+    /* ---- Type ---- */
+    --font-display: 'Manrope', 'Inter', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* ---- Motion ---- */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-fast: 160ms;
+    --dur-med: 280ms;
+    --dur-slow: 520ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--navy-600);
+    border-radius: var(--r-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--blue-500);
+}
+
+:focus-visible {
+    outline: 2px solid var(--cyan-400);
+    outline-offset: 3px;
+    border-radius: 6px;
+}

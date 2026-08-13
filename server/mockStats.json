@@ -1,0 +1,7 @@
+{
+  "_id": "stats-main",
+  "activePatients": 1250,
+  "onDutyDoctors": 85,
+  "totalBloodUnits": 850,
+  "emergencyRequestsCount": 12
+}

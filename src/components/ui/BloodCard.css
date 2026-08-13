@@ -1,0 +1,140 @@
+/* BloodCard Styles */
+
+.blood-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 2px solid;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-md);
+}
+
+.dark-theme .blood-card {
+  background: #1E293B;
+}
+
+.blood-card-clickable {
+  cursor: pointer;
+}
+
+.blood-card-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.blood-card-compact {
+  padding: 1rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.blood-type-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.blood-card-compact .blood-type-badge {
+  width: 40px;
+  height: 40px;
+  font-size: 0.875rem;
+}
+
+.blood-type-text {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.blood-card-compact .blood-type-text {
+  font-size: 0.875rem;
+}
+
+.blood-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.blood-card-compact .blood-info {
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
+.blood-units {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.blood-units-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.dark-theme .blood-units-value {
+  color: #F4F7FD;
+}
+
+.blood-card-compact .blood-units-value {
+  font-size: 1.25rem;
+}
+
+.blood-units-label {
+  font-size: 0.875rem;
+  color: #64748B;
+}
+
+.dark-theme .blood-units-label {
+  color: #9AABC9;
+}
+
+.blood-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.blood-card-compact .blood-status {
+  font-size: 0.875rem;
+}
+
+.blood-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.blood-status-text {
+  font-weight: 600;
+}
+
+.blood-icon {
+  font-size: 1.5rem;
+  opacity: 0.7;
+}
+
+.blood-card-compact .blood-icon {
+  font-size: 1.25rem;
+}

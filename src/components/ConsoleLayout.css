@@ -1,0 +1,34 @@
+@import url('../pages/Dashboard.css');
+
+.console-loader-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #060B16;
+    gap: 16px;
+    font-family: 'Inter', sans-serif;
+    color: #9AABC9;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.console-loader-container.theme-light {
+    background-color: #F4F7FD;
+    color: #64748B;
+}
+
+.console-inner-content {
+    animation: consoleFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes consoleFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

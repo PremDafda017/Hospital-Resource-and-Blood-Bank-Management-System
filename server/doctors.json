@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "dr001",
+    "name": "Dr. John Smith",
+    "specialization": "Cardiologist",
+    "hospital": "City General Hospital",
+    "phone": "+1-234-567-8901",
+    "email": "dr.smith@hospital.com",
+    "availability": "Available",
+    "consultationFee": 150,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "dr002",
+    "name": "Dr. Sarah Johnson",
+    "specialization": "Neurologist",
+    "hospital": "City General Hospital",
+    "phone": "+1-234-567-8902",
+    "email": "dr.johnson@hospital.com",
+    "availability": "Available",
+    "consultationFee": 200,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "_id": "dr003",
+    "name": "Dr. Michael Brown",
+    "specialization": "Orthopedic Surgeon",
+    "hospital": "City General Hospital",
+    "phone": "+1-234-567-8903",
+    "email": "dr.brown@hospital.com",
+    "availability": "In Surgery",
+    "consultationFee": 250,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+]

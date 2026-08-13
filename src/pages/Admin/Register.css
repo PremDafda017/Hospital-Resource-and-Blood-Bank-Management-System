@@ -1,0 +1,384 @@
+@import url('./Login.css');
+
+.register-card {
+    max-width: 480px;
+}
+
+.rail-checklist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 8px;
+    animation: fadeUp 0.7s var(--ease-out) 0.16s both;
+}
+
+.rail-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.92rem;
+    color: var(--text-dim);
+}
+
+.rail-checklist svg {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    padding: 5px;
+    border-radius: 50%;
+    background: rgba(34, 211, 238, 0.12);
+    color: var(--cyan-300);
+}
+
+.register-rail-bottom {
+    border-top: none;
+    padding-top: 0;
+}
+
+/* ===== Step progress track ===== */
+
+.step-track {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 28px;
+}
+
+.step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    position: relative;
+}
+
+.step-node:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 14px;
+    left: calc(50% + 22px);
+    width: calc(100% - 44px);
+    height: 2px;
+    background: #E2E8F0;
+}
+
+.step-node.done:not(:last-child)::after {
+    background: var(--blue-500);
+}
+
+.step-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    background: var(--white);
+    border: 2px solid #E2E8F0;
+    color: var(--text-muted);
+    z-index: 1;
+    transition: all var(--dur-fast) ease;
+}
+
+.step-node.active .step-dot {
+    border-color: var(--blue-600);
+    color: var(--blue-600);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.step-node.done .step-dot {
+    background: var(--blue-600);
+    border-color: var(--blue-600);
+    color: white;
+}
+
+.step-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.step-node.active .step-label {
+    color: var(--blue-600);
+}
+
+.step-panel {
+    animation: fadeUp 0.35s var(--ease-out) both;
+}
+
+.step-panel-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-body);
+    margin-bottom: 12px;
+}
+
+/* ===== Role grid ===== */
+
+.role-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.role-card {
+    display: block;
+    padding: 16px;
+    border-radius: var(--r-md);
+    border: 2px solid #E2E8F0;
+    background: var(--white);
+    color: var(--text-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--dur-fast) ease;
+    position: relative;
+}
+
+.role-card:hover {
+    border-color: var(--blue-400);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.role-card.selected {
+    border-color: var(--blue-600);
+    background: rgba(37, 99, 235, 0.05);
+    color: var(--blue-600);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.15);
+}
+
+.role-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.role-icon-wrapper {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 4px;
+}
+
+.role-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--ink-100);
+    color: var(--text-muted);
+    flex-shrink: 0;
+    font-size: 1.1rem;
+    transition: all var(--dur-fast) ease;
+}
+
+.role-card.selected .role-icon {
+    background: var(--blue-600);
+    color: white;
+}
+
+.role-checkmark {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 0.7rem;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+    animation: scaleIn 0.3s var(--ease-out);
+}
+
+.role-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.role-emoji {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.role-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+}
+
+.role-card.selected .role-label {
+    color: var(--blue-600);
+}
+
+.role-description {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.role-card.selected .role-description {
+    color: var(--text-dim);
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ===== Password strength ===== */
+
+.strength-track {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 9px;
+}
+
+.strength-track::before {
+    content: "";
+    flex: 1;
+    height: 5px;
+    border-radius: var(--r-pill);
+    background: #E2E8F0;
+}
+
+.strength-fill {
+    position: absolute;
+    height: 5px;
+    border-radius: var(--r-pill);
+    left: 0;
+    transition: width var(--dur-med) var(--ease-out);
+}
+
+.strength-track {
+    position: relative;
+}
+
+.strength-fill.s1 {
+    width: 33%;
+    background: var(--status-critical);
+}
+
+.strength-fill.s2 {
+    width: 66%;
+    background: var(--status-low);
+}
+
+.strength-fill.s3 {
+    width: 100%;
+    background: var(--status-good);
+}
+
+.strength-text {
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.strength-text.s1 {
+    color: var(--status-critical);
+}
+
+.strength-text.s2 {
+    color: #D97706;
+}
+
+.strength-text.s3 {
+    color: #059669;
+}
+
+/* ===== Review box ===== */
+
+.review-box {
+    background: var(--ink-100);
+    border-radius: var(--r-md);
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.review-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.88rem;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.review-row:last-child {
+    border-bottom: none;
+}
+
+.review-row span {
+    color: var(--text-muted);
+}
+
+.review-row strong {
+    color: var(--text-heading);
+}
+
+.terms-row {
+    margin-bottom: 8px;
+}
+
+/* ===== Step actions ===== */
+
+.step-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.step-actions .btn-primary {
+    flex: 1;
+}
+
+.btn-ghost {
+    flex: 0 0 auto;
+    padding: 14px 22px;
+    border-radius: var(--r-sm);
+    border: 1.5px solid #E2E8F0;
+    background: var(--white);
+    color: var(--text-body);
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--dur-fast) ease;
+}
+
+.btn-ghost:hover {
+    border-color: var(--text-muted);
+}
+
+.auth-alert.success {
+    background: var(--status-good-bg);
+    border: 1px solid rgba(52, 211, 153, 0.35);
+    color: #047857;
+}
+
+@media (max-width: 560px) {
+    .step-label {
+        display: none;
+    }
+
+    .role-grid {
+        grid-template-columns: 1fr;
+    }
+}

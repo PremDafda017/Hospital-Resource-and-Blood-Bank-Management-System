@@ -1,0 +1,23 @@
+[
+  {
+    "_id": "hs001",
+    "clerkId": "",
+    "email": "hospital@bloodbank.com",
+    "profile": {
+      "fullName": "Hospital Staff Admin",
+      "phone": "+1-234-567-8900",
+      "hospitalName": "City General Hospital",
+      "department": "Blood Bank",
+      "position": "Blood Bank Manager"
+    },
+    "notifications": [],
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "clerkId": "user_3HLbhRFp2J7DF8vuCUfvTuy7jex",
+    "email": "hnllul1050@minitts.net",
+    "profile": {},
+    "notifications": []
+  }
+]

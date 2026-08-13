@@ -1,0 +1,97 @@
+/* ==========================================================================
+   HemoCare Dashboard — Global Stylesheet
+   All component-level styles are inlined in Dashboard.jsx.
+   This file handles: resets, fonts, scrollbar, utility keyframes, print.
+   ========================================================================== */
+
+/* ── Google Fonts (Inter) ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Box-sizing reset ──────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #F8FAFC;
+  color: #334155;
+  line-height: 1.5;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F8FAFC;
+}
+::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ── Global animation keyframes ────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+/* ── Focus visible (accessibility) ────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #C41230;
+  outline-offset: 2px;
+}
+
+/* ── Selection ─────────────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(196, 18, 48, 0.15);
+  color: #1E293B;
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Print ─────────────────────────────────────────────────────────────────── */
+@media print {
+  body { background: white; }
+  aside, header { display: none !important; }
+  main { margin: 0 !important; padding: 16px !important; }
+}

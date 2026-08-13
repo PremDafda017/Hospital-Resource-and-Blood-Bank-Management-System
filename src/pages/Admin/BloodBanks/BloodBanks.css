@@ -1,0 +1,614 @@
+/* BloodBanks Page Styles */
+
+.blood-banks-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-title-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.page-title-section h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: #1E293B;
+}
+
+.dark-theme .page-title-section h1 {
+  color: #F4F7FD;
+}
+
+.page-title-section p {
+  margin: 0.25rem 0 0 0;
+  color: #64748B;
+  font-size: 0.875rem;
+}
+
+.dark-theme .page-title-section p {
+  color: #9AABC9;
+}
+
+.page-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.search-bar {
+  flex: 1;
+  min-width: 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  color: #64748B;
+  font-size: 0.875rem;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.dark-theme .search-bar input {
+  background: #1E293B;
+  border-color: #334155;
+  color: #F4F7FD;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.1);
+}
+
+.blood-banks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.blood-bank-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  border: 1px solid #E2E8F0;
+  transition: all 0.2s;
+}
+
+.dark-theme .blood-bank-card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.blood-bank-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.blood-bank-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.blood-bank-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.blood-bank-status {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.badge-success {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.badge-warning {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.badge-danger {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.blood-bank-info {
+  margin-bottom: 1rem;
+}
+
+.blood-bank-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.dark-theme .blood-bank-info h3 {
+  color: #F4F7FD;
+}
+
+.blood-bank-address {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin-bottom: 0.5rem;
+}
+
+.dark-theme .blood-bank-address {
+  color: #9AABC9;
+}
+
+.blood-bank-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #64748B;
+}
+
+.dark-theme .blood-bank-stats {
+  color: #9AABC9;
+}
+
+.blood-bank-stats span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.blood-bank-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.dark-theme .blood-bank-details {
+  border-bottom-color: #334155;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #64748B;
+}
+
+.dark-theme .detail-item {
+  color: #9AABC9;
+}
+
+.detail-item svg {
+  color: var(--primary-color);
+}
+
+.blood-bank-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.blood-bank-actions button {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: var(--secondary-color);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: var(--secondary-dark);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-outline:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 1rem;
+}
+
+.page-loading p {
+  color: #64748B;
+  font-size: 0.875rem;
+}
+
+.dark-theme .page-loading p {
+  color: #9AABC9;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #CBD5E1;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #1E293B;
+}
+
+.dark-theme .empty-state h3 {
+  color: #F4F7FD;
+}
+
+@media (max-width: 768px) {
+  .blood-banks-page {
+    padding: 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .blood-banks-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Blood Bank Details & Map Styles */
+.blood-bank-details-page,
+.blood-bank-map-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.blood-bank-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.blood-bank-header-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.blood-bank-icon-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.blood-bank-header-info {
+  flex: 1;
+}
+
+.blood-bank-header-info h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #1E293B;
+}
+
+.dark-theme .blood-bank-header-info h2 {
+  color: #F4F7FD;
+}
+
+.blood-bank-basic-info {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: #64748B;
+  margin-top: 0.75rem;
+}
+
+.dark-theme .blood-bank-basic-info {
+  color: #9AABC9;
+}
+
+.blood-bank-basic-info span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.detail-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  border: 1px solid #E2E8F0;
+}
+
+.dark-theme .detail-card {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.detail-card h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.125rem;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dark-theme .detail-card h3 {
+  color: #F4F7FD;
+}
+
+.detail-card h3 svg {
+  color: var(--primary-color);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-row label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dark-theme .detail-row label {
+  color: #9AABC9;
+}
+
+.detail-row span {
+  font-size: 0.875rem;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dark-theme .detail-row span {
+  color: #F4F7FD;
+}
+
+.detail-row span svg {
+  color: var(--primary-color);
+}
+
+/* Map Styles */
+.map-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  height: 600px;
+}
+
+.map-placeholder {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.map-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.map-placeholder h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.map-placeholder p {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.map-sidebar {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  border: 1px solid #E2E8F0;
+  overflow-y: auto;
+}
+
+.dark-theme .map-sidebar {
+  background: #1E293B;
+  border-color: #334155;
+}
+
+.map-sidebar h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #1E293B;
+}
+
+.dark-theme .map-sidebar h3 {
+  color: #F4F7FD;
+}
+
+.location-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.location-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #F8FAFC;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dark-theme .location-item {
+  background: #334155;
+}
+
+.location-item:hover {
+  background: #E2E8F0;
+}
+
+.dark-theme .location-item:hover {
+  background: #475569;
+}
+
+.location-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.location-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.dark-theme .location-info h4 {
+  color: #F4F7FD;
+}
+
+.location-info p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748B;
+}
+
+.dark-theme .location-info p {
+  color: #9AABC9;
+}
+
+@media (max-width: 768px) {
+  .blood-bank-details-page,
+  .blood-bank-map-page {
+    padding: 1rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-container {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .map-placeholder {
+    height: 300px;
+  }
+}

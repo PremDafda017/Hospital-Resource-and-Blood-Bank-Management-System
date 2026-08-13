@@ -1,0 +1,52 @@
+[
+  {
+    "_id": "req-1",
+    "patientName": "Rahul Patel",
+    "group": "O-",
+    "units": 2,
+    "hospital": "Metro Cardiac Center",
+    "timeAgo": "2 mins ago",
+    "severity": "critical",
+    "status": "Pending dispatch"
+  },
+  {
+    "_id": "req-2",
+    "patientName": "Aanya Sharma",
+    "group": "AB-",
+    "units": 3,
+    "hospital": "Greenwood Pediatrics",
+    "timeAgo": "15 mins ago",
+    "severity": "high",
+    "status": "Pending dispatch"
+  },
+  {
+    "_id": "req-3",
+    "patientName": "Vikram Malhotra",
+    "group": "A-",
+    "units": 2,
+    "hospital": "Apex Trauma Care",
+    "timeAgo": "28 mins ago",
+    "severity": "medium",
+    "status": "Pending dispatch"
+  },
+  {
+    "_id": "req-4",
+    "patientName": "Priyanka Joshi",
+    "group": "B-",
+    "units": 1,
+    "hospital": "City General Hospital",
+    "timeAgo": "45 mins ago",
+    "severity": "medium",
+    "status": "Pending dispatch"
+  },
+  {
+    "_id": "req-5",
+    "patientName": "Amit Shah",
+    "group": "B+",
+    "units": 1,
+    "hospital": "Apex Trauma Care",
+    "timeAgo": "1 hr ago",
+    "severity": "medium",
+    "status": "Approved"
+  }
+]

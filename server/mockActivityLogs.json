@@ -1,0 +1,27 @@
+[
+  {
+    "type": "blue",
+    "message": "New Patient Registered",
+    "time": "2 mins ago"
+  },
+  {
+    "type": "red",
+    "message": "Emergency Blood Request Submitted (O-)",
+    "time": "12 mins ago"
+  },
+  {
+    "type": "green",
+    "message": "Donor Intake Completed (A+)",
+    "time": "45 mins ago"
+  },
+  {
+    "type": "purple",
+    "message": "Donor Appointment Scheduled",
+    "time": "1 hr ago"
+  },
+  {
+    "type": "amber",
+    "message": "Inventory Allocation Updated",
+    "time": "3 hrs ago"
+  }
+]

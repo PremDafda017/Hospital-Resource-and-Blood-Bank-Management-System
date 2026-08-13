@@ -1,0 +1,74 @@
+[
+  {
+    "_id": "bank-1",
+    "name": "Central Valley Blood Center",
+    "distance": "0.9 km",
+    "address": "410 Healthcare Blvd, Sector 4",
+    "phone": "+91 98765 43210",
+    "hours": "24/7 Operations",
+    "inventory": {
+      "A+": 150,
+      "A-": 12,
+      "B+": 210,
+      "B-": 5,
+      "AB+": 80,
+      "AB-": 4,
+      "O+": 300,
+      "O-": 8
+    }
+  },
+  {
+    "_id": "bank-2",
+    "name": "Red Cross Donation Hub",
+    "distance": "2.4 km",
+    "address": "78 Red Cross Rd, Metro Colony",
+    "phone": "+91 98765 43211",
+    "hours": "08:00 AM - 08:00 PM",
+    "inventory": {
+      "A+": 95,
+      "A-": 8,
+      "B+": 110,
+      "B-": 4,
+      "AB+": 45,
+      "AB-": 2,
+      "O+": 180,
+      "O-": 3
+    }
+  },
+  {
+    "_id": "bank-3",
+    "name": "Apex City Blood Bank",
+    "distance": "4.1 km",
+    "address": "12 Apex Towers, Ring Road",
+    "phone": "+91 98765 43212",
+    "hours": "24/7 Operations",
+    "inventory": {
+      "A+": 240,
+      "A-": 35,
+      "B+": 190,
+      "B-": 15,
+      "AB+": 120,
+      "AB-": 9,
+      "O+": 410,
+      "O-": 15
+    }
+  },
+  {
+    "_id": "bank-4",
+    "name": "St. Jude Hospital Blood Bank",
+    "distance": "5.8 km",
+    "address": "502 St. Jude Lane, South Extension",
+    "phone": "+91 98765 43213",
+    "hours": "24/7 Operations",
+    "inventory": {
+      "A+": 85,
+      "A-": 3,
+      "B+": 75,
+      "B-": 1,
+      "AB+": 20,
+      "AB-": 0,
+      "O+": 90,
+      "O-": 0
+    }
+  }
+]
