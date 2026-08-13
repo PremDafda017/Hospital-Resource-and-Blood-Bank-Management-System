@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -52,7 +52,7 @@ function PatientReports() {
 
   const w = sidebarCollapsed ? 68 : SIDEBAR_W;
 
-  const loadPatientData = async () => {
+  const loadPatientData = useCallback(async () => {
     try {
       // Load blood requests from backend
       const email = user?.emailAddresses?.[0]?.emailAddress;
@@ -81,7 +81,7 @@ function PatientReports() {
       console.error('Error loading patient data:', error);
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user?.id) {
