@@ -55,7 +55,7 @@ const DonorManagement = () => {
   const loadData = async () => {
     try {
       // Load pending applications
-      const pendingResponse = await fetch("http://localhost:5000/api/donor/applications/pending");
+      const pendingResponse = await fetch("https://hospital-resource-and-blood-bank.onrender.com/api/donor/applications/pending");
       if (pendingResponse.ok) {
         const pendingData = await pendingResponse.json();
         setPendingApplications(pendingData);
@@ -74,7 +74,7 @@ const DonorManagement = () => {
 
   const handleApprove = async (application) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/application/${application._id}/verify`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/application/${application._id}/verify`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -104,7 +104,7 @@ const DonorManagement = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/application/${application._id}/verify`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/application/${application._id}/verify`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -59,7 +59,7 @@ function BloodRequestPayment({
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/blood-requests/${requestId}/payment`,
+        `https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/payment`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

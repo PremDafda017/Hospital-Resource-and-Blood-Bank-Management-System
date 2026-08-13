@@ -94,7 +94,7 @@ function CampaignManagement() {
 
   const loadCampaigns = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaigns`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaigns`);
       if (response.ok) {
         const data = await response.json();
         setCampaigns(data);
@@ -108,7 +108,7 @@ function CampaignManagement() {
 
   const handleCreateCampaign = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaigns`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaigns`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -138,7 +138,7 @@ function CampaignManagement() {
 
   const handleUpdateCampaign = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaigns/${editingCampaign._id}`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaigns/${editingCampaign._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -167,7 +167,7 @@ function CampaignManagement() {
     if (!window.confirm("Are you sure you want to delete this campaign?")) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaigns/${campaignId}`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaigns/${campaignId}`, {
         method: "DELETE",
       });
       if (response.ok) {
@@ -196,7 +196,7 @@ function CampaignManagement() {
   const handleToggleStatus = async (campaignId, currentStatus) => {
     const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaigns/${campaignId}/status`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaigns/${campaignId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),

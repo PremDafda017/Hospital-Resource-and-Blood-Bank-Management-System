@@ -100,7 +100,7 @@ function BloodBankRequests() {
 
   const loadBloodRequests = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/blood-requests/status/Forwarded`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
       if (response.ok) {
         const data = await response.json();
         setBloodRequests(data);
@@ -214,7 +214,7 @@ function BloodBankRequests() {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/blood-requests/${requestId}/status/blood-ready`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/blood-ready`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -259,7 +259,7 @@ function BloodBankRequests() {
         triggerRefresh();
 
         // Reload blood requests
-        const reloadResponse = await fetch(`http://localhost:5000/api/blood-requests/status/Forwarded`);
+        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
         if (reloadResponse.ok) {
           const data = await reloadResponse.json();
           setBloodRequests(data);
@@ -294,7 +294,7 @@ function BloodBankRequests() {
 
   const handleReject = async (requestId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/blood-requests/${requestId}/status/rejected`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/rejected`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -315,7 +315,7 @@ function BloodBankRequests() {
         });
 
         // Reload blood requests
-        const reloadResponse = await fetch(`http://localhost:5000/api/blood-requests/status/Forwarded`);
+        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
         if (reloadResponse.ok) {
           const data = await reloadResponse.json();
           setBloodRequests(data);
@@ -337,7 +337,7 @@ function BloodBankRequests() {
   const handleManualRefresh = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/blood-requests/status/Forwarded`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
       if (response.ok) {
         const data = await response.json();
         setBloodRequests(data);

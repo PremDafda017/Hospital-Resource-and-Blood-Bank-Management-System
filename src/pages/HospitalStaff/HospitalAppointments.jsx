@@ -99,7 +99,7 @@ function HospitalAppointments() {
       try {
         // Get hospital staff info to get hospital ID
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const staffResponse = await fetch(`http://localhost:5000/api/hospital-staff/${user.id}?email=${email}`);
+        const staffResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/hospital-staff/${user.id}?email=${email}`);
         if (staffResponse.ok) {
           const staffData = await staffResponse.json();
           const hospitalId = staffData._id;
@@ -108,7 +108,7 @@ function HospitalAppointments() {
           console.log("Hospital ID:", hospitalId, "Hospital name:", hospitalName);
           
           // Load all appointments and filter
-          const allResponse = await fetch('http://localhost:5000/api/appointments');
+          const allResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/appointments');
           if (allResponse.ok) {
             const allData = await allResponse.json();
             console.log("All appointments:", allData);
@@ -177,7 +177,7 @@ function HospitalAppointments() {
 
   const handleStatusUpdate = async (appointmentId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/${appointmentId}/status/${newStatus}`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments/${appointmentId}/status/${newStatus}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,12 +218,12 @@ function HospitalAppointments() {
 
         // Reload appointments
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const staffResponse = await fetch(`http://localhost:5000/api/hospital-staff/${user.id}?email=${email}`);
+        const staffResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/hospital-staff/${user.id}?email=${email}`);
         if (staffResponse.ok) {
           const staffData = await staffResponse.json();
           const hospitalId = staffData._id;
 
-          const reloadResponse = await fetch(`http://localhost:5000/api/appointments/hospital/${hospitalId}`);
+          const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments/hospital/${hospitalId}`);
           if (reloadResponse.ok) {
             const data = await reloadResponse.json();
             setAppointments(data);

@@ -102,7 +102,7 @@ function HospitalDashboard() {
       const loadHospitalData = async () => {
         try {
           // Load patients
-          const patientResponse = await fetch(`http://localhost:5000/api/patient/all`);
+          const patientResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/all`);
           if (patientResponse.ok) {
             const patientData = await patientResponse.json();
             const patientsArray = Array.isArray(patientData) ? patientData : [];
@@ -110,7 +110,7 @@ function HospitalDashboard() {
           }
           
           // Load doctors
-          const doctorResponse = await fetch(`http://localhost:5000/api/doctors`);
+          const doctorResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/doctors`);
           if (doctorResponse.ok) {
             const doctorData = await doctorResponse.json();
             const doctorsArray = Array.isArray(doctorData) ? doctorData : [];
@@ -118,7 +118,7 @@ function HospitalDashboard() {
           }
           
           // Load appointments
-          const appointmentResponse = await fetch(`http://localhost:5000/api/appointments`);
+          const appointmentResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments`);
           if (appointmentResponse.ok) {
             const appointmentData = await appointmentResponse.json();
             const appointmentsArray = Array.isArray(appointmentData) ? appointmentData : [];
@@ -141,7 +141,7 @@ function HospitalDashboard() {
           }
           
           // Load blood requests
-          const bloodRequestResponse = await fetch(`http://localhost:5000/api/blood-requests`);
+          const bloodRequestResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests`);
           if (bloodRequestResponse.ok) {
             const bloodRequestData = await bloodRequestResponse.json();
             const bloodRequestsArray = Array.isArray(bloodRequestData) ? bloodRequestData : [];
@@ -149,7 +149,7 @@ function HospitalDashboard() {
           }
           
           // Load blood inventory
-          const inventoryResponse = await fetch(`http://localhost:5000/api/blood-inventory`);
+          const inventoryResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`);
           if (inventoryResponse.ok) {
             const inventoryData = await inventoryResponse.json();
             setBloodInventory(inventoryData || []);

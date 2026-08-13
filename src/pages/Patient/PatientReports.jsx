@@ -6,7 +6,6 @@ import {
   FaDownload,
   FaEye,
   FaFilter,
-  FaCalendar,
   FaBars,
   FaRightFromBracket,
   FaChartLine,
@@ -16,15 +15,12 @@ import {
   FaBell,
   FaUser,
   FaDroplet,
-  FaHouse,
 } from "react-icons/fa6";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
-const RED_DK = "#8B0000";
 const NAVY = "#0F172A";
 const NAVY2 = "#1E293B";
-const SLATE = "#334155";
 const SLATE_L = "#64748B";
 const BORDER = "#E2E8F0";
 const SMOKE = "#F8FAFC";
@@ -38,7 +34,6 @@ function PatientReports() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState([]);
-  const [bloodRequests, setBloodRequests] = useState([]);
   const [filterType, setFilterType] = useState("all");
   const [showFilter, setShowFilter] = useState(false);
 
@@ -55,56 +50,44 @@ function PatientReports() {
 
   const active = "my-reports";
 
-  const handleLogout = () => {
-    // Clerk will handle the sign out via SignOutButton
-  };
-
   const w = sidebarCollapsed ? 68 : SIDEBAR_W;
-
-  useEffect(() => {
-    if (user?.id) {
-      loadPatientData();
-    }
-  }, [user]);
 
   const loadPatientData = async () => {
     try {
       // Load blood requests from backend
       const email = user?.emailAddresses?.[0]?.emailAddress;
-      const bloodRequestsResponse = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+      const bloodRequestsResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
       let bloodRequestsData = [];
       
       if (bloodRequestsResponse.ok) {
         const data = await bloodRequestsResponse.json();
         bloodRequestsData = data.bloodRequests || [];
-        setBloodRequests(bloodRequestsData);
       }
-
-      // Generate reports from completed blood requests
-      const completedRequests = bloodRequestsData.filter(req => 
-        req.status === 'Completed' || req.status === 'Blood Ready'
-      );
       
-      const bloodRequestReports = completedRequests.map((req, index) => ({
-        id: `br-${req._id || req.id}`,
-        name: `Blood Request Receipt - ${req.bloodGroup}`,
-        date: req.completedAt || req.updatedAt || req.createdAt,
+      // Generate reports from blood requests
+      const generatedReports = bloodRequestsData.map((request, index) => ({
+        id: index + 1,
         type: "Blood Request",
-        status: "Available",
-        requestId: req._id || req.id,
-        bloodGroup: req.bloodGroup,
-        units: req.units,
-        hospital: req.hospitalName || req.hospital,
-        amount: req.amount || 0
+        date: request.requestDate || new Date().toISOString().split('T')[0],
+        status: request.status || "Pending",
+        bloodGroup: request.bloodGroup || "Unknown",
+        hospital: request.hospitalName || "Unknown Hospital",
+        units: request.unitsRequired || 1,
       }));
-
-      setReports(bloodRequestReports);
+      
+      setReports(generatedReports);
+      setLoading(false);
     } catch (error) {
       console.error('Error loading patient data:', error);
-    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      loadPatientData();
+    }
+  }, [user, loadPatientData]);
 
   const filteredReports = filterType === "all" ? reports : reports.filter(r => r.type === filterType);
 

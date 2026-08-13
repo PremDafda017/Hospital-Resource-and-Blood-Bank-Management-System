@@ -46,14 +46,14 @@ const DonationCampaigns = () => {
   const loadData = async () => {
     try {
       // Load campaigns
-      const campaignsResponse = await fetch("http://localhost:5000/api/campaigns");
+      const campaignsResponse = await fetch("https://hospital-resource-and-blood-bank.onrender.com/api/campaigns");
       if (campaignsResponse.ok) {
         const campaignsData = await campaignsResponse.json();
         setCampaigns(campaignsData);
       }
 
       // Load emergency requests
-      const emergencyResponse = await fetch("http://localhost:5000/api/emergency-requests");
+      const emergencyResponse = await fetch("https://hospital-resource-and-blood-bank.onrender.com/api/emergency-requests");
       if (emergencyResponse.ok) {
         const emergencyData = await emergencyResponse.json();
         setEmergencyRequests(emergencyData);
@@ -68,7 +68,7 @@ const DonationCampaigns = () => {
 
   const handleParticipate = async (campaignId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/campaigns/${campaignId}/participate`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/campaigns/${campaignId}/participate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -93,7 +93,7 @@ const DonationCampaigns = () => {
 
   const handleEmergencyResponse = async (requestId, accepted) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/emergency-requests/${requestId}/respond`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/emergency-requests/${requestId}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -158,7 +158,7 @@ const EligibilityChecker = () => {
   const loadDonorData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}`);
       if (response.ok) {
         const data = await response.json();
         if (data.profile) {
@@ -357,7 +357,7 @@ const EligibilityChecker = () => {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/appointment-requests`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/appointment-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -404,7 +404,7 @@ const EligibilityChecker = () => {
 
   const handleNotifyMe = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/notify-eligibility`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/notify-eligibility`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

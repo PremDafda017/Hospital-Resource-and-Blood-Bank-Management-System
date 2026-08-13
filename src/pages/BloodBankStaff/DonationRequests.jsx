@@ -107,7 +107,7 @@ function DonationRequests() {
   const loadRequests = async () => {
     try {
       // Load ALL appointment requests from MongoDB (not just pending)
-      const aptResponse = await fetch(`http://localhost:5000/api/bloodbank/appointment-requests`);
+      const aptResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointment-requests`);
       if (aptResponse.ok) {
         const aptData = await aptResponse.json();
         console.log("Loaded appointment requests:", aptData);
@@ -119,7 +119,7 @@ function DonationRequests() {
       }
 
       // Load campaign participation requests from MongoDB
-      const campResponse = await fetch(`http://localhost:5000/api/bloodbank/campaign-requests`);
+      const campResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaign-requests`);
       if (campResponse.ok) {
         const campData = await campResponse.json();
         setCampaignRequests(campData);
@@ -139,7 +139,7 @@ function DonationRequests() {
     console.log("Approving appointment with ID:", requestId);
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointment-requests/${requestId}/approve`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointment-requests/${requestId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -163,7 +163,7 @@ function DonationRequests() {
   const handleRejectAppointment = async (requestId) => {
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointment-requests/${requestId}/reject`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointment-requests/${requestId}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rejectionReason: "Rejected by blood bank staff" }),
@@ -187,7 +187,7 @@ function DonationRequests() {
   const handleApproveCampaign = async (requestId) => {
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaign-requests/${requestId}/approve`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaign-requests/${requestId}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -210,7 +210,7 @@ function DonationRequests() {
   const handleRejectCampaign = async (requestId) => {
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/campaign-requests/${requestId}/reject`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/campaign-requests/${requestId}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rejectionReason: "Rejected by blood bank staff" }),
@@ -235,7 +235,7 @@ function DonationRequests() {
     setSubmitting(true);
     try {
       // This endpoint now handles both certificate generation and status update to Completed
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointment-requests/${requestId}/complete`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointment-requests/${requestId}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

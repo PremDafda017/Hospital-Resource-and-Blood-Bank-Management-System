@@ -659,13 +659,13 @@ function Dashboard() {
   useEffect(() => {
     const fetchAdminStats = async () => {
       try {
-        const statsResponse = await fetch('http://localhost:5000/api/admin/stats');
+        const statsResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/admin/stats');
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
           setAdminStats(statsData);
         }
 
-        const recentResponse = await fetch('http://localhost:5000/api/admin/recent-requests?limit=5');
+        const recentResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/admin/recent-requests?limit=5');
         if (recentResponse.ok) {
           const recentData = await recentResponse.json();
           setRecentRequests(recentData);
@@ -679,7 +679,6 @@ function Dashboard() {
     fetchAdminStats();
   }, []);
 
-  const handleLogout = async () => { await signOut(); navigate("/login"); };
   const handleNavigate = (path) => { setActiveNav(path.replace("/","")); navigate(path); };
 
   if (!userLoaded) return (
@@ -782,7 +781,7 @@ function Dashboard() {
       `}</style>
 
       {/* Sidebar */}
-      <Sidebar active={activeNav} navigate={handleNavigate} onLogout={handleLogout} collapsed={collapsed}/>
+      <Sidebar active={activeNav} navigate={handleNavigate} onLogout={() => {}} collapsed={collapsed}/>
 
       {/* Topbar */}
       <Topbar

@@ -96,7 +96,7 @@ function PatientProfile() {
       const loadProfile = async () => {
         try {
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const response = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+          const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
           if (response.ok) {
             const data = await response.json();
             if (data.profile && Object.keys(data.profile).length > 0) {
@@ -180,7 +180,7 @@ function PatientProfile() {
   const handleSave = async () => {
     // Save to MongoDB
     try {
-      const response = await fetch(`http://localhost:5000/api/patient/${user.id}/profile`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -242,7 +242,7 @@ function PatientProfile() {
     if (user?.id) {
       try {
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const response = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
         if (response.ok) {
           const data = await response.json();
           if (data.profile && Object.keys(data.profile).length > 0) {

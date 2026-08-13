@@ -117,7 +117,7 @@ function AppointmentWizard() {
 
   const loadDoctors = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/doctors');
+      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/doctors');
       if (response.ok) {
         const data = await response.json();
         setDoctors(data);
@@ -244,7 +244,7 @@ function AppointmentWizard() {
         amount: bookingData.consultationFee,
       };
 
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(appointmentData),

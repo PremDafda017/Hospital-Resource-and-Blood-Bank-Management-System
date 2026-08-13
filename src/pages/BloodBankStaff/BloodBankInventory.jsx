@@ -90,7 +90,7 @@ function BloodBankInventory() {
   useEffect(() => {
     const loadInventory = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/blood-inventory`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`);
         if (response.ok) {
           const data = await response.json();
           console.log('Fetched inventory data:', data);

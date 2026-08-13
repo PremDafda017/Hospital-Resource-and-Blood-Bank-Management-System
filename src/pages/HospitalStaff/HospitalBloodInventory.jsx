@@ -81,7 +81,7 @@ function HospitalBloodInventory() {
     // Load blood inventory from localStorage or API
     const loadInventory = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/blood-inventory`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`);
         if (response.ok) {
           const data = await response.json();
           setInventory(data || []);
@@ -130,7 +130,7 @@ function HospitalBloodInventory() {
 
   const handleUpdate = async (id, newUnits) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/blood-inventory/${id}`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ units: newUnits })
@@ -138,7 +138,7 @@ function HospitalBloodInventory() {
       
       if (response.ok) {
         // Reload inventory
-        const reloadResponse = await fetch(`http://localhost:5000/api/blood-inventory`);
+        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`);
         if (reloadResponse.ok) {
           const data = await reloadResponse.json();
           setInventory(data || []);

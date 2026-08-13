@@ -57,7 +57,7 @@ export const NotificationProvider = ({ children }) => {
     if (user?.id) {
       try {
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const response = await fetch(`http://localhost:5000/api/patient/${user.id}/notifications`, {
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/notifications`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

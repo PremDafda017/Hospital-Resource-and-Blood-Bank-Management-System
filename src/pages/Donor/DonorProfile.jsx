@@ -102,7 +102,7 @@ function DonorProfile() {
       const loadProfile = async () => {
         try {
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const response = await fetch(`http://localhost:5000/api/donor/${user.id}?email=${email}`);
+          const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}?email=${email}`);
           if (response.ok) {
             const data = await response.json();
             if (data.profile && Object.keys(data.profile).length > 0) {
@@ -186,7 +186,7 @@ function DonorProfile() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/profile`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -247,7 +247,7 @@ function DonorProfile() {
     if (user?.id) {
       try {
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const response = await fetch(`http://localhost:5000/api/donor/${user.id}?email=${email}`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}?email=${email}`);
         if (response.ok) {
           const data = await response.json();
           if (data.profile && Object.keys(data.profile).length > 0) {

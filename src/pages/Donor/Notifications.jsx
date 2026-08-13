@@ -43,7 +43,7 @@ const Notifications = () => {
 
   const loadNotifications = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/notifications`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/notifications`);
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);

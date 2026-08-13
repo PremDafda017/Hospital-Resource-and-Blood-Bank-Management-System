@@ -201,7 +201,7 @@ function AppointmentHome() {
         setHospitals(bloodBankDatabase);
 
         // Load doctors
-        const doctorResponse = await fetch('http://localhost:5000/api/doctors');
+        const doctorResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/doctors');
         if (doctorResponse.ok) {
           const doctorData = await doctorResponse.json();
           setDoctors(doctorData);

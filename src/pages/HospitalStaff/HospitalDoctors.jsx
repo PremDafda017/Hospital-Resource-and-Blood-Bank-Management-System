@@ -108,7 +108,7 @@ function HospitalDoctors() {
     // Load doctors from localStorage or API
     const loadDoctors = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/doctors`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/doctors`);
         if (response.ok) {
           const data = await response.json();
           console.log('API returned doctors:', data);
@@ -475,7 +475,7 @@ function HospitalDoctors() {
       console.log('Adding doctor to database:', newDoctor);
       
       // Try to save to database first
-      const response = await fetch('http://localhost:5000/api/doctors', {
+      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/doctors', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -589,7 +589,7 @@ function HospitalDoctors() {
       };
       
       // Try to update in database
-      const response = await fetch(`http://localhost:5000/api/doctors/${selectedDoctor.id}`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/doctors/${selectedDoctor.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -726,7 +726,7 @@ Generated on: ${new Date().toLocaleDateString()}
       const doctorToUpdate = doctors.find(doc => doc.id === doctorId);
       if (doctorToUpdate) {
         // Try to update in database
-        const response = await fetch(`http://localhost:5000/api/doctors/${doctorId}`, {
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/doctors/${doctorId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -765,7 +765,7 @@ Generated on: ${new Date().toLocaleDateString()}
     if (window.confirm('Are you sure you want to delete this doctor?')) {
       try {
         // Try to delete from database
-        const response = await fetch(`http://localhost:5000/api/doctors/${doctorId}`, {
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/doctors/${doctorId}`, {
           method: 'DELETE'
         });
         

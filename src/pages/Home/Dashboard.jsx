@@ -659,13 +659,13 @@ function Dashboard() {
   useEffect(() => {
     const fetchAdminStats = async () => {
       try {
-        const statsResponse = await fetch('http://localhost:5000/api/admin/stats');
+        const statsResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/admin/stats');
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
           setAdminStats(statsData);
         }
 
-        const recentResponse = await fetch('http://localhost:5000/api/admin/recent-requests?limit=5');
+        const recentResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/admin/recent-requests?limit=5');
         if (recentResponse.ok) {
           const recentData = await recentResponse.json();
           setRecentRequests(recentData);

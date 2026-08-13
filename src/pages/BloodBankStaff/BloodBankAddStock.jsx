@@ -104,7 +104,7 @@ function BloodBankAddStock() {
     
     try {
       // First, try to find existing inventory for this blood group
-      const findResponse = await fetch(`http://localhost:5000/api/blood-inventory`);
+      const findResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`);
       if (findResponse.ok) {
         const inventoryData = await findResponse.json();
         const existingInventory = inventoryData.find(
@@ -113,7 +113,7 @@ function BloodBankAddStock() {
 
         if (existingInventory) {
           // Update existing inventory (don't send image to avoid payload size issues)
-          const updateResponse = await fetch(`http://localhost:5000/api/blood-inventory/${existingInventory._id}`, {
+          const updateResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory/${existingInventory._id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -172,7 +172,7 @@ function BloodBankAddStock() {
           }
         } else {
           // Add new inventory record (don't send image to avoid payload size issues)
-          const addResponse = await fetch(`http://localhost:5000/api/blood-inventory`, {
+          const addResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

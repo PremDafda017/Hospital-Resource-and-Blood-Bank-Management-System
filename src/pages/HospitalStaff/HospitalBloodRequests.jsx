@@ -92,7 +92,7 @@ function HospitalBloodRequests() {
 
   const loadBloodRequests = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/blood-requests`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests`);
       if (response.ok) {
         const data = await response.json();
         setBloodRequests(data);
@@ -208,7 +208,7 @@ function HospitalBloodRequests() {
 
       switch (newStatus) {
         case 'Under Verification':
-          endpoint = `http://localhost:5000/api/blood-requests/${requestId}/status/under-verification`;
+          endpoint = `https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/under-verification`;
           body = {
             hospitalId: user?.id || "",
             hospitalName: "Hospital",
@@ -217,7 +217,7 @@ function HospitalBloodRequests() {
           };
           break;
         case 'Forwarded':
-          endpoint = `http://localhost:5000/api/blood-requests/${requestId}/status/forwarded`;
+          endpoint = `https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/forwarded`;
           body = {
             bloodBankId: "",
             bloodBankName: "Blood Bank",
@@ -226,14 +226,14 @@ function HospitalBloodRequests() {
           };
           break;
         case 'Completed':
-          endpoint = `http://localhost:5000/api/blood-requests/${requestId}/status/completed`;
+          endpoint = `https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/completed`;
           body = {
             issuedBy: user?.id || "",
             issuedByName: user?.fullName || "Hospital Staff"
           };
           break;
         case 'Rejected':
-          endpoint = `http://localhost:5000/api/blood-requests/${requestId}/status/rejected`;
+          endpoint = `https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/rejected`;
           body = {
             rejectedBy: user?.id || "",
             rejectedByName: user?.fullName || "Hospital Staff",
@@ -253,7 +253,7 @@ function HospitalBloodRequests() {
 
       if (response.ok) {
         // Reload blood requests
-        const reloadResponse = await fetch(`http://localhost:5000/api/blood-requests`);
+        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests`);
         if (reloadResponse.ok) {
           const data = await reloadResponse.json();
           setBloodRequests(data);
@@ -268,7 +268,7 @@ function HospitalBloodRequests() {
   const handleManualRefresh = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/blood-requests`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests`);
       if (response.ok) {
         const data = await response.json();
         setBloodRequests(data);

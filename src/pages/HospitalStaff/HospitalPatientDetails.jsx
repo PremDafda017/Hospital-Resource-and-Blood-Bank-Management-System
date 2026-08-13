@@ -75,7 +75,7 @@ function HospitalPatientDetails() {
   useEffect(() => {
     const loadPatient = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/patient/all`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/all`);
         if (response.ok) {
           const data = await response.json();
           const foundPatient = data.find(p => p._id === patientId || p.clerkId === patientId);

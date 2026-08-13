@@ -707,7 +707,7 @@ export default function HomePage() {
       localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
       
       // Create donor record in backend
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/register`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

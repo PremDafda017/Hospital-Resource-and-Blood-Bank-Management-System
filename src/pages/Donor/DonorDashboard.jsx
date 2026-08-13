@@ -141,7 +141,7 @@ function DonorDashboard() {
   const loadDonorData = async () => {
     try {
       // Load dashboard data from backend
-      const dashboardResponse = await fetch(`http://localhost:5000/api/donor/${user.id}/dashboard`);
+      const dashboardResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/dashboard`);
       if (dashboardResponse.ok) {
         const dashboardData = await dashboardResponse.json();
         setDonorProfile(dashboardData.donor);
@@ -157,7 +157,7 @@ function DonorDashboard() {
         calculateEligibilityStatus(dashboardData);
       } else {
         // Check if application exists
-        const appResponse = await fetch(`http://localhost:5000/api/donor/application/${user.id}`);
+        const appResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/application/${user.id}`);
         if (appResponse.ok) {
           const appData = await appResponse.json();
           setDonorApplication(appData);
@@ -167,7 +167,7 @@ function DonorDashboard() {
         }
         
         // Load donor profile
-        const profileResponse = await fetch(`http://localhost:5000/api/donor/${user.id}`);
+        const profileResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}`);
         if (profileResponse.ok) {
           const profileData = await profileResponse.json();
           setDonorProfile(profileData);
@@ -175,7 +175,7 @@ function DonorDashboard() {
       }
 
       // Load certificates
-      const certificatesResponse = await fetch(`http://localhost:5000/api/donor/${user.id}/certificates`);
+      const certificatesResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/certificates`);
       if (certificatesResponse.ok) {
         const certificatesData = await certificatesResponse.json();
         setCertificates(certificatesData);

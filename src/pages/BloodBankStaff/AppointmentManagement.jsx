@@ -97,7 +97,7 @@ function AppointmentManagement() {
 
   const loadAppointments = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointments`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointments`);
       if (response.ok) {
         const data = await response.json();
         setAppointments(data);
@@ -111,7 +111,7 @@ function AppointmentManagement() {
 
   const handleCompleteDonation = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointments/${selectedAppointment._id}/complete`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointments/${selectedAppointment._id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -139,7 +139,7 @@ function AppointmentManagement() {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
     
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointments/${appointmentId}/cancel`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointments/${appointmentId}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

@@ -65,7 +65,7 @@ function PatientNotifications() {
       const loadNotifications = async () => {
         try {
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const response = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+          const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
           if (response.ok) {
             const data = await response.json();
             setNotifications(data.notifications || []);
@@ -90,7 +90,7 @@ function PatientNotifications() {
     if (user?.id) {
       try {
         const notification = updatedNotifications.find(n => n.id === id);
-        const response = await fetch(`http://localhost:5000/api/patient/${user.id}/notifications/${id}`, {
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/notifications/${id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ function PatientNotifications() {
         if (response.ok) {
           // Reload notifications from MongoDB
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const reloadResponse = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+          const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
           if (reloadResponse.ok) {
             const reloadData = await reloadResponse.json();
             setNotifications(reloadData.notifications || []);
@@ -121,7 +121,7 @@ function PatientNotifications() {
       try {
         // Update each notification individually
         for (const notification of updatedNotifications) {
-          await fetch(`http://localhost:5000/api/patient/${user.id}/notifications/${notification.id}`, {
+          await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/notifications/${notification.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ function PatientNotifications() {
         
         // Reload notifications from MongoDB
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const reloadResponse = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
         if (reloadResponse.ok) {
           const reloadData = await reloadResponse.json();
           setNotifications(reloadData.notifications || []);
@@ -147,14 +147,14 @@ function PatientNotifications() {
     if (window.confirm('Are you sure you want to delete this notification?')) {
       // Delete from MongoDB
       try {
-        const response = await fetch(`http://localhost:5000/api/patient/${user.id}/notifications/${id}`, {
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/notifications/${id}`, {
           method: 'DELETE',
         });
         
         if (response.ok) {
           // Reload notifications from MongoDB
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const reloadResponse = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+          const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
           if (reloadResponse.ok) {
             const reloadData = await reloadResponse.json();
             setNotifications(reloadData.notifications || []);

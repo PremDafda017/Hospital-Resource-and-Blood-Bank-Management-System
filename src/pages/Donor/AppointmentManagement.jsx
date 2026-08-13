@@ -56,7 +56,7 @@ const AppointmentManagement = () => {
       setLoading(true);
       
       // Fetch appointment requests from MongoDB using donor-specific endpoint
-      const requestsResponse = await fetch(`http://localhost:5000/api/donor/${user.id}/appointment-requests`);
+      const requestsResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/appointment-requests`);
       if (requestsResponse.ok) {
         const donorRequests = await requestsResponse.json();
         setAppointmentRequests(donorRequests);
@@ -65,7 +65,7 @@ const AppointmentManagement = () => {
       }
 
       // Fetch approved appointments from MongoDB
-      const appointmentsResponse = await fetch(`http://localhost:5000/api/donor/${user.id}/appointments`);
+      const appointmentsResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/appointments`);
       if (appointmentsResponse.ok) {
         const appointments = await appointmentsResponse.json();
         setApprovedAppointments(appointments);
@@ -88,7 +88,7 @@ const AppointmentManagement = () => {
 
     setSubmitting(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/appointment-requests`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/appointment-requests`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -130,7 +130,7 @@ const AppointmentManagement = () => {
     if (!window.confirm("Are you sure you want to cancel this request?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/bloodbank/appointment-requests/${requestId}/reject`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/bloodbank/appointment-requests/${requestId}/reject`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rejectionReason: "Cancelled by donor" }),

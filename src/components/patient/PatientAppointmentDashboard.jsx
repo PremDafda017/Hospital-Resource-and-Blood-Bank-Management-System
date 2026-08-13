@@ -46,7 +46,7 @@ function PatientAppointmentDashboard() {
   const loadAppointments = async () => {
     try {
       const email = user?.emailAddresses?.[0]?.emailAddress;
-      const response = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
       if (response.ok) {
         const data = await response.json();
         setAppointments(data.appointments || []);

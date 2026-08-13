@@ -67,7 +67,7 @@ function HospitalReports() {
     // Load all reports from MongoDB
     const loadReports = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/patient/all`);
+        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/all`);
         if (response.ok) {
           const data = await response.json();
           // Flatten all reports from all patients

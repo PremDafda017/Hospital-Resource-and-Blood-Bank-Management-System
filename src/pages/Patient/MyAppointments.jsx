@@ -70,7 +70,7 @@ function MyAppointments() {
     if (user?.id) {
       const loadAppointments = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/appointments/patient/${user.id}`);
+          const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments/patient/${user.id}`);
           if (response.ok) {
             const data = await response.json();
             setAppointments(data);
@@ -94,7 +94,7 @@ function MyAppointments() {
   const handleCancelConfirm = async () => {
     setModalLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/appointments/${selectedAppointment._id}/cancel`, {
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments/${selectedAppointment._id}/cancel`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -121,7 +121,7 @@ function MyAppointments() {
       });
 
       // Reload appointments
-      const reloadResponse = await fetch(`http://localhost:5000/api/appointments/patient/${user.id}`);
+      const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments/patient/${user.id}`);
       if (reloadResponse.ok) {
         const reloadData = await reloadResponse.json();
         setAppointments(reloadData);

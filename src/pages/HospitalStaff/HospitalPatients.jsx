@@ -97,7 +97,7 @@ function HospitalPatients() {
       // Load patients from MongoDB by role 'patient'
       const loadPatients = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/users/role/patient`);
+          const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/users/role/patient`);
           if (response.ok) {
             const data = await response.json();
             setPatients(Array.isArray(data) ? data : []);

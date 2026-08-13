@@ -123,7 +123,7 @@ function BookAppointment() {
         setHospitals(hospitalDatabase);
 
         // Load doctors from API
-        const doctorResponse = await fetch('http://localhost:5000/api/doctors');
+        const doctorResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/doctors');
         if (doctorResponse.ok) {
           const doctorData = await doctorResponse.json();
           setDoctors(doctorData);
@@ -205,7 +205,7 @@ function BookAppointment() {
 
     try {
       const email = user?.emailAddresses?.[0]?.emailAddress;
-      const patientData = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+      const patientData = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
       const patient = await patientData.json();
 
       const appointmentData = {
@@ -235,7 +235,7 @@ function BookAppointment() {
 
       console.log("Sending appointment data:", appointmentData);
 
-      const response = await fetch('http://localhost:5000/api/appointments', {
+      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

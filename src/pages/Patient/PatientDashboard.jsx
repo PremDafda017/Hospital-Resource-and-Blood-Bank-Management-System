@@ -96,7 +96,7 @@ function PatientDashboard() {
     try {
       // Load blood requests from backend (same endpoint as PatientBloodRequests)
       const email = user?.emailAddresses?.[0]?.emailAddress;
-      const bloodRequestsResponse = await fetch(`http://localhost:5000/api/patient/${user.id}?email=${email}`);
+      const bloodRequestsResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
       if (bloodRequestsResponse.ok) {
         const data = await bloodRequestsResponse.json();
         setMyRequests(data.bloodRequests || []);
@@ -123,7 +123,7 @@ function PatientDashboard() {
       }
 
       // Load appointments from backend
-      const appointmentsResponse = await fetch(`http://localhost:5000/api/appointments/patient/${user.id}`);
+      const appointmentsResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/appointments/patient/${user.id}`);
       if (appointmentsResponse.ok) {
         const appointmentsData = await appointmentsResponse.json();
         setMyAppointments(appointmentsData);

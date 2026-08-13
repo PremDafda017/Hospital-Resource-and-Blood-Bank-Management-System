@@ -45,13 +45,13 @@ const CertificateGenerator = () => {
 
   const loadCertificates = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/donor/${user.id}/certificates`);
+      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/certificates`);
       if (response.ok) {
         const data = await response.json();
         setCertificates(data);
       } else {
         // Try alternative endpoint
-        const altResponse = await fetch(`http://localhost:5000/api/certificates?clerkId=${user.id}`);
+        const altResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/certificates?clerkId=${user.id}`);
         if (altResponse.ok) {
           const data = await altResponse.json();
           setCertificates(data);

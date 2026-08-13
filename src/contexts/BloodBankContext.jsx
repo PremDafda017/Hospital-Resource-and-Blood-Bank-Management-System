@@ -26,7 +26,7 @@ export const BloodBankProvider = ({ children }) => {
     setLoading(true);
     try {
       // Fetch inventory
-      const inventoryResponse = await fetch('http://localhost:5000/api/blood-inventory');
+      const inventoryResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory');
       if (inventoryResponse.ok) {
         const inventoryData = await inventoryResponse.json();
         setInventory(inventoryData);
@@ -34,7 +34,7 @@ export const BloodBankProvider = ({ children }) => {
 
       // Fetch stock history (if API exists)
       try {
-        const historyResponse = await fetch('http://localhost:5000/api/stock-history');
+        const historyResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/stock-history');
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
           setStockHistory(historyData);
@@ -60,7 +60,7 @@ export const BloodBankProvider = ({ children }) => {
 
       // Fetch notifications (if API exists)
       try {
-        const notificationsResponse = await fetch('http://localhost:5000/api/notifications');
+        const notificationsResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/notifications');
         if (notificationsResponse.ok) {
           const notificationsData = await notificationsResponse.json();
           setNotifications(notificationsData);
@@ -87,7 +87,7 @@ export const BloodBankProvider = ({ children }) => {
   // Add stock history entry
   const addStockHistoryEntry = async (entry) => {
     try {
-      const response = await fetch('http://localhost:5000/api/stock-history', {
+      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/stock-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)
@@ -120,7 +120,7 @@ export const BloodBankProvider = ({ children }) => {
   // Add notification
   const addNotification = async (notification) => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications', {
+      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notification)
