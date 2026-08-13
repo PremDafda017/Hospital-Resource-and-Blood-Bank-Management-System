@@ -5705,6 +5705,28 @@ app.get("/api/appointments/hospital/:hospitalId/today", async (req, res) => {
   }
 });
 
+// Health check endpoint for uptime monitoring
+app.get("/health", (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  const healthStatus = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    database: isDbConnected ? "connected" : "disconnected",
+    environment: process.env.NODE_ENV || "development"
+  };
+  
+  if (isDbConnected) {
+    res.status(200).json(healthStatus);
+  } else {
+    res.status(503).json({
+      ...healthStatus,
+      status: "degraded",
+      message: "Database connection issue"
+    });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
