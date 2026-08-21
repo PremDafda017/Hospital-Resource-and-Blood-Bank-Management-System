@@ -816,7 +816,7 @@ export default function HomePage() {
         
         /* Mobile-specific improvements */
         @media(max-width:768px){
-          header{min-height:auto!important;padding-top:100px!important;padding-bottom:60px!important;}
+          header{min-height:auto!important;padding-top:120px!important;padding-bottom:80px!important;}
           .hero-buttons button{padding:14px 24px!important;font-size:0.95rem!important;}
           .four-col > div{border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.08)!important;padding:20px 12px!important;}
           .four-col > div:last-child{border-bottom:none!important;}
@@ -826,6 +826,48 @@ export default function HomePage() {
           .four-col{grid-template-columns:1fr!important;gap:32px!important;}
           .four-col > div:last-child{margin-bottom:0!important;}
           .mobile-menu{position:fixed;top:72px;left:0;right:0;z-index:999;max-height:calc(100vh - 72px);overflow-y:auto;}
+          
+          /* Header specific mobile styles */
+          header > div{padding-top:80px!important;}
+          header .animate-float{display:none!important;}
+          header h1{font-size:2.2rem!important;margin-bottom:20px!important;}
+          header p{font-size:0.95rem!important;margin-bottom:28px!important;}
+          header .hero-stats{justify-content:center!important;text-align:center!important;gap:24px!important;}
+          header .hero-stats > div{min-width:100px!important;}
+        }
+        
+        @media(max-width:640px){
+          header{padding-top:100px!important;padding-bottom:60px!important;}
+          header > div{padding-top:60px!important;}
+          header h1{font-size:1.8rem!important;}
+          header p{font-size:0.9rem!important;max-width:100%!important;}
+          header .hero-buttons{flex-direction:column!important;gap:12px!important;}
+          header .hero-buttons button{width:100%!important;padding:14px 20px!important;}
+          header .hero-stats{flex-direction:column!important;gap:20px!important;padding-top:20px!important;}
+          
+          /* Hide glassmorphism panel on very small screens */
+          header .two-col > div:last-child{display:none!important;}
+          header .two-col > div:first-child{width:100%!important;}
+        }
+        
+        @media(max-width:480px){
+          header{padding-top:80px!important;padding-bottom:50px!important;}
+          header > div{padding-top:50px!important;padding:0 16px!important;}
+          header h1{font-size:1.6rem!important;line-height:1.2!important;}
+          header p{font-size:0.85rem!important;}
+          header .hero-buttons button{padding:12px 16px!important;font-size:0.9rem!important;}
+          
+          /* User profile card mobile */
+          header > div > div > div:first-child > div:first-child{padding:12px 16px!important;margin-bottom:16px!important;}
+          header > div > div > div:first-child > div:first-child > div > div:first-child{width:40px!important;height:40px!important;font-size:1rem!important;}
+          header > div > div > div:first-child > div:first-child > div > div:last-child p{font-size:0.9rem!important;}
+          header > div > div > div:first-child > div:first-child > div > div:last-child p:last-child{font-size:0.75rem!important;}
+          
+          /* Live badge mobile */
+          header > div > div > div:first-child > div:nth-child(2){padding:4px 12px!important;font-size:0.75rem!important;}
+          
+          /* Scroll indicator hide on mobile */
+          header > div:last-child{display:none!important;}
         }
       `}</style>
 
