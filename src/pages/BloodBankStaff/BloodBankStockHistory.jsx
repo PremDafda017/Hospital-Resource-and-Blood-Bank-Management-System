@@ -57,6 +57,7 @@ function BloodBankStockHistory() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("All");
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const { stockHistory } = useBloodBank();
@@ -365,17 +366,29 @@ function BloodBankStockHistory() {
           transition={{ duration: 0.4 }}
           style={{ padding:isMobile ? "16px" : isTablet ? "20px" : "32px" }}
         >
-          <div style={{ marginBottom:isMobile ? 16 : 24 }}>
-            <div style={{ position:"relative" }}>
-              <FaMagnifyingGlass style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:SLATE_L }} />
-              <input
-                type="text"
-                placeholder="Search stock history..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width:"100%", padding:isMobile ? "8px 12px 8px 40" : "10px 12px 10px 40", borderRadius:8, border:`1px solid ${BORDER}`, fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}
-              />
+          <div style={{ display:"flex", gap:isMobile ? 12 : 16, marginBottom:isMobile ? 16 : 24, flexWrap:"wrap" }}>
+            <div style={{ flex:1, minWidth:isMobile ? "100%" : 250 }}>
+              <div style={{ position:"relative" }}>
+                <FaMagnifyingGlass style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:SLATE_L }} />
+                <input
+                  type="text"
+                  placeholder="Search stock history..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width:"100%", padding:isMobile ? "8px 12px 8px 40" : "10px 12px 10px 40", borderRadius:8, border:`1px solid ${BORDER}`, fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}
+                />
+              </div>
             </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{ padding:isMobile ? "8px 12px" : "10px 16px", borderRadius:8, border:`1px solid ${BORDER}`, fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2, background:WHITE, minWidth:isMobile ? "100%" : "auto" }}
+            >
+              <option value="All">All Types</option>
+              <option value="Added">Added</option>
+              <option value="Expired">Expired</option>
+              <option value="Issued">Issued</option>
+            </select>
           </div>
 
           <motion.div
@@ -400,8 +413,9 @@ function BloodBankStockHistory() {
                 </thead>
                 <tbody>
                   {displayStockHistory.filter(h => 
-                    h.bloodGroup.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    h.type.toLowerCase().includes(searchQuery.toLowerCase())
+                    (filterType === "All" || h.type === filterType) &&
+                    (h.bloodGroup.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    h.type.toLowerCase().includes(searchQuery.toLowerCase()))
                   ).map((history, index) => (
                     <motion.tr
                       key={index}
