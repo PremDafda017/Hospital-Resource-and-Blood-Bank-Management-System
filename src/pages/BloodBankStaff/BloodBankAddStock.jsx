@@ -112,12 +112,17 @@ function BloodBankAddStock() {
         );
 
         if (existingInventory) {
-          // Update existing inventory (don't send image to avoid payload size issues)
+          // Update existing inventory with donor information for batch tracking
           const updateResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory/${existingInventory._id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              units: parseInt(existingInventory.units) + parseInt(formData.units)
+              units: parseInt(existingInventory.units) + parseInt(formData.units),
+              donorName: formData.donorName,
+              donorPhone: formData.phone,
+              donorEmail: formData.email,
+              collectionDate: formData.collectionDate,
+              expiryDate: formData.expiryDate
             })
           });
 
@@ -171,7 +176,7 @@ function BloodBankAddStock() {
             return;
           }
         } else {
-          // Add new inventory record (don't send image to avoid payload size issues)
+          // Add new inventory record with donor information for batch tracking
           const addResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -181,6 +186,10 @@ function BloodBankAddStock() {
                 units: parseInt(formData.units),
                 hospital: "City General Hospital",
                 expiryDate: formData.expiryDate,
+                collectionDate: formData.collectionDate,
+                donorName: formData.donorName,
+                donorPhone: formData.phone,
+                donorEmail: formData.email,
                 lastUpdated: new Date().toISOString().split('T')[0]
               }
             })

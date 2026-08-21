@@ -556,9 +556,20 @@ const bloodInventorySchema = new mongoose.Schema(
     bloodGroup: { type: String, required: true },
     units: { type: Number, required: true, default: 0 },
     hospital: { type: String, required: true },
-    expiryDate: { type: String, default: "" },
     lastUpdated: { type: String, default: new Date().toISOString().split('T')[0] },
     image: { type: String, default: "" },
+    // Track individual stock batches with expiry dates
+    batches: [{
+      batchId: { type: String, default: generateCustomId },
+      units: { type: Number, required: true },
+      expiryDate: { type: String, required: true },
+      collectionDate: { type: String, required: true },
+      donorName: { type: String, default: "" },
+      donorPhone: { type: String, default: "" },
+      donorEmail: { type: String, default: "" },
+      status: { type: String, default: "active" }, // active, expired
+      addedDate: { type: String, default: new Date().toISOString().split('T')[0] }
+    }]
   },
   { timestamps: true }
 );
@@ -3285,9 +3296,49 @@ app.post("/api/blood-inventory", async (req, res) => {
 
   if (isDbConnected) {
     try {
-      const newInventory = new BloodInventory(inventory);
-      await newInventory.save();
-      res.status(201).json({ message: "Blood inventory added successfully.", inventory: newInventory });
+      // Check if inventory already exists for this blood group
+      const existingInventory = await BloodInventory.findOne({ bloodGroup: inventory.bloodGroup, hospital: inventory.hospital });
+      
+      if (existingInventory) {
+        // Add new batch to existing inventory
+        const newBatch = {
+          batchId: generateCustomId(),
+          units: inventory.units,
+          expiryDate: inventory.expiryDate,
+          collectionDate: inventory.collectionDate || new Date().toISOString().split('T')[0],
+          donorName: inventory.donorName || "",
+          donorPhone: inventory.donorPhone || "",
+          donorEmail: inventory.donorEmail || "",
+          status: "active",
+          addedDate: new Date().toISOString().split('T')[0]
+        };
+        
+        existingInventory.batches.push(newBatch);
+        existingInventory.units += parseInt(inventory.units);
+        existingInventory.lastUpdated = new Date().toISOString().split('T')[0];
+        
+        await existingInventory.save();
+        res.status(201).json({ message: "Blood inventory updated successfully.", inventory: existingInventory, batch: newBatch });
+      } else {
+        // Create new inventory with first batch
+        const newInventory = new BloodInventory({
+          ...inventory,
+          units: parseInt(inventory.units),
+          batches: [{
+            batchId: generateCustomId(),
+            units: inventory.units,
+            expiryDate: inventory.expiryDate,
+            collectionDate: inventory.collectionDate || new Date().toISOString().split('T')[0],
+            donorName: inventory.donorName || "",
+            donorPhone: inventory.donorPhone || "",
+            donorEmail: inventory.donorEmail || "",
+            status: "active",
+            addedDate: new Date().toISOString().split('T')[0]
+          }]
+        });
+        await newInventory.save();
+        res.status(201).json({ message: "Blood inventory added successfully.", inventory: newInventory });
+      }
     } catch (err) {
       console.error("Add blood inventory error:", err);
       res.status(500).json({ message: "Server error occurred while adding blood inventory." });
@@ -3308,19 +3359,48 @@ app.post("/api/blood-inventory", async (req, res) => {
 // Update blood inventory
 app.put("/api/blood-inventory/:id", async (req, res) => {
   const { id } = req.params;
-  const { units, image } = req.body;
+  const { units, image, donorName, donorPhone, donorEmail, collectionDate, expiryDate } = req.body;
   const isDbConnected = mongoose.connection.readyState === 1;
 
   if (isDbConnected) {
     try {
-      const updateData = { units, lastUpdated: new Date().toISOString().split('T')[0] };
-      if (image !== undefined) {
-        updateData.image = image;
-      }
-      const inventory = await BloodInventory.findByIdAndUpdate(id, updateData, { new: true });
+      const inventory = await BloodInventory.findById(id);
       if (!inventory) {
         return res.status(404).json({ message: "Blood inventory not found." });
       }
+
+      const updateData = { lastUpdated: new Date().toISOString().split('T')[0] };
+      
+      if (units !== undefined) {
+        // Calculate the difference in units
+        const unitDifference = parseInt(units) - inventory.units;
+        
+        if (unitDifference > 0) {
+          // Adding units - create a new batch
+          const newBatch = {
+            batchId: generateCustomId(),
+            units: unitDifference,
+            expiryDate: expiryDate || new Date(Date.now() + 42 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 42 days
+            collectionDate: collectionDate || new Date().toISOString().split('T')[0],
+            donorName: donorName || "",
+            donorPhone: donorPhone || "",
+            donorEmail: donorEmail || "",
+            status: "active",
+            addedDate: new Date().toISOString().split('T')[0]
+          };
+          inventory.batches.push(newBatch);
+        }
+        
+        updateData.units = parseInt(units);
+      }
+      
+      if (image !== undefined) {
+        updateData.image = image;
+      }
+      
+      Object.assign(inventory, updateData);
+      await inventory.save();
+      
       res.status(200).json({ message: "Blood inventory updated successfully.", inventory });
     } catch (err) {
       console.error("Update blood inventory error:", err);
@@ -5726,6 +5806,102 @@ app.get("/health", (req, res) => {
     });
   }
 });
+
+// Scheduled job to check for expired blood batches
+const checkExpiredBloodBatches = async () => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  
+  if (!isDbConnected) {
+    console.log("Skipping expiry check - MongoDB not connected");
+    return;
+  }
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    console.log(`Checking for expired blood batches on ${today}`);
+    
+    // Find all blood inventory with active batches
+    const inventories = await BloodInventory.find({ "batches.status": "active" });
+    
+    for (const inventory of inventories) {
+      let expiredUnits = 0;
+      let expiredBatches = [];
+      
+      // Check each batch for expiry
+      for (const batch of inventory.batches) {
+        if (batch.status === "active" && batch.expiryDate < today) {
+          // Mark batch as expired
+          batch.status = "expired";
+          expiredUnits += batch.units;
+          expiredBatches.push(batch);
+          
+          console.log(`Expired batch ${batch.batchId} for ${inventory.bloodGroup}: ${batch.units} units expired on ${batch.expiryDate}`);
+        }
+      }
+      
+      if (expiredUnits > 0) {
+        // Update inventory units
+        inventory.units = Math.max(0, inventory.units - expiredUnits);
+        inventory.lastUpdated = today;
+        await inventory.save();
+        
+        // Add stock history entry for expired stock
+        for (const batch of expiredBatches) {
+          try {
+            // Find blood bank staff to add notification
+            const bloodBankStaff = await BloodBankStaff.findOne({ hospital: inventory.hospital });
+            
+            if (bloodBankStaff) {
+              // Add notification for expired blood
+              bloodBankStaff.notifications.push({
+                title: "Blood Stock Expired",
+                message: `${batch.units} units of ${inventory.bloodGroup} blood (Batch: ${batch.batchId}) expired on ${batch.expiryDate}. Stock has been automatically reduced.`,
+                date: new Date().toISOString(),
+                read: false,
+                type: "warning"
+              });
+              await bloodBankStaff.save();
+            }
+            
+            // Add to stock history if StockHistory model exists
+            try {
+              const StockHistory = mongoose.model("StockHistory");
+              await StockHistory.create({
+                date: today,
+                bloodGroup: inventory.bloodGroup,
+                units: batch.units,
+                type: "Expired",
+                batchId: batch.batchId,
+                expiryDate: batch.expiryDate,
+                donor: batch.donorName,
+                donorPhone: batch.donorPhone,
+                donorEmail: batch.donorEmail,
+                bloodBank: inventory.hospital,
+                notes: `Batch expired on ${batch.expiryDate}`
+              });
+            } catch (historyErr) {
+              console.log("StockHistory model not found, skipping history entry");
+            }
+          } catch (err) {
+            console.error("Error adding expiry notification/history:", err);
+          }
+        }
+        
+        console.log(`Updated ${inventory.bloodGroup} inventory: removed ${expiredUnits} expired units, remaining: ${inventory.units}`);
+      }
+    }
+    
+    console.log("Expiry check completed");
+  } catch (err) {
+    console.error("Error checking expired blood batches:", err);
+  }
+};
+
+// Run expiry check every hour (3600000 ms)
+setInterval(checkExpiredBloodBatches, 3600000);
+
+// Run expiry check on server startup
+setTimeout(checkExpiredBloodBatches, 5000);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -87,6 +87,24 @@ function BloodBankStockHistory() {
   // Use real stock history from context, fallback to static data if empty
   const displayStockHistory = stockHistory.length > 0 ? stockHistory : stockHistoryData;
 
+  // Function to determine expiry status
+  const getExpiryStatus = (expiryDate) => {
+    if (!expiryDate) return { status: "Unknown", color: "#94A3B8", bg: "#F1F5F9" };
+    
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 0) {
+      return { status: "Expired", color: "#DC2626", bg: "#FEE2E2" };
+    } else if (diffDays <= 7) {
+      return { status: `Expiring in ${diffDays} day${diffDays > 1 ? 's' : ''}`, color: "#F59E0B", bg: "#FEF3C7" };
+    } else {
+      return { status: "Valid", color: "#16A34A", bg: "#DCFCE7" };
+    }
+  };
+
   const handleViewDetails = (history) => {
     setSelectedHistory(history);
     setShowModal(true);
@@ -374,6 +392,8 @@ function BloodBankStockHistory() {
                     <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Blood Group</th>
                     <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Type</th>
                     <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Units</th>
+                    <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Expiry Date</th>
+                    <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Expiry Status</th>
                     <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Donor/Recipient</th>
                     <th style={{ padding:isMobile ? "10px 12px" : "16px", textAlign:"left", fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, fontWeight:600 }}>Actions</th>
                   </tr>
@@ -407,7 +427,7 @@ function BloodBankStockHistory() {
                         <span style={{
                           padding:isMobile ? "3px 8px" : "4px 10px",
                           borderRadius:6,
-                          background:history.type === "Added" ? "#DCFCE7" : "#FEE2E2",
+                          background:history.type === "Added" ? "#DCFCE7" : history.type === "Expired" ? "#FEE2E2" : "#FEE2E2",
                           color:history.type === "Added" ? "#16A34A" : "#DC2626",
                           fontSize:isMobile ? "0.7rem" : "0.75rem",
                           fontWeight:600
@@ -416,6 +436,24 @@ function BloodBankStockHistory() {
                         </span>
                       </td>
                       <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.units}</td>
+                      <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.expiryDate || "-"}</td>
+                      <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
+                        {(() => {
+                          const expiryStatus = getExpiryStatus(history.expiryDate);
+                          return (
+                            <span style={{
+                              padding:isMobile ? "3px 8px" : "4px 10px",
+                              borderRadius:6,
+                              background:expiryStatus.bg,
+                              color:expiryStatus.color,
+                              fontSize:isMobile ? "0.7rem" : "0.75rem",
+                              fontWeight:600
+                            }}>
+                              {expiryStatus.status}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.donor}</td>
                       <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
                         <button
@@ -506,9 +544,37 @@ function BloodBankStockHistory() {
                     <div style={{ fontSize:isMobile ? "0.9rem" : "1rem", fontWeight:600, color:NAVY2 }}>{selectedHistory.units}</div>
                   </div>
                   <div>
+                    <div style={{ fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, marginBottom:4 }}>Expiry Date</div>
+                    <div style={{ fontSize:isMobile ? "0.9rem" : "1rem", fontWeight:600, color:NAVY2 }}>{selectedHistory.expiryDate || "Not specified"}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, marginBottom:4 }}>Expiry Status</div>
+                    {(() => {
+                      const expiryStatus = getExpiryStatus(selectedHistory.expiryDate);
+                      return (
+                        <span style={{
+                          padding:"4px 10px",
+                          borderRadius:6,
+                          background:expiryStatus.bg,
+                          color:expiryStatus.color,
+                          fontSize:"0.85rem",
+                          fontWeight:600
+                        }}>
+                          {expiryStatus.status}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                  <div>
                     <div style={{ fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, marginBottom:4 }}>Donor/Recipient</div>
                     <div style={{ fontSize:isMobile ? "0.9rem" : "1rem", fontWeight:600, color:NAVY2 }}>{selectedHistory.donor}</div>
                   </div>
+                  {selectedHistory.batchId && (
+                    <div>
+                      <div style={{ fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L, marginBottom:4 }}>Batch ID</div>
+                      <div style={{ fontSize:isMobile ? "0.9rem" : "1rem", fontWeight:600, color:NAVY2 }}>{selectedHistory.batchId}</div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </motion.div>
