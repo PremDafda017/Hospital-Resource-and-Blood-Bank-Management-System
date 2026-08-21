@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useResponsive } from "../../utils/responsiveDesign";
 import {
   FaAward,
@@ -49,6 +49,7 @@ function CampaignManagement() {
   const navigate = useNavigate();
   const screenSize = useResponsive();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [campaigns, setCampaigns] = useState([]);
