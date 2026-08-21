@@ -312,29 +312,160 @@ function AppointmentManagement() {
 
       {/* Main Content */}
       <main style={{ flex:1, marginLeft:sidebarWidth, transition:"margin-left 0.3s ease" }}>
-        <div style={{ padding:"24px 32px" }}>
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ marginBottom: 32 }}
+        {/* Mobile Header */}
+        {isMobile && (
+          <motion.header
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            style={{
+              background:WHITE,
+              padding: "12px 16px",
+              borderBottom:`1px solid ${BORDER}`,
+              display:"flex",
+              justifyContent:"space-between",
+              alignItems:"center",
+              position:"sticky",
+              top:0,
+              zIndex:50
+            }}
           >
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, color: NAVY2, marginBottom: 8 }}>
-              <FaCalendarCheck style={{ marginRight: 12, color: BLUE }} />
-              Appointment Management
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              style={{
+                background:"none",
+                border:"none",
+                cursor:"pointer",
+                padding:8,
+                borderRadius:4,
+                color:NAVY2
+              }}
+            >
+              <FaBars style={{ fontSize:"1.2rem" }} />
+            </button>
+            <h1 style={{ fontSize:"1.1rem", fontWeight:700, color:NAVY2, margin:0 }}>
+              Appointments
             </h1>
-            <p style={{ fontSize: "1rem", color: SLATE_L }}>
-              Manage approved blood donation appointments and complete donations
-            </p>
-          </motion.div>
+            <div style={{ width:32 }} />
+          </motion.header>
+        )}
 
+        {/* Desktop Header */}
+        {!isMobile && (
+          <motion.header
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            style={{
+              background:WHITE,
+              padding: isTablet ? "12px 20px" : "16px 32px",
+              borderBottom:`1px solid ${BORDER}`,
+              display:"flex",
+              justifyContent:"space-between",
+              alignItems:"center",
+              position:"sticky",
+              top:0,
+              zIndex:50
+            }}
+          >
+            <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+              <div>
+                <h1 style={{ fontSize:isTablet ? "1.2rem" : "1.4rem", fontWeight:700, color:NAVY2, margin:0 }}>Appointment Management</h1>
+                <p style={{ fontSize:isTablet ? "0.8rem" : "0.85rem", color:SLATE_L, margin:"4px 0 0 0" }}>Manage approved blood donation appointments</p>
+              </div>
+            </div>
+          </motion.header>
+        )}
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+              style={{
+                position:"fixed",
+                top:0,
+                left:0,
+                right:0,
+                bottom:0,
+                background:"rgba(0,0,0,0.5)",
+                zIndex:1000
+              }}
+            >
+              <motion.div
+                initial={{ x: -260 }}
+                animate={{ x: 0 }}
+                exit={{ x: -260 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  width:260,
+                  height:"100%",
+                  background:SIDEBAR_COL,
+                  padding:"16px"
+                }}
+              >
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, color:WHITE, fontWeight:700 }}>
+                    <FaDroplet style={{ color:RED }} />
+                    <span>Blood Bank</span>
+                  </div>
+                  <button onClick={() => setMobileMenuOpen(false)} style={{ background:"none", border:"none", color:WHITE, cursor:"pointer" }}>
+                    <FaXmark />
+                  </button>
+                </div>
+                {nav.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
+                    style={{
+                      width:"100%",
+                      display:"flex",
+                      alignItems:"center",
+                      gap:12,
+                      padding:"12px 16px",
+                      borderRadius:8,
+                      border:"none",
+                      background:active === item.key ? `${RED}22` : "transparent",
+                      color:active === item.key ? RED : WHITE,
+                      cursor:"pointer",
+                      marginBottom:8,
+                      fontSize:"0.9rem"
+                    }}
+                  >
+                    {item.icon} {item.label}
+                  </button>
+                ))}
+                <SignOutButton>
+                  <button style={{
+                    width:"100%",
+                    display:"flex",
+                    alignItems:"center",
+                    gap:12,
+                    padding:"12px 16px",
+                    borderRadius:8,
+                    border:"none",
+                    background:"transparent",
+                    color:"#F87171",
+                    cursor:"pointer",
+                    marginTop:16
+                  }}>
+                    <FaRightFromBracket /> Logout
+                  </button>
+                </SignOutButton>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div style={{ padding:isMobile ? "16px" : isTablet ? "20px" : "32px" }}>
           {/* Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gridTemplateColumns: isMobile ? "1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(200px, 1fr))",
               gap: 20,
               marginBottom: 32,
             }}
