@@ -178,7 +178,21 @@ function Login() {
     } catch (err) {
       console.error("Login error:", err);
       const errorMessage = err.errors?.[0]?.message;
-      if (errorMessage?.includes("identifier")) {
+      const errorStatus = err.status;
+      
+      if (errorStatus === 422) {
+        // 422 typically means the resource exists but can't be processed
+        // This could mean the email exists but wrong credentials, or email doesn't exist
+        if (errorMessage?.includes("identifier") || errorMessage?.includes("form_identifier")) {
+          setError("Email not found. Please check your email or create an account.");
+        } else if (errorMessage?.includes("password")) {
+          setError("Incorrect password. Please try again.");
+        } else if (errorMessage?.includes("email_address") && errorMessage?.includes("taken")) {
+          setError("This email is already registered. Please log in instead.");
+        } else {
+          setError(errorMessage || "Login failed. Please try again.");
+        }
+      } else if (errorMessage?.includes("identifier")) {
         setError("Email not found. Please check your email or create an account.");
       } else if (errorMessage?.includes("password")) {
         setError("Incorrect password. Please try again.");

@@ -18,6 +18,10 @@ root.render(
           card: 'shadow-none'
         }
       }}
+      signInForceRedirectUrl="/login"
+      signUpForceRedirectUrl="/register"
+      signInFallbackRedirectUrl="/login"
+      signUpFallbackRedirectUrl="/register"
     >
       <App />
     </ClerkProvider>
