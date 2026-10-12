@@ -412,85 +412,96 @@ function BloodBankStockHistory() {
                   </tr>
                 </thead>
                 <tbody>
-                  {displayStockHistory.filter(h => 
-                    (filterType === "All" || h.type === filterType) &&
-                    (h.bloodGroup.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    h.type.toLowerCase().includes(searchQuery.toLowerCase()))
-                  ).map((history, index) => (
-                    <motion.tr
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      style={{ borderBottom:`1px solid ${BORDER}` }}
-                    >
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.date}</td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
-                        <span style={{
-                          padding:isMobile ? "3px 8px" : "4px 10px",
-                          borderRadius:6,
-                          background:`${BG_COLOR[history.bloodGroup]}15`,
-                          color:BG_COLOR[history.bloodGroup],
-                          fontSize:isMobile ? "0.7rem" : "0.75rem",
-                          fontWeight:600
-                        }}>
-                          {history.bloodGroup}
-                        </span>
-                      </td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
-                        <span style={{
-                          padding:isMobile ? "3px 8px" : "4px 10px",
-                          borderRadius:6,
-                          background:history.type === "Added" ? "#DCFCE7" : history.type === "Expired" ? "#FEE2E2" : "#FEE2E2",
-                          color:history.type === "Added" ? "#16A34A" : "#DC2626",
-                          fontSize:isMobile ? "0.7rem" : "0.75rem",
-                          fontWeight:600
-                        }}>
-                          {history.type}
-                        </span>
-                      </td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.units}</td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.expiryDate || "-"}</td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
-                        {(() => {
-                          const expiryStatus = getExpiryStatus(history.expiryDate);
-                          return (
-                            <span style={{
-                              padding:isMobile ? "3px 8px" : "4px 10px",
-                              borderRadius:6,
-                              background:expiryStatus.bg,
-                              color:expiryStatus.color,
-                              fontSize:isMobile ? "0.7rem" : "0.75rem",
-                              fontWeight:600
-                            }}>
-                              {expiryStatus.status}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.donor}</td>
-                      <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
-                        <button
-                          onClick={() => handleViewDetails(history)}
-                          style={{
-                            background:`${RED}15`,
-                            border:"none",
-                            padding:isMobile ? "6px 10px" : "8px 12px",
+                  {displayStockHistory
+                    .filter((h) => {
+                      const matchesType =
+                        filterType === "All" || h.type === filterType;
+
+                      const matchesSearch =
+                        (h.bloodGroup || "")
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase()) ||
+                        (h.type || "")
+                          .toLowerCase()
+                          .includes(searchQuery.toLowerCase());
+
+                      return matchesType && matchesSearch;
+                    })
+                    .map((history, index) => (
+                      <motion.tr
+                        key={history._id || index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        style={{ borderBottom:`1px solid ${BORDER}` }}
+                      >
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.date}</td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
+                          <span style={{
+                            padding:isMobile ? "3px 8px" : "4px 10px",
                             borderRadius:6,
-                            cursor:"pointer",
-                            color:RED,
-                            fontSize:isMobile ? "0.75rem" : "0.8rem",
-                            fontWeight:600,
-                            transition:"all 0.2s"
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = `${RED}25`}
-                          onMouseLeave={e => e.currentTarget.style.background = `${RED}15`}
-                        >
-                          <FaEye /> {!isMobile && <span style={{ marginLeft:6 }}>View</span>}
-                        </button>
-                      </td>
-                    </motion.tr>
-                  ))}
+                            background:`${BG_COLOR[history.bloodGroup]}15`,
+                            color:BG_COLOR[history.bloodGroup],
+                            fontSize:isMobile ? "0.7rem" : "0.75rem",
+                            fontWeight:600
+                          }}>
+                            {history.bloodGroup}
+                          </span>
+                        </td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
+                          <span style={{
+                            padding:isMobile ? "3px 8px" : "4px 10px",
+                            borderRadius:6,
+                            background:history.type === "Added" ? "#DCFCE7" : history.type === "Expired" ? "#FEE2E2" : "#FEE2E2",
+                            color:history.type === "Added" ? "#16A34A" : "#DC2626",
+                            fontSize:isMobile ? "0.7rem" : "0.75rem",
+                            fontWeight:600
+                          }}>
+                            {history.type}
+                          </span>
+                        </td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.units}</td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.expiryDate || "-"}</td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
+                          {(() => {
+                            const expiryStatus = getExpiryStatus(history.expiryDate);
+                            return (
+                              <span style={{
+                                padding:isMobile ? "3px 8px" : "4px 10px",
+                                borderRadius:6,
+                                background:expiryStatus.bg,
+                                color:expiryStatus.color,
+                                fontSize:isMobile ? "0.7rem" : "0.75rem",
+                                fontWeight:600
+                              }}>
+                                {expiryStatus.status}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:NAVY2 }}>{history.donor}</td>
+                        <td style={{ padding:isMobile ? "10px 12px" : "16px" }}>
+                          <button
+                            onClick={() => handleViewDetails(history)}
+                            style={{
+                              background:`${RED}15`,
+                              border:"none",
+                              padding:isMobile ? "6px 10px" : "8px 12px",
+                              borderRadius:6,
+                              cursor:"pointer",
+                              color:RED,
+                              fontSize:isMobile ? "0.75rem" : "0.8rem",
+                              fontWeight:600,
+                              transition:"all 0.2s"
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = `${RED}25`}
+                            onMouseLeave={e => e.currentTarget.style.background = `${RED}15`}
+                          >
+                            <FaEye /> {!isMobile && <span style={{ marginLeft:6 }}>View</span>}
+                          </button>
+                        </td>
+                      </motion.tr>
+                    ))}
                 </tbody>
               </table>
             </div>
