@@ -11,18 +11,19 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.18.0",
-    "framer-motion": "^12.42.2",
+    "framer-motion": "^12.43.0",
     "jspdf": "^2.5.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-icons": "^5.6.0",
     "react-router-dom": "^7.17.0",
     "react-scripts": "5.0.1",
+    "three": "^0.186.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "ESLINT_NO_DEV_ERRORS=true react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

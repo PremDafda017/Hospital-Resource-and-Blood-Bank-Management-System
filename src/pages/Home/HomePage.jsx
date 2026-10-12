@@ -14,18 +14,25 @@ import {
     FaBars,
     FaXmark
 } from "react-icons/fa6";
+import Heart3D from "./Heart3D";
 
 /* ─────────────────────────────────────────────
    INLINE STYLES (no external CSS required)
-   Palette: Crimson #C41230 · Deep #8B0000 · Slate #1E293B
-            Smoke #F8FAFC · Mist #EFF6FF · Pure #FFFFFF
+   Palette (redesigned): Crimson #C41230 · Deep #8B0000 · Ember #FF4D6D
+            Ink #05070D · Slate #1E293B · Smoke #F8FAFC · Pure #FFFFFF
    Type: Inter (system-stack fallback)
+   New in this pass: cinematic dark hero with an animated 3D heart
+   (Three.js, see Heart3D.jsx), a nav that dissolves from glass-over-hero
+   to solid-on-scroll, and tightened responsive behavior end to end.
 ───────────────────────────────────────────── */
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED      = "#C41230";
 const RED_DARK = "#8B0000";
+const EMBER    = "#FF4D6D";
 const RED_GLOW = "rgba(196,18,48,0.15)";
+const INK      = "#05070D";
+const INK_SOFT = "#0B0F1A";
 const SLATE    = "#1E293B";
 const SLATE_MD = "#334155";
 const SLATE_LT = "#64748B";
@@ -236,6 +243,7 @@ export default function HomePage() {
   const [donorSuccess, setDonorSuccess] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginModalMessage, setLoginModalMessage] = useState("");
+  const [heroLoaded, setHeroLoaded] = useState(false);
   const [donorForm, setDonorForm] = useState({
     firstName: "", lastName: "", email: "", phone: "", dob: "",
     bloodGroup: "Select Blood Group", weight: "", lastDonation: "Last Donation", conditions: "Any medical conditions?",
@@ -291,7 +299,7 @@ export default function HomePage() {
     { id: 3, name: "LHMC Blood Bank", state: "Delhi", city: "New Delhi", address: "Lady Hardinge Medical College", phone: "011-23364104", lat: 28.6268, lng: 77.2106, bloodStock: { "A+": 28, "A-": 10, "B+": 25, "B-": 7, "AB+": 15, "AB-": 3, "O+": 48, "O-": 11 } },
     { id: 4, name: "GTB Hospital Blood Bank", state: "Delhi", city: "Delhi", address: "GTB Hospital, Dilshad Garden", phone: "011-22143111", lat: 28.6789, lng: 77.3178, bloodStock: { "A+": 35, "A-": 9, "B+": 31, "B-": 5, "AB+": 20, "AB-": 6, "O+": 55, "O-": 13 } },
     { id: 5, name: "Ram Manohar Lohia Hospital Blood Bank", state: "Delhi", city: "New Delhi", address: "RML Hospital, New Delhi", phone: "011-23363212", lat: 28.6333, lng: 77.2089, bloodStock: { "A+": 30, "A-": 9, "B+": 27, "B-": 6, "AB+": 17, "AB-": 4, "O+": 50, "O-": 12 } },
-      
+
     // DELHI - Private Hospitals
     { id: 6, name: "Apollo Hospital Blood Bank", state: "Delhi", city: "New Delhi", address: "Apollo Hospital, Sarita Vihar", phone: "011-26825858", lat: 28.6375, lng: 77.2733, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 22 } },
     { id: 7, name: "Fortis Hospital Blood Bank", state: "Delhi", city: "New Delhi", address: "Fortis Hospital, Shalimar Bagh", phone: "011-47077777", lat: 28.7167, lng: 77.1583, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 19 } },
@@ -300,7 +308,7 @@ export default function HomePage() {
     { id: 10, name: "Sir Ganga Ram Hospital Blood Bank", state: "Delhi", city: "New Delhi", address: "SGRH, Rajinder Nagar", phone: "011-25725424", lat: 28.6503, lng: 77.1867, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 11, name: "BLK Hospital Blood Bank", state: "Delhi", city: "New Delhi", address: "BLK Hospital, Pusa Road", phone: "011-23663636", lat: 28.6425, lng: 77.1833, bloodStock: { "A+": 38, "A-": 11, "B+": 33, "B-": 9, "AB+": 21, "AB-": 6, "O+": 62, "O-": 15 } },
     { id: 12, name: "Indraprastha Apollo Hospital Blood Bank", state: "Delhi", city: "New Delhi", address: "Apollo Hospital, Sarita Vihar", phone: "011-26825858", lat: 28.6375, lng: 77.2733, bloodStock: { "A+": 50, "A-": 16, "B+": 44, "B-": 12, "AB+": 29, "AB-": 9, "O+": 78, "O-": 20 } },
-    
+
     // MAHARASHTRA - Government Hospitals
     { id: 13, name: "J.J. Hospital Blood Bank", state: "Maharashtra", city: "Mumbai", address: "J.J. Hospital, Byculla", phone: "022-23735555", lat: 18.9696, lng: 72.8333, bloodStock: { "A+": 52, "A-": 15, "B+": 45, "B-": 12, "AB+": 28, "AB-": 8, "O+": 78, "O-": 18 } },
     { id: 14, name: "KEM Hospital Blood Bank", state: "Maharashtra", city: "Mumbai", address: "KEM Hospital, Parel", phone: "022-24138113", lat: 19.0066, lng: 72.8533, bloodStock: { "A+": 48, "A-": 14, "B+": 42, "B-": 11, "AB+": 25, "AB-": 7, "O+": 72, "O-": 16 } },
@@ -308,7 +316,7 @@ export default function HomePage() {
     { id: 16, name: "Sion Hospital Blood Bank", state: "Maharashtra", city: "Mumbai", address: "Sion Hospital, Sion", phone: "022-24076381", lat: 19.0414, lng: 72.8667, bloodStock: { "A+": 41, "A-": 13, "B+": 37, "B-": 10, "AB+": 23, "AB-": 7, "O+": 68, "O-": 15 } },
     { id: 17, name: "Sassoon Hospital Blood Bank", state: "Maharashtra", city: "Pune", address: "Sassoon Hospital, Pune", phone: "020-26058280", lat: 18.5184, lng: 73.8567, bloodStock: { "A+": 35, "A-": 12, "B+": 32, "B-": 8, "AB+": 19, "AB-": 5, "O+": 58, "O-": 13 } },
     { id: 18, name: "GMCH Nagpur Blood Bank", state: "Maharashtra", city: "Nagpur", address: "Government Medical College, Nagpur", phone: "0712-2545678", lat: 21.1498, lng: 79.0821, bloodStock: { "A+": 28, "A-": 9, "B+": 25, "B-": 7, "AB+": 16, "AB-": 4, "O+": 48, "O-": 11 } },
-    
+
     // MAHARASHTRA - Private Hospitals
     { id: 19, name: "Apollo Hospital Blood Bank", state: "Maharashtra", city: "Mumbai", address: "Apollo Hospital, Mumbai", phone: "022-24223333", lat: 19.0825, lng: 72.8812, bloodStock: { "A+": 65, "A-": 22, "B+": 58, "B-": 18, "AB+": 38, "AB-": 12, "O+": 95, "O-": 28 } },
     { id: 20, name: "Fortis Hospital Blood Bank", state: "Maharashtra", city: "Mumbai", address: "Fortis Hospital, Mulund", phone: "022-25335678", lat: 19.1667, lng: 72.9417, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 22 } },
@@ -318,13 +326,13 @@ export default function HomePage() {
     { id: 24, name: "Ruby Hall Clinic Blood Bank", state: "Maharashtra", city: "Pune", address: "Ruby Hall Clinic, Pune", phone: "020-26122111", lat: 18.5194, lng: 73.8711, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 25, name: "Jehangir Hospital Blood Bank", state: "Maharashtra", city: "Pune", address: "Jehangir Hospital, Pune", phone: "020-26156677", lat: 18.5114, lng: 73.8722, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
     { id: 26, name: "Wockhardt Hospital Blood Bank", state: "Maharashtra", city: "Nagpur", address: "Wockhardt Hospital, Nagpur", phone: "0712-2545678", lat: 21.1589, lng: 79.0922, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 14 } },
-    
+
     // KARNATAKA - Government Hospitals
     { id: 27, name: "Victoria Hospital Blood Bank", state: "Karnataka", city: "Bangalore", address: "Victoria Hospital, Bangalore", phone: "080-26700880", lat: 12.9716, lng: 77.5946, bloodStock: { "A+": 44, "A-": 14, "B+": 39, "B-": 11, "AB+": 24, "AB-": 7, "O+": 71, "O-": 17 } },
     { id: 28, name: "Bowring Hospital Blood Bank", state: "Karnataka", city: "Bangalore", address: "Bowring Hospital, Bangalore", phone: "080-22867069", lat: 12.9914, lng: 77.6041, bloodStock: { "A+": 36, "A-": 10, "B+": 33, "B-": 9, "AB+": 20, "AB-": 6, "O+": 63, "O-": 14 } },
     { id: 29, name: "Mysore Medical College Blood Bank", state: "Karnataka", city: "Mysore", address: "MMC, Mysore", phone: "0821-2548350", lat: 12.3167, lng: 76.6467, bloodStock: { "A+": 28, "A-": 8, "B+": 25, "B-": 7, "AB+": 16, "AB-": 4, "O+": 49, "O-": 11 } },
     { id: 30, name: "KMC Manipal Blood Bank", state: "Karnataka", city: "Manipal", address: "KMC, Manipal", phone: "0820-2571919", lat: 13.3538, lng: 74.7926, bloodStock: { "A+": 32, "A-": 9, "B+": 28, "B-": 8, "AB+": 18, "AB-": 5, "O+": 54, "O-": 12 } },
-    
+
     // KARNATAKA - Private Hospitals
     { id: 31, name: "Apollo Hospital Blood Bank", state: "Karnataka", city: "Bangalore", address: "Apollo Hospital, Bangalore", phone: "080-26860555", lat: 12.9356, lng: 77.6061, bloodStock: { "A+": 60, "A-": 20, "B+": 52, "B-": 16, "AB+": 35, "AB-": 11, "O+": 92, "O-": 25 } },
     { id: 32, name: "Fortis Hospital Blood Bank", state: "Karnataka", city: "Bangalore", address: "Fortis Hospital, Bannerghatta", phone: "080-22221212", lat: 12.8956, lng: 77.5956, bloodStock: { "A+": 52, "A-": 17, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 80, "O-": 21 } },
@@ -332,13 +340,13 @@ export default function HomePage() {
     { id: 34, name: "Narayana Health Blood Bank", state: "Karnataka", city: "Bangalore", address: "Narayana Health, HSR Layout", phone: "080-66224444", lat: 12.9189, lng: 77.6489, bloodStock: { "A+": 45, "A-": 14, "B+": 40, "B-": 11, "AB+": 26, "AB-": 7, "O+": 72, "O-": 18 } },
     { id: 35, name: "Columbia Asia Hospital Blood Bank", state: "Karnataka", city: "Bangalore", address: "Columbia Asia, Yelahanka", phone: "080-43443333", lat: 13.1017, lng: 77.5817, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
     { id: 36, name: "Aster Hospital Blood Bank", state: "Karnataka", city: "Mysore", address: "Aster Hospital, Mysore", phone: "0821-4255555", lat: 12.3089, lng: 76.6544, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // TAMIL NADU - Government Hospitals
     { id: 37, name: "Rajiv Gandhi Government Hospital Blood Bank", state: "Tamil Nadu", city: "Chennai", address: "RGGGH, Chennai", phone: "044-25305305", lat: 13.0827, lng: 80.2707, bloodStock: { "A+": 55, "A-": 16, "B+": 48, "B-": 13, "AB+": 30, "AB-": 9, "O+": 82, "O-": 19 } },
     { id: 38, name: "Government General Hospital Blood Bank", state: "Tamil Nadu", city: "Chennai", address: "GH, Chennai", phone: "044-25303437", lat: 13.0754, lng: 80.2625, bloodStock: { "A+": 47, "A-": 13, "B+": 41, "B-": 11, "AB+": 26, "AB-": 8, "O+": 75, "O-": 17 } },
     { id: 39, name: "Madurai Medical College Blood Bank", state: "Tamil Nadu", city: "Madurai", address: "MMC, Madurai", phone: "0452-2532530", lat: 9.9252, lng: 78.1198, bloodStock: { "A+": 32, "A-": 9, "B+": 29, "B-": 8, "AB+": 18, "AB-": 5, "O+": 56, "O-": 12 } },
     { id: 40, name: "CMCH Coimbatore Blood Bank", state: "Tamil Nadu", city: "Coimbatore", address: "CMCH, Coimbatore", phone: "0422-2300200", lat: 10.9817, lng: 76.9656, bloodStock: { "A+": 30, "A-": 8, "B+": 27, "B-": 7, "AB+": 17, "AB-": 4, "O+": 52, "O-": 11 } },
-    
+
     // TAMIL NADU - Private Hospitals
     { id: 41, name: "Apollo Hospital Blood Bank", state: "Tamil Nadu", city: "Chennai", address: "Apollo Hospital, Chennai", phone: "044-28297777", lat: 13.0567, lng: 80.2567, bloodStock: { "A+": 70, "A-": 24, "B+": 62, "B-": 20, "AB+": 42, "AB-": 14, "O+": 105, "O-": 32 } },
     { id: 42, name: "Fortis Hospital Blood Bank", state: "Tamil Nadu", city: "Chennai", address: "Fortis Malar Hospital, Chennai", phone: "044-42898888", lat: 13.0467, lng: 80.2467, bloodStock: { "A+": 58, "A-": 19, "B+": 51, "B-": 15, "AB+": 35, "AB-": 11, "O+": 88, "O-": 24 } },
@@ -346,176 +354,176 @@ export default function HomePage() {
     { id: 44, name: "KG Hospital Blood Bank", state: "Tamil Nadu", city: "Coimbatore", address: "KG Hospital, Coimbatore", phone: "0422-2214000", lat: 10.9917, lng: 76.9756, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 25, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 45, name: "Ganga Hospital Blood Bank", state: "Tamil Nadu", city: "Coimbatore", address: "Ganga Hospital, Coimbatore", phone: "0422-2474444", lat: 10.9967, lng: 76.9706, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 23, "AB-": 6, "O+": 62, "O-": 15 } },
     { id: 46, name: "Meenakshi Hospital Blood Bank", state: "Tamil Nadu", city: "Madurai", address: "Meenakshi Hospital, Madurai", phone: "0452-2525252", lat: 9.9312, lng: 78.1248, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // WEST BENGAL - Government Hospitals
     { id: 47, name: "IPGMER Blood Bank", state: "West Bengal", city: "Kolkata", address: "IPGMER, Kolkata", phone: "033-22235313", lat: 22.5587, lng: 88.3955, bloodStock: { "A+": 51, "A-": 15, "B+": 46, "B-": 12, "AB+": 27, "AB-": 8, "O+": 76, "O-": 18 } },
     { id: 48, name: "Medical College Hospital Blood Bank", state: "West Bengal", city: "Kolkata", address: "MCH, Kolkata", phone: "033-22415072", lat: 22.5726, lng: 88.3639, bloodStock: { "A+": 43, "A-": 12, "B+": 38, "B-": 10, "AB+": 23, "AB-": 7, "O+": 68, "O-": 15 } },
     { id: 49, name: "NRS Medical College Blood Bank", state: "West Bengal", city: "Kolkata", address: "NRS Medical College, Kolkata", phone: "033-23574461", lat: 22.5626, lng: 88.3756, bloodStock: { "A+": 35, "A-": 10, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // WEST BENGAL - Private Hospitals
     { id: 50, name: "Apollo Hospital Blood Bank", state: "West Bengal", city: "Kolkata", address: "Apollo Hospital, Kolkata", phone: "033-24336363", lat: 22.5456, lng: 88.3856, bloodStock: { "A+": 58, "A-": 19, "B+": 51, "B-": 15, "AB+": 34, "AB-": 11, "O+": 88, "O-": 24 } },
     { id: 51, name: "Fortis Hospital Blood Bank", state: "West Bengal", city: "Kolkata", address: "Fortis Hospital, Kolkata", phone: "033-22875555", lat: 22.5556, lng: 88.3756, bloodStock: { "A+": 52, "A-": 17, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 82, "O-": 22 } },
     { id: 52, name: "Medica Hospital Blood Bank", state: "West Bengal", city: "Kolkata", address: "Medica Hospital, Kolkata", phone: "033-33214567", lat: 22.5656, lng: 88.3656, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 27, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 53, name: "Peerless Hospital Blood Bank", state: "West Bengal", city: "Kolkata", address: "Peerless Hospital, Kolkata", phone: "033-22432222", lat: 22.5756, lng: 88.3956, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
-    
+
     // GUJARAT - Government Hospitals
     { id: 54, name: "Civil Hospital Blood Bank", state: "Gujarat", city: "Ahmedabad", address: "Civil Hospital, Ahmedabad", phone: "079-22603456", lat: 23.0302, lng: 72.5801, bloodStock: { "A+": 39, "A-": 11, "B+": 35, "B-": 9, "AB+": 22, "AB-": 6, "O+": 64, "O-": 14 } },
     { id: 55, name: "V.S. Hospital Blood Bank", state: "Gujarat", city: "Ahmedabad", address: "V.S. Hospital, Ahmedabad", phone: "079-26560480", lat: 23.0225, lng: 72.5714, bloodStock: { "A+": 34, "A-": 10, "B+": 31, "B-": 8, "AB+": 19, "AB-": 5, "O+": 59, "O-": 13 } },
     { id: 56, name: "GMCH Surat Blood Bank", state: "Gujarat", city: "Surat", address: "Government Medical College, Surat", phone: "0261-2345678", lat: 21.1702, lng: 72.8310, bloodStock: { "A+": 32, "A-": 9, "B+": 28, "B-": 7, "AB+": 17, "AB-": 4, "O+": 52, "O-": 11 } },
-    
+
     // GUJARAT - Private Hospitals
     { id: 57, name: "Apollo Hospital Blood Bank", state: "Gujarat", city: "Ahmedabad", address: "Apollo Hospital, Ahmedabad", phone: "079-26869898", lat: 23.0356, lng: 72.5901, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 22 } },
     { id: 58, name: "Zydus Hospital Blood Bank", state: "Gujarat", city: "Ahmedabad", address: "Zydus Hospital, Ahmedabad", phone: "079-66443333", lat: 23.0406, lng: 72.6001, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 19 } },
     { id: 59, name: "Sterling Hospital Blood Bank", state: "Gujarat", city: "Ahmedabad", address: "Sterling Hospital, Ahmedabad", phone: "079-26765432", lat: 23.0456, lng: 72.6101, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 60, name: "Mahavir Hospital Blood Bank", state: "Gujarat", city: "Surat", address: "Mahavir Hospital, Surat", phone: "0261-2224567", lat: 21.1856, lng: 72.8410, bloodStock: { "A+": 38, "A-": 11, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
-    
+
     // RAJASTHAN - Government Hospitals
     { id: 61, name: "SMS Hospital Blood Bank", state: "Rajasthan", city: "Jaipur", address: "SMS Hospital, Jaipur", phone: "0141-2545678", lat: 26.9124, lng: 75.7873, bloodStock: { "A+": 37, "A-": 11, "B+": 33, "B-": 9, "AB+": 21, "AB-": 6, "O+": 61, "O-": 14 } },
     { id: 62, name: "RNT Medical College Blood Bank", state: "Rajasthan", city: "Udaipur", address: "RNT Medical College, Udaipur", phone: "0294-2424500", lat: 24.5854, lng: 73.7125, bloodStock: { "A+": 29, "A-": 8, "B+": 26, "B-": 7, "AB+": 17, "AB-": 4, "O+": 51, "O-": 11 } },
     { id: 63, name: "SP Medical College Blood Bank", state: "Rajasthan", city: "Bikaner", address: "SP Medical College, Bikaner", phone: "0151-2234567", lat: 28.0156, lng: 73.3156, bloodStock: { "A+": 25, "A-": 7, "B+": 22, "B-": 6, "AB+": 14, "AB-": 3, "O+": 45, "O-": 10 } },
-    
+
     // RAJASTHAN - Private Hospitals
     { id: 64, name: "Fortis Hospital Blood Bank", state: "Rajasthan", city: "Jaipur", address: "Fortis Hospital, Jaipur", phone: "0141-4155777", lat: 26.9256, lng: 75.8056, bloodStock: { "A+": 52, "A-": 16, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 80, "O-": 21 } },
     { id: 65, name: "SDMH Hospital Blood Bank", state: "Rajasthan", city: "Jaipur", address: "SDMH Hospital, Jaipur", phone: "0141-2745321", lat: 26.9056, lng: 75.7956, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 66, name: "Apex Hospital Blood Bank", state: "Rajasthan", city: "Udaipur", address: "Apex Hospital, Udaipur", phone: "0294-2412345", lat: 24.5956, lng: 73.7225, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // UTTAR PRADESH - Government Hospitals
     { id: 67, name: "KGMC Blood Bank", state: "Uttar Pradesh", city: "Lucknow", address: "KGMC, Lucknow", phone: "0522-2258530", lat: 26.8467, lng: 80.9462, bloodStock: { "A+": 42, "A-": 12, "B+": 38, "B-": 10, "AB+": 24, "AB-": 7, "O+": 69, "O-": 16 } },
     { id: 68, name: "SGPGIMS Blood Bank", state: "Uttar Pradesh", city: "Lucknow", address: "SGPGIMS, Lucknow", phone: "0522-2494188", lat: 26.8368, lng: 80.9312, bloodStock: { "A+": 46, "A-": 13, "B+": 41, "B-": 11, "AB+": 26, "AB-": 8, "O+": 73, "O-": 17 } },
     { id: 69, name: "KGMU Blood Bank", state: "Uttar Pradesh", city: "Kanpur", address: "KGMU, Kanpur", phone: "0512-2560301", lat: 26.4499, lng: 80.3319, bloodStock: { "A+": 35, "A-": 10, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
     { id: 70, name: "GSVM Medical College Blood Bank", state: "Uttar Pradesh", city: "Kanpur", address: "GSVM Medical College, Kanpur", phone: "0512-2545678", lat: 26.4599, lng: 80.3419, bloodStock: { "A+": 32, "A-": 9, "B+": 28, "B-": 7, "AB+": 18, "AB-": 4, "O+": 52, "O-": 11 } },
-    
+
     // UTTAR PRADESH - Private Hospitals
     { id: 71, name: "Apollo Hospital Blood Bank", state: "Uttar Pradesh", city: "Lucknow", address: "Apollo Hospital, Lucknow", phone: "0522-2612444", lat: 26.8567, lng: 80.9562, bloodStock: { "A+": 58, "A-": 19, "B+": 51, "B-": 15, "AB+": 34, "AB-": 11, "O+": 88, "O-": 24 } },
     { id: 72, name: "Medanta Hospital Blood Bank", state: "Uttar Pradesh", city: "Lucknow", address: "Medanta Hospital, Lucknow", phone: "0522-6621444", lat: 26.8467, lng: 80.9362, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 23 } },
     { id: 73, name: "Fortis Hospital Blood Bank", state: "Uttar Pradesh", city: "Kanpur", address: "Fortis Hospital, Kanpur", phone: "0512-6666888", lat: 26.4699, lng: 80.3419, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 74, name: "Regency Hospital Blood Bank", state: "Uttar Pradesh", city: "Kanpur", address: "Regency Hospital, Kanpur", phone: "0512-2741234", lat: 26.4799, lng: 80.3519, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
-    
+
     // TELANGANA - Government Hospitals
     { id: 75, name: "Gandhi Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "Gandhi Hospital, Hyderabad", phone: "040-24612543", lat: 17.4375, lng: 78.4936, bloodStock: { "A+": 40, "A-": 11, "B+": 36, "B-": 9, "AB+": 22, "AB-": 6, "O+": 66, "O-": 15 } },
     { id: 76, name: "Osmania Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "Osmania Hospital, Hyderabad", phone: "040-24654321", lat: 17.3850, lng: 78.4867, bloodStock: { "A+": 44, "A-": 12, "B+": 39, "B-": 10, "AB+": 24, "AB-": 7, "O+": 70, "O-": 16 } },
     { id: 77, name: "NIMS Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "NIMS Hospital, Hyderabad", phone: "040-23485678", lat: 17.4150, lng: 78.4967, bloodStock: { "A+": 48, "A-": 14, "B+": 42, "B-": 11, "AB+": 27, "AB-": 8, "O+": 75, "O-": 18 } },
-    
+
     // TELANGANA - Private Hospitals
     { id: 78, name: "Apollo Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "Apollo Hospital, Hyderabad", phone: "040-23339292", lat: 17.4250, lng: 78.3867, bloodStock: { "A+": 65, "A-": 22, "B+": 58, "B-": 18, "AB+": 40, "AB-": 13, "O+": 98, "O-": 28 } },
     { id: 79, name: "Yashoda Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "Yashoda Hospital, Hyderabad", phone: "040-45678901", lat: 17.4350, lng: 78.3967, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 23 } },
     { id: 80, name: "Care Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "Care Hospital, Hyderabad", phone: "040-23456789", lat: 17.4450, lng: 78.4067, bloodStock: { "A+": 52, "A-": 17, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 80, "O-": 22 } },
     { id: 81, name: "Star Hospital Blood Bank", state: "Telangana", city: "Hyderabad", address: "Star Hospital, Hyderabad", phone: "040-44556677", lat: 17.4550, lng: 78.4167, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
-    
+
     // KERALA - Government Hospitals
     { id: 82, name: "Medical College Hospital Blood Bank", state: "Kerala", city: "Thiruvananthapuram", address: "MCH, Thiruvananthapuram", phone: "0471-2545430", lat: 8.5061, lng: 76.9648, bloodStock: { "A+": 33, "A-": 9, "B+": 30, "B-": 8, "AB+": 19, "AB-": 5, "O+": 57, "O-": 13 } },
     { id: 83, name: "Government Medical College Blood Bank", state: "Kerala", city: "Kochi", address: "GMC, Kochi", phone: "0484-2345678", lat: 9.9312, lng: 76.2673, bloodStock: { "A+": 31, "A-": 8, "B+": 28, "B-": 7, "AB+": 18, "AB-": 4, "O+": 54, "O-": 12 } },
     { id: 84, name: "Kozhikode Medical College Blood Bank", state: "Kerala", city: "Kozhikode", address: "Medical College, Kozhikode", phone: "0495-2345678", lat: 11.2587, lng: 75.7804, bloodStock: { "A+": 29, "A-": 8, "B+": 26, "B-": 7, "AB+": 17, "AB-": 4, "O+": 50, "O-": 11 } },
-    
+
     // KERALA - Private Hospitals
     { id: 85, name: "Aster Hospital Blood Bank", state: "Kerala", city: "Kochi", address: "Aster Hospital, Kochi", phone: "0484-2655555", lat: 9.9412, lng: 76.2773, bloodStock: { "A+": 52, "A-": 16, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 80, "O-": 21 } },
     { id: 86, name: "VPS Lakeshore Hospital Blood Bank", state: "Kerala", city: "Kochi", address: "VPS Lakeshore, Kochi", phone: "0484-2704567", lat: 9.9512, lng: 76.2873, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 87, name: "Baby Memorial Hospital Blood Bank", state: "Kerala", city: "Kozhikode", address: "Baby Memorial Hospital, Kozhikode", phone: "0495-2367890", lat: 11.2687, lng: 75.7904, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 88, name: "Ananthapuri Hospital Blood Bank", state: "Kerala", city: "Thiruvananthapuram", address: "Ananthapuri Hospital, Trivandrum", phone: "0471-2456789", lat: 8.5161, lng: 76.9748, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
-    
+
     // PUNJAB - Government Hospitals
     { id: 89, name: "Government Medical College Blood Bank", state: "Punjab", city: "Chandigarh", address: "GMC, Chandigarh", phone: "0172-2745678", lat: 30.7333, lng: 76.7794, bloodStock: { "A+": 38, "A-": 10, "B+": 34, "B-": 9, "AB+": 21, "AB-": 6, "O+": 63, "O-": 14 } },
     { id: 90, name: "PGIMER Blood Bank", state: "Punjab", city: "Chandigarh", address: "PGIMER, Chandigarh", phone: "0172-2747585", lat: 30.7673, lng: 76.7802, bloodStock: { "A+": 52, "A-": 14, "B+": 47, "B-": 12, "AB+": 29, "AB-": 8, "O+": 79, "O-": 18 } },
     { id: 91, name: "DMC Ludhiana Blood Bank", state: "Punjab", city: "Ludhiana", address: "DMC, Ludhiana", phone: "0161-2345678", lat: 30.9010, lng: 75.8573, bloodStock: { "A+": 35, "A-": 10, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // PUNJAB - Private Hospitals
     { id: 92, name: "Fortis Hospital Blood Bank", state: "Punjab", city: "Mohali", address: "Fortis Hospital, Mohali", phone: "0172-5088888", lat: 30.7056, lng: 76.7000, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 22 } },
     { id: 93, name: "Max Hospital Blood Bank", state: "Punjab", city: "Mohali", address: "Max Hospital, Mohali", phone: "0172-4655555", lat: 30.7156, lng: 76.7100, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 94, name: "Dayanand Hospital Blood Bank", state: "Punjab", city: "Ludhiana", address: "Dayanand Hospital, Ludhiana", phone: "0161-2445566", lat: 30.9110, lng: 75.8673, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
-    
+
     // HARYANA - Government Hospitals
     { id: 95, name: "PGIMS Blood Bank", state: "Haryana", city: "Rohtak", address: "PGIMS, Rohtak", phone: "01262-254321", lat: 28.8954, lng: 76.6066, bloodStock: { "A+": 35, "A-": 10, "B+": 32, "B-": 8, "AB+": 20, "AB-": 5, "O+": 60, "O-": 13 } },
     { id: 96, name: "GMCH Karnal Blood Bank", state: "Haryana", city: "Karnal", address: "GMCH, Karnal", phone: "0184-2345678", lat: 29.6856, lng: 76.9856, bloodStock: { "A+": 28, "A-": 8, "B+": 25, "B-": 7, "AB+": 16, "AB-": 4, "O+": 48, "O-": 11 } },
-    
+
     // HARYANA - Private Hospitals
     { id: 97, name: "Medanta Hospital Blood Bank", state: "Haryana", city: "Gurgaon", address: "Medanta Hospital, Gurgaon", phone: "0124-4141414", lat: 28.4289, lng: 77.0464, bloodStock: { "A+": 58, "A-": 19, "B+": 51, "B-": 15, "AB+": 35, "AB-": 11, "O+": 90, "O-": 24 } },
     { id: 98, name: "Artemis Hospital Blood Bank", state: "Haryana", city: "Gurgaon", address: "Artemis Hospital, Gurgaon", phone: "0124-4555000", lat: 28.4389, lng: 77.0564, bloodStock: { "A+": 52, "A-": 17, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 82, "O-": 22 } },
     { id: 99, name: "Paras Hospital Blood Bank", state: "Haryana", city: "Gurgaon", address: "Paras Hospital, Gurgaon", phone: "0124-4888888", lat: 28.4489, lng: 77.0664, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
-    
+
     // ANDHRA PRADESH - Government Hospitals
     { id: 100, name: "Government General Hospital Blood Bank", state: "Andhra Pradesh", city: "Visakhapatnam", address: "GH, Visakhapatnam", phone: "0891-2545678", lat: 17.7231, lng: 83.2856, bloodStock: { "A+": 36, "A-": 10, "B+": 33, "B-": 9, "AB+": 21, "AB-": 6, "O+": 62, "O-": 14 } },
     { id: 101, name: "Sri Venkateswara Hospital Blood Bank", state: "Andhra Pradesh", city: "Tirupati", address: "SV Hospital, Tirupati", phone: "0877-2234567", lat: 13.6152, lng: 79.4199, bloodStock: { "A+": 28, "A-": 8, "B+": 25, "B-": 7, "AB+": 16, "AB-": 4, "O+": 49, "O-": 11 } },
     { id: 102, name: "GMC Guntur Blood Bank", state: "Andhra Pradesh", city: "Guntur", address: "GMC, Guntur", phone: "0863-2345678", lat: 16.3067, lng: 80.4367, bloodStock: { "A+": 30, "A-": 9, "B+": 27, "B-": 7, "AB+": 18, "AB-": 5, "O+": 52, "O-": 12 } },
-    
+
     // ANDHRA PRADESH - Private Hospitals
     { id: 103, name: "Apollo Hospital Blood Bank", state: "Andhra Pradesh", city: "Hyderabad", address: "Apollo Hospital, Hyderabad", phone: "040-23339292", lat: 17.4250, lng: 78.3867, bloodStock: { "A+": 65, "A-": 22, "B+": 58, "B-": 18, "AB+": 40, "AB-": 13, "O+": 98, "O-": 28 } },
     { id: 104, name: "Manipal Hospital Blood Bank", state: "Andhra Pradesh", city: "Visakhapatnam", address: "Manipal Hospital, Vizag", phone: "0891-2893456", lat: 17.7331, lng: 83.2956, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 105, name: "Seven Hills Hospital Blood Bank", state: "Andhra Pradesh", city: "Visakhapatnam", address: "Seven Hills Hospital, Vizag", phone: "0891-2789012", lat: 17.7431, lng: 83.3056, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
-    
+
     // MADHYA PRADESH - Government Hospitals
     { id: 106, name: "Hamidia Hospital Blood Bank", state: "Madhya Pradesh", city: "Bhopal", address: "Hamidia Hospital, Bhopal", phone: "0755-2545678", lat: 23.2599, lng: 77.4126, bloodStock: { "A+": 34, "A-": 9, "B+": 31, "B-": 8, "AB+": 19, "AB-": 5, "O+": 58, "O-": 13 } },
     { id: 107, name: "Gandhi Medical College Blood Bank", state: "Madhya Pradesh", city: "Bhopal", address: "GMC, Bhopal", phone: "0755-2745678", lat: 23.2492, lng: 77.4028, bloodStock: { "A+": 37, "A-": 10, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 64, "O-": 15 } },
     { id: 108, name: "MC Indore Blood Bank", state: "Madhya Pradesh", city: "Indore", address: "MGMMC, Indore", phone: "0731-2545678", lat: 22.7196, lng: 75.8577, bloodStock: { "A+": 32, "A-": 9, "B+": 28, "B-": 7, "AB+": 18, "AB-": 4, "O+": 52, "O-": 11 } },
-    
+
     // MADHYA PRADESH - Private Hospitals
     { id: 109, name: "Apollo Hospital Blood Bank", state: "Madhya Pradesh", city: "Indore", address: "Apollo Hospital, Indore", phone: "0731-2545678", lat: 22.7296, lng: 75.8677, bloodStock: { "A+": 55, "A-": 18, "B+": 48, "B-": 14, "AB+": 32, "AB-": 10, "O+": 85, "O-": 22 } },
     { id: 110, name: "Bombay Hospital Blood Bank", state: "Madhya Pradesh", city: "Indore", address: "Bombay Hospital, Indore", phone: "0731-2745678", lat: 22.7396, lng: 75.8777, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 111, name: "Choithram Hospital Blood Bank", state: "Madhya Pradesh", city: "Indore", address: "Choithram Hospital, Indore", phone: "0731-2478901", lat: 22.7496, lng: 75.8877, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
-    
+
     // BIHAR - Government Hospitals
     { id: 112, name: "PMCH Blood Bank", state: "Bihar", city: "Patna", address: "PMCH, Patna", phone: "0612-2545678", lat: 25.6127, lng: 85.1444, bloodStock: { "A+": 32, "A-": 9, "B+": 29, "B-": 8, "AB+": 18, "AB-": 5, "O+": 55, "O-": 12 } },
     { id: 113, name: "NMCH Blood Bank", state: "Bihar", city: "Patna", address: "NMCH, Patna", phone: "0612-2678901", lat: 25.5941, lng: 85.1345, bloodStock: { "A+": 29, "A-": 8, "B+": 26, "B-": 7, "AB+": 16, "AB-": 4, "O+": 51, "O-": 11 } },
     { id: 114, name: "IGIMS Patna Blood Bank", state: "Bihar", city: "Patna", address: "IGIMS, Patna", phone: "0612-2678902", lat: 25.6041, lng: 85.1445, bloodStock: { "A+": 35, "A-": 10, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // BIHAR - Private Hospitals
     { id: 115, name: "Paras Hospital Blood Bank", state: "Bihar", city: "Patna", address: "Paras Hospital, Patna", phone: "0612-2545679", lat: 25.6227, lng: 85.1544, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 116, name: "Kurji Holy Family Hospital Blood Bank", state: "Bihar", city: "Patna", address: "Kurji Hospital, Patna", phone: "0612-2678903", lat: 25.6327, lng: 85.1644, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 117, name: "Magadh Hospital Blood Bank", state: "Bihar", city: "Gaya", address: "Magadh Hospital, Gaya", phone: "0631-2223456", lat: 24.7914, lng: 85.0014, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
-    
+
     // ODISHA - Government Hospitals
     { id: 118, name: "SCB Medical College Blood Bank", state: "Odisha", city: "Cuttack", address: "SCB Medical College, Cuttack", phone: "0671-2545678", lat: 20.4625, lng: 85.8830, bloodStock: { "A+": 30, "A-": 8, "B+": 27, "B-": 7, "AB+": 17, "AB-": 4, "O+": 50, "O-": 11 } },
     { id: 119, name: "MKCG Medical College Blood Bank", state: "Odisha", city: "Berhampur", address: "MKCG Medical College, Berhampur", phone: "0680-2245678", lat: 19.3056, lng: 84.7886, bloodStock: { "A+": 25, "A-": 7, "B+": 22, "B-": 6, "AB+": 14, "AB-": 3, "O+": 45, "O-": 10 } },
-    
+
     // ODISHA - Private Hospitals
     { id: 120, name: "Apollo Hospital Blood Bank", state: "Odisha", city: "Bhubaneswar", address: "Apollo Hospital, Bhubaneswar", phone: "0674-2545678", lat: 20.2961, lng: 85.8245, bloodStock: { "A+": 52, "A-": 16, "B+": 45, "B-": 13, "AB+": 30, "AB-": 9, "O+": 80, "O-": 21 } },
     { id: 121, name: "AMRI Hospital Blood Bank", state: "Odisha", city: "Bhubaneswar", address: "AMRI Hospital, Bhubaneswar", phone: "0674-2545679", lat: 20.3061, lng: 85.8345, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 122, name: "KIMS Hospital Blood Bank", state: "Odisha", city: "Bhubaneswar", address: "KIMS Hospital, Bhubaneswar", phone: "0674-2545680", lat: 20.3161, lng: 85.8445, bloodStock: { "A+": 45, "A-": 14, "B+": 40, "B-": 11, "AB+": 26, "AB-": 7, "O+": 72, "O-": 19 } },
-    
+
     // CHHATTISGARH - Government Hospitals
     { id: 123, name: "Medical College Blood Bank", state: "Chhattisgarh", city: "Raipur", address: "Medical College, Raipur", phone: "0771-2545678", lat: 21.2514, lng: 81.6296, bloodStock: { "A+": 28, "A-": 8, "B+": 25, "B-": 7, "AB+": 16, "AB-": 4, "O+": 48, "O-": 11 } },
-    
+
     // CHHATTISGARH - Private Hospitals
     { id: 124, name: "Ramkrishna Hospital Blood Bank", state: "Chhattisgarh", city: "Raipur", address: "Ramkrishna Hospital, Raipur", phone: "0771-2545679", lat: 21.2614, lng: 81.6396, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 125, name: "Shri Narayana Hospital Blood Bank", state: "Chhattisgarh", city: "Raipur", address: "Shri Narayana Hospital, Raipur", phone: "0771-2545680", lat: 21.2714, lng: 81.6496, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
-    
+
     // JHARKHAND - Government Hospitals
     { id: 126, name: "RIMS Ranchi Blood Bank", state: "Jharkhand", city: "Ranchi", address: "RIMS, Ranchi", phone: "0651-2545678", lat: 23.3441, lng: 85.3096, bloodStock: { "A+": 26, "A-": 7, "B+": 23, "B-": 6, "AB+": 15, "AB-": 3, "O+": 45, "O-": 10 } },
-    
+
     // JHARKHAND - Private Hospitals
     { id: 127, name: "Apollo Hospital Blood Bank", state: "Jharkhand", city: "Ranchi", address: "Apollo Hospital, Ranchi", phone: "0651-2545679", lat: 23.3541, lng: 85.3196, bloodStock: { "A+": 48, "A-": 15, "B+": 42, "B-": 12, "AB+": 28, "AB-": 8, "O+": 75, "O-": 20 } },
     { id: 128, name: "Bokaro General Hospital Blood Bank", state: "Jharkhand", city: "Bokaro", address: "Bokaro General Hospital, Bokaro", phone: "0654-2224567", lat: 23.6641, lng: 86.1444, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // ASSAM - Government Hospitals
     { id: 129, name: "GMCH Guwahati Blood Bank", state: "Assam", city: "Guwahati", address: "GMCH, Guwahati", phone: "0361-2545678", lat: 26.1445, lng: 91.7362, bloodStock: { "A+": 24, "A-": 7, "B+": 21, "B-": 6, "AB+": 13, "AB-": 3, "O+": 42, "O-": 9 } },
-    
+
     // ASSAM - Private Hospitals
     { id: 130, name: "Apollo Hospital Blood Bank", state: "Assam", city: "Guwahati", address: "Apollo Hospital, Guwahati", phone: "0361-2545679", lat: 26.1545, lng: 91.7462, bloodStock: { "A+": 45, "A-": 14, "B+": 40, "B-": 11, "AB+": 26, "AB-": 7, "O+": 72, "O-": 19 } },
     { id: 131, name: "Guwahati Medical College Blood Bank", state: "Assam", city: "Guwahati", address: "GMC, Guwahati", phone: "0361-2545680", lat: 26.1645, lng: 91.7562, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
-    
+
     // HIMACHAL PRADESH - Government Hospitals
     { id: 132, name: "IGMC Shimla Blood Bank", state: "Himachal Pradesh", city: "Shimla", address: "IGMC, Shimla", phone: "0177-2655678", lat: 31.1048, lng: 77.1734, bloodStock: { "A+": 22, "A-": 6, "B+": 19, "B-": 5, "AB+": 12, "AB-": 3, "O+": 38, "O-": 8 } },
-    
+
     // HIMACHAL PRADESH - Private Hospitals
     { id: 133, name: "Indira Gandhi Hospital Blood Bank", state: "Himachal Pradesh", city: "Shimla", address: "IGMH, Shimla", phone: "0177-2655679", lat: 31.1148, lng: 77.1834, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
-    
+
     // UTTARAKHAND - Government Hospitals
     { id: 134, name: "Doon Medical College Blood Bank", state: "Uttarakhand", city: "Dehradun", address: "DMC, Dehradun", phone: "0135-2655678", lat: 30.3165, lng: 78.0322, bloodStock: { "A+": 25, "A-": 7, "B+": 22, "B-": 6, "AB+": 14, "AB-": 3, "O+": 43, "O-": 9 } },
-    
+
     // UTTARAKHAND - Private Hospitals
     { id: 135, name: "Max Hospital Blood Bank", state: "Uttarakhand", city: "Dehradun", address: "Max Hospital, Dehradun", phone: "0135-2655679", lat: 30.3265, lng: 78.0422, bloodStock: { "A+": 42, "A-": 13, "B+": 37, "B-": 10, "AB+": 24, "AB-": 7, "O+": 68, "O-": 17 } },
     { id: 136, name: "Shri Mahant Hospital Blood Bank", state: "Uttarakhand", city: "Dehradun", address: "Shri Mahant Hospital, Dehradun", phone: "0135-2655680", lat: 30.3365, lng: 78.0522, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
-    
+
     // GOA - Government Hospitals
     { id: 137, name: "GMC Goa Blood Bank", state: "Goa", city: "Panaji", address: "GMC, Panaji", phone: "0832-2545678", lat: 15.4989, lng: 73.8282, bloodStock: { "A+": 20, "A-": 5, "B+": 18, "B-": 4, "AB+": 11, "AB-": 2, "O+": 35, "O-": 7 } },
-    
+
     // GOA - Private Hospitals
     { id: 138, name: "Manipal Hospital Blood Bank", state: "Goa", city: "Panaji", address: "Manipal Hospital, Panaji", phone: "0832-2545679", lat: 15.5089, lng: 73.8382, bloodStock: { "A+": 35, "A-": 11, "B+": 31, "B-": 8, "AB+": 20, "AB-": 5, "O+": 58, "O-": 13 } },
     { id: 139, name: "Healthway Hospital Blood Bank", state: "Goa", city: "Panaji", address: "Healthway Hospital, Panaji", phone: "0832-2545680", lat: 15.5189, lng: 73.8482, bloodStock: { "A+": 32, "A-": 10, "B+": 28, "B-": 7, "AB+": 18, "AB-": 4, "O+": 52, "O-": 12 } },
-    
+
     // JAMMU & KASHMIR - Government Hospitals
     { id: 140, name: "GMC Jammu Blood Bank", state: "Jammu & Kashmir", city: "Jammu", address: "GMC, Jammu", phone: "0191-2545678", lat: 32.7266, lng: 74.8570, bloodStock: { "A+": 18, "A-": 5, "B+": 16, "B-": 4, "AB+": 10, "AB-": 2, "O+": 32, "O-": 7 } },
     { id: 141, name: "SKIMS Srinagar Blood Bank", state: "Jammu & Kashmir", city: "Srinagar", address: "SKIMS, Srinagar", phone: "0194-2545678", lat: 34.0837, lng: 74.7973, bloodStock: { "A+": 20, "A-": 6, "B+": 18, "B-": 5, "AB+": 12, "AB-": 3, "O+": 35, "O-": 8 } },
-    
+
     // JAMMU & KASHMIR - Private Hospitals
     { id: 142, name: "Apollo Hospital Blood Bank", state: "Jammu & Kashmir", city: "Jammu", address: "Apollo Hospital, Jammu", phone: "0191-2545679", lat: 32.7366, lng: 74.8670, bloodStock: { "A+": 38, "A-": 12, "B+": 34, "B-": 9, "AB+": 22, "AB-": 6, "O+": 62, "O-": 15 } },
   ];
@@ -582,22 +590,22 @@ export default function HomePage() {
   const handleBloodSearch = () => {
     setIsSearching(true);
     setHasSearched(true);
-    
+
     // Filter blood banks based on selected criteria
     let results = bloodBankDatabase;
-    
+
     if (selectedState) {
       results = results.filter(bank => bank.state === selectedState);
     }
-    
+
     if (selectedCity) {
       results = results.filter(bank => bank.city === selectedCity);
     }
-    
+
     if (bloodGroup) {
       results = results.filter(bank => bank.bloodStock && bank.bloodStock[bloodGroup] > 0);
     }
-    
+
     setNearbyBloodBanks(results);
     setIsSearching(false);
   };
@@ -625,6 +633,12 @@ export default function HomePage() {
     const onScroll = () => setNavScrolled(window.scrollY > 60);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Orchestrated hero load-in: one sequence, not repeated per-section
+  useEffect(() => {
+    const t = setTimeout(() => setHeroLoaded(true), 80);
+    return () => clearTimeout(t);
   }, []);
 
   // Close dropdown when clicking outside
@@ -699,13 +713,13 @@ export default function HomePage() {
       return;
     }
     if (!isStep3Valid) return;
-    
+
     try {
       // Set user role to donor
       localStorage.setItem("userRole", "donor");
       localStorage.setItem("userFullName", user?.fullName || "");
       localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-      
+
       // Create donor record in backend
       const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/register`, {
         method: "POST",
@@ -725,7 +739,7 @@ export default function HomePage() {
           email: user?.primaryEmailAddress?.emailAddress || "",
           role: "donor",
         });
-        
+
         // Redirect to donor dashboard
         navigate("/donor-dashboard");
       } else {
@@ -740,9 +754,10 @@ export default function HomePage() {
 
   const navItems = [
     { key:"home",           icon:<FaChartLine/>,        label:"Home"           },
+    { key:"features",       icon:<FaHandHoldingMedical/>,label:"Features"       },
     { key:"blood-search",   icon:<FaMagnifyingGlass/>,  label:"Blood Search"   },
-    { key:"donate",         icon:<FaHandHoldingMedical/>,label:"Donate"         },
-    { key:"hospitals",      icon:<FaHospital/>,         label:"Hospitals"      },
+    { key:"testimonials",   icon:<FaChartLine/>,        label:"Testimonials"   },
+    { key:"how-it-works",   icon:<FaHospital/>,         label:"How It Works"   },
   ];
 
   const loggedInNavItems = [
@@ -753,6 +768,10 @@ export default function HomePage() {
   const displayName = userProfile?.fullName || user?.fullName || "User";
   const displayRole = userProfile?.role || "donor";
 
+  // Nav visually dissolves from a glass panel over the dark hero into a
+  // solid white bar once the person scrolls past it.
+  const navIsDark = !navScrolled;
+
   return (
     <div style={{ fontFamily:FONT, color:SLATE, overflowX:"hidden", background: theme === "dark" ? "#0F172A" : WHITE, minHeight: "100vh" }}>
 
@@ -762,26 +781,34 @@ export default function HomePage() {
         html { scroll-behavior: smooth; }
         body { background: ${theme === "dark" ? "#0F172A" : WHITE}; color: ${theme === "dark" ? WHITE : SLATE}; }
         input::placeholder { color: ${SLATE_LT}; }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
+        }
         @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
         @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-12px);} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(24px);} to{opacity:1;transform:translateY(0);} }
+        @keyframes heroGlow { 0%,100%{opacity:0.5;} 50%{opacity:0.85;} }
         @keyframes shimmer { 0%{background-position:-200% center;} 100%{background-position:200% center;} }
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px);} to{opacity:1;transform:translateY(0);} }
         .animate-fade-up { animation: fadeUp 0.7s cubic-bezier(.4,0,.2,1) both; }
         .animate-float { animation: float 4s ease-in-out infinite; }
+        .hero-reveal { opacity:0; transform:translateY(28px); }
+        .hero-reveal.in { opacity:1; transform:translateY(0); transition:opacity 0.9s cubic-bezier(.16,1,.3,1), transform 0.9s cubic-bezier(.16,1,.3,1); }
         .desktop-nav, .desktop-actions { display:flex; }
         .mobile-toggle { display:none; }
         .mobile-menu { display:none; }
         .search-grid { grid-template-columns: repeat(4,1fr); }
         .results-grid { grid-template-columns: repeat(2,1fr); }
-        
+
         /* Tablet styles */
         @media(max-width:1024px){
           .search-grid{grid-template-columns:repeat(2,1fr);}
           .results-grid{grid-template-columns:repeat(2,1fr);}
           .hero-stats{gap:24px;}
+          .hero-grid{grid-template-columns:1fr!important;}
+          .hero-3d-col{order:-1; height:320px!important;}
         }
-        
+
         @media(max-width:900px){
           .desktop-nav{display:none!important;}
           .mobile-toggle{display:flex!important;}
@@ -789,7 +816,7 @@ export default function HomePage() {
           .search-grid{grid-template-columns:repeat(2,1fr);}
           .results-grid{grid-template-columns:repeat(2,1fr);}
         }
-        
+
         @media(max-width:768px){
           .hero-buttons{flex-direction:column!important;align-items:stretch!important;}
           .hero-stats{flex-wrap:wrap!important;gap:16px!important;justify-content:center!important;}
@@ -798,14 +825,15 @@ export default function HomePage() {
           .four-col{grid-template-columns:1fr 1fr!important;}
           .search-grid{grid-template-columns:1fr 1fr!important;}
           .results-grid{grid-template-columns:1fr!important;}
+          .hero-3d-col{height:260px!important;}
         }
-        
+
         @media(max-width:640px){
           .four-col{grid-template-columns:1fr!important;}
           .search-grid{grid-template-columns:1fr!important;}
           .hero-stats{flex-direction:column!important;align-items:center!important;text-align:center!important;}
         }
-        
+
         @media(max-width:480px){
           nav{padding:0 16px!important;}
           .mobile-menu{padding:12px 0 16px!important;}
@@ -813,10 +841,10 @@ export default function HomePage() {
           .hero-buttons{gap:10px!important;}
           .hero-stats{gap:20px!important;}
         }
-        
+
         /* Mobile-specific improvements */
         @media(max-width:768px){
-          header{min-height:auto!important;padding-top:120px!important;padding-bottom:80px!important;}
+          header{min-height:auto!important;padding-top:112px!important;padding-bottom:64px!important;}
           .hero-buttons button{padding:14px 24px!important;font-size:0.95rem!important;}
           .four-col > div{border-right:none!important;border-bottom:1px solid rgba(255,255,255,0.08)!important;padding:20px 12px!important;}
           .four-col > div:last-child{border-bottom:none!important;}
@@ -826,60 +854,39 @@ export default function HomePage() {
           .four-col{grid-template-columns:1fr!important;gap:32px!important;}
           .four-col > div:last-child{margin-bottom:0!important;}
           .mobile-menu{position:fixed;top:72px;left:0;right:0;z-index:999;max-height:calc(100vh - 72px);overflow-y:auto;}
-          
-          /* Header specific mobile styles */
-          header > div{padding-top:80px!important;}
-          header .animate-float{display:none!important;}
           header h1{font-size:2.2rem!important;margin-bottom:20px!important;}
           header p{font-size:0.95rem!important;margin-bottom:28px!important;}
           header .hero-stats{justify-content:center!important;text-align:center!important;gap:24px!important;}
           header .hero-stats > div{min-width:100px!important;}
         }
-        
+
         @media(max-width:640px){
-          header{padding-top:100px!important;padding-bottom:60px!important;}
-          header > div{padding-top:60px!important;}
+          header{padding-top:100px!important;padding-bottom:56px!important;}
           header h1{font-size:1.8rem!important;}
           header p{font-size:0.9rem!important;max-width:100%!important;}
           header .hero-buttons{flex-direction:column!important;gap:12px!important;}
           header .hero-buttons button{width:100%!important;padding:14px 20px!important;}
           header .hero-stats{flex-direction:column!important;gap:20px!important;padding-top:20px!important;}
-          
-          /* Hide glassmorphism panel on very small screens */
-          header .two-col > div:last-child{display:none!important;}
-          header .two-col > div:first-child{width:100%!important;}
         }
-        
+
         @media(max-width:480px){
-          header{padding-top:80px!important;padding-bottom:50px!important;}
-          header > div{padding-top:50px!important;padding:0 16px!important;}
+          header{padding-top:88px!important;padding-bottom:48px!important;}
           header h1{font-size:1.6rem!important;line-height:1.2!important;}
           header p{font-size:0.85rem!important;}
           header .hero-buttons button{padding:12px 16px!important;font-size:0.9rem!important;}
-          
-          /* User profile card mobile */
-          header > div > div > div:first-child > div:first-child{padding:12px 16px!important;margin-bottom:16px!important;}
-          header > div > div > div:first-child > div:first-child > div > div:first-child{width:40px!important;height:40px!important;font-size:1rem!important;}
-          header > div > div > div:first-child > div:first-child > div > div:last-child p{font-size:0.9rem!important;}
-          header > div > div > div:first-child > div:first-child > div > div:last-child p:last-child{font-size:0.75rem!important;}
-          
-          /* Live badge mobile */
-          header > div > div > div:first-child > div:nth-child(2){padding:4px 12px!important;font-size:0.75rem!important;}
-          
-          /* Scroll indicator hide on mobile */
-          header > div:last-child{display:none!important;}
+          header .scroll-indicator{display:none!important;}
         }
       `}</style>
 
       {/* ════════════════════════════════════════════════
-          NAV (Dashboard-style)
+          NAV — glass over the dark hero, solid once scrolled
       ════════════════════════════════════════════════ */}
       <nav style={{
         position:"fixed", top:0, left:0, right:0, zIndex:1000,
-        background: navScrolled ? "rgba(255,255,255,0.97)" : "transparent",
-        backdropFilter: navScrolled ? "blur(20px)" : "none",
-        borderBottom: navScrolled ? `1px solid ${BORDER}` : "none",
-        boxShadow: navScrolled ? "0 4px 30px rgba(0,0,0,0.08)" : "none",
+        background: navIsDark ? "rgba(5,7,13,0.55)" : "rgba(255,255,255,0.97)",
+        backdropFilter: "blur(20px)",
+        borderBottom: `1px solid ${navIsDark ? "rgba(255,255,255,0.08)" : BORDER}`,
+        boxShadow: navIsDark ? "none" : "0 4px 30px rgba(0,0,0,0.08)",
         transition:"all 0.4s cubic-bezier(.4,0,.2,1)",
         padding:"0 24px"
       }}>
@@ -894,8 +901,8 @@ export default function HomePage() {
             }}>
                 <FaDroplet/>
             </div>
-            <span style={{ fontWeight:900, fontSize:"1.25rem", color: navScrolled ? SLATE : WHITE, letterSpacing:"-0.02em", transition:"color 0.3s" }}>
-              Hemo<span style={{ color:RED }}>Care</span>
+            <span style={{ fontWeight:900, fontSize:"1.25rem", color: navIsDark ? WHITE : SLATE, letterSpacing:"-0.02em", transition:"color 0.3s" }}>
+              Hemo<span style={{ color: navIsDark ? EMBER : RED }}>Care</span>
             </span>
           </div>
 
@@ -907,12 +914,12 @@ export default function HomePage() {
                     style={{
                         display:"flex", alignItems:"center", gap:8,
                         padding:"10px 16px", borderRadius:12,
-                        color: navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)",
+                        color: navIsDark ? "rgba(255,255,255,0.78)" : SLATE_MD,
                         fontWeight:500, fontSize:"0.9rem",
                         textDecoration:"none", transition:"all 0.2s"
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = navScrolled ? SMOKE : "rgba(255,255,255,0.1)"; e.currentTarget.style.color = RED; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = navIsDark ? "rgba(255,255,255,0.08)" : SMOKE; e.currentTarget.style.color = navIsDark ? WHITE : RED; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = navIsDark ? "rgba(255,255,255,0.78)" : SLATE_MD; }}
                 >
                     <span style={{ fontSize:"1rem" }}>{icon}</span>
                     <span>{label}</span>
@@ -924,13 +931,13 @@ export default function HomePage() {
                     style={{
                         display:"flex", alignItems:"center", gap:8,
                         padding:"10px 16px", borderRadius:12,
-                        color: navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)",
+                        color: navIsDark ? "rgba(255,255,255,0.78)" : SLATE_MD,
                         fontWeight:500, fontSize:"0.9rem",
                         textDecoration:"none", transition:"all 0.2s", cursor:"pointer",
                         background:"none", border:"none"
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = navScrolled ? SMOKE : "rgba(255,255,255,0.1)"; e.currentTarget.style.color = RED; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)"; }}
+                    onMouseEnter={e => { e.currentTarget.style.background = navIsDark ? "rgba(255,255,255,0.08)" : SMOKE; e.currentTarget.style.color = navIsDark ? WHITE : RED; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = navIsDark ? "rgba(255,255,255,0.78)" : SLATE_MD; }}
                 >
                     <span style={{ fontSize:"1rem" }}>{icon}</span>
                     <span>{label}</span>
@@ -941,23 +948,23 @@ export default function HomePage() {
           {/* Right Actions */}
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
             {/* Search - desktop only */}
-            <div className="desktop-actions" style={{ alignItems:"center", gap:10, background:navScrolled ? SMOKE : "rgba(255,255,255,0.1)", border:navScrolled ? `1px solid ${BORDER}` : "1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"10px 16px", transition:"all 0.25s" }}>
-                <FaMagnifyingGlass style={{ color:navScrolled ? SLATE_LT : "rgba(255,255,255,0.7)", fontSize:"0.95rem" }}/>
-                <input placeholder="Search..." style={{ border:"none", background:"transparent", fontFamily:FONT, fontSize:"0.9rem", color:navScrolled ? SLATE : WHITE, outline:"none", width:100 }}/>
+            <div className="desktop-actions" style={{ alignItems:"center", gap:10, background: navIsDark ? "rgba(255,255,255,0.08)" : SMOKE, border:`1px solid ${navIsDark ? "rgba(255,255,255,0.14)" : BORDER}`, borderRadius:14, padding:"10px 16px", transition:"all 0.25s" }}>
+                <FaMagnifyingGlass style={{ color: navIsDark ? "rgba(255,255,255,0.6)" : SLATE_LT, fontSize:"0.95rem" }}/>
+                <input placeholder="Search..." style={{ border:"none", background:"transparent", fontFamily:FONT, fontSize:"0.9rem", color: navIsDark ? WHITE : SLATE, outline:"none", width:100 }}/>
             </div>
 
             {/* Theme Toggle */}
-            <button onClick={toggleTheme} style={{ width:42, height:42, borderRadius:12, border:navScrolled ? `1px solid ${BORDER}` : "1px solid rgba(255,255,255,0.2)", background:navScrolled ? SMOKE : "rgba(255,255,255,0.1)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)", fontSize:"1rem", transition:"all 0.25s" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = RED; e.currentTarget.style.color = RED; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = navScrolled ? BORDER : "rgba(255,255,255,0.2)"; e.currentTarget.style.color = navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)"; }}
+            <button onClick={toggleTheme} style={{ width:42, height:42, borderRadius:12, border:`1px solid ${navIsDark ? "rgba(255,255,255,0.14)" : BORDER}`, background: navIsDark ? "rgba(255,255,255,0.08)" : SMOKE, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color: navIsDark ? WHITE : SLATE_MD, fontSize:"1rem", transition:"all 0.25s" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = RED; e.currentTarget.style.color = navIsDark ? EMBER : RED; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = navIsDark ? "rgba(255,255,255,0.14)" : BORDER; e.currentTarget.style.color = navIsDark ? WHITE : SLATE_MD; }}
             >
                 {theme === "dark" ? <FaSun/> : <FaMoon/>}
             </button>
 
             {/* Notification - desktop only */}
-            <button className="desktop-actions" style={{ width:42, height:42, borderRadius:12, border:navScrolled ? `1px solid ${BORDER}` : "1px solid rgba(255,255,255,0.2)", background:navScrolled ? SMOKE : "rgba(255,255,255,0.1)", cursor:"pointer", alignItems:"center", justifyContent:"center", color:navScrolled ? SLATE_MD : "rgba(255,255,255,0.85)", fontSize:"1rem", position:"relative", transition:"all 0.25s" }}
+            <button className="desktop-actions" style={{ width:42, height:42, borderRadius:12, border:`1px solid ${navIsDark ? "rgba(255,255,255,0.14)" : BORDER}`, background: navIsDark ? "rgba(255,255,255,0.08)" : SMOKE, cursor:"pointer", alignItems:"center", justifyContent:"center", color: navIsDark ? WHITE : SLATE_MD, fontSize:"1rem", position:"relative", transition:"all 0.25s" }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = RED}
-                onMouseLeave={e => e.currentTarget.style.borderColor = navScrolled ? BORDER : "rgba(255,255,255,0.2)"}
+                onMouseLeave={e => e.currentTarget.style.borderColor = navIsDark ? "rgba(255,255,255,0.14)" : BORDER}
             >
                 <FaBell/>
                 <span style={{ position:"absolute", top:-2, right:-2, background:RED, color:WHITE, fontSize:"0.65rem", fontWeight:800, minWidth:18, height:18, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center" }}>3</span>
@@ -1010,7 +1017,7 @@ export default function HomePage() {
                   </div>
               ) : (
                   <>
-                      <GhostBtn dark={!navScrolled} onClick={handleLoginClick} style={{ padding:"10px 20px", fontSize:"0.88rem" }}>Log In</GhostBtn>
+                      <GhostBtn dark={navIsDark} onClick={handleLoginClick} style={{ padding:"10px 20px", fontSize:"0.88rem" }}>Log In</GhostBtn>
                       <PrimaryBtn onClick={handleProtectedAction} style={{ padding:"10px 20px", fontSize:"0.88rem" }}>Donate Now</PrimaryBtn>
                   </>
               )}
@@ -1021,7 +1028,7 @@ export default function HomePage() {
               className="mobile-toggle"
               onClick={() => setMobileMenuOpen(o => !o)}
               aria-label="Toggle menu"
-              style={{ width:42, height:42, borderRadius:12, border:navScrolled ? `1px solid ${BORDER}` : "1px solid rgba(255,255,255,0.2)", background:navScrolled ? SMOKE : "rgba(255,255,255,0.1)", cursor:"pointer", alignItems:"center", justifyContent:"center", color:navScrolled ? SLATE_MD : WHITE, fontSize:"1.05rem" }}
+              style={{ width:42, height:42, borderRadius:12, border:`1px solid ${navIsDark ? "rgba(255,255,255,0.14)" : BORDER}`, background: navIsDark ? "rgba(255,255,255,0.08)" : SMOKE, cursor:"pointer", alignItems:"center", justifyContent:"center", color: navIsDark ? WHITE : SLATE_MD, fontSize:"1.05rem" }}
             >
               {mobileMenuOpen ? <FaXmark/> : <FaBars/>}
             </button>
@@ -1031,20 +1038,20 @@ export default function HomePage() {
         {/* Mobile menu panel */}
         <div className={`mobile-menu${mobileMenuOpen ? " open" : ""}`} style={{
           flexDirection:"column", gap:4, maxWidth:1200, margin:"0 auto", padding:"12px 0 20px",
-          background: navScrolled ? "rgba(255,255,255,0.98)" : "rgba(30,41,59,0.97)",
-          backdropFilter:"blur(20px)", borderTop:`1px solid ${navScrolled ? BORDER : "rgba(255,255,255,0.15)"}`,
+          background: navIsDark ? "rgba(5,7,13,0.98)" : "rgba(255,255,255,0.98)",
+          backdropFilter:"blur(20px)", borderTop:`1px solid ${navIsDark ? "rgba(255,255,255,0.1)" : BORDER}`,
           animation:"slideDown 0.25s ease"
         }}>
           {navItems.map(({ key, icon, label }) => (
             <a key={key} href={`#${key}`} onClick={(e) => handleSmoothScroll(e, key)}
-              style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", color: navScrolled ? SLATE_MD : "rgba(255,255,255,0.9)", fontWeight:600, fontSize:"0.95rem", textDecoration:"none" }}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", color: navIsDark ? "rgba(255,255,255,0.85)" : SLATE_MD, fontWeight:600, fontSize:"0.95rem", textDecoration:"none" }}
             >
               <span>{icon}</span><span>{label}</span>
             </a>
           ))}
           {isSignedIn && userProfile ? (
             <>
-              <button onClick={() => { setMobileMenuOpen(false); handleDashboardNavigation(); }} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", color: navScrolled ? SLATE_MD : "rgba(255,255,255,0.9)", fontWeight:600, fontSize:"0.95rem", background:"none", border:"none", textAlign:"left", cursor:"pointer" }}>
+              <button onClick={() => { setMobileMenuOpen(false); handleDashboardNavigation(); }} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", color: navIsDark ? "rgba(255,255,255,0.85)" : SLATE_MD, fontWeight:600, fontSize:"0.95rem", background:"none", border:"none", textAlign:"left", cursor:"pointer" }}>
                 <FaChartLine/><span>Dashboard</span>
               </button>
               <button onClick={handleLogout} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", color:RED, fontWeight:700, fontSize:"0.95rem", background:"none", border:"none", textAlign:"left", cursor:"pointer" }}>
@@ -1053,7 +1060,7 @@ export default function HomePage() {
             </>
           ) : (
             <div style={{ display:"flex", gap:10, padding:"12px 20px 0" }}>
-              <GhostBtn dark={!navScrolled} onClick={handleLoginClick} style={{ flex:1, justifyContent:"center", display:"flex" }}>Log In</GhostBtn>
+              <GhostBtn dark={navIsDark} onClick={handleLoginClick} style={{ flex:1, justifyContent:"center", display:"flex" }}>Log In</GhostBtn>
               <PrimaryBtn onClick={handleProtectedAction} style={{ flex:1, justifyContent:"center", display:"flex" }}>Donate Now</PrimaryBtn>
             </div>
           )}
@@ -1061,107 +1068,183 @@ export default function HomePage() {
       </nav>
 
       {/* ════════════════════════════════════════════════
-          HERO
+          HERO — cinematic dark stage with a centered 3D heart
+          (the one deliberate "hero moment"; everything else in
+          the page stays quiet and disciplined, per design brief)
       ════════════════════════════════════════════════ */}
       <header id="home" style={{
         minHeight:"100vh", position:"relative", display:"flex", alignItems:"center",
-        background:`linear-gradient(135deg, ${RED_DARK} 0%, #3B0000 40%, #1E293B 100%)`,
+        background:`radial-gradient(ellipse 120% 90% at 70% 20%, #14030A 0%, ${INK} 55%, #000000 100%)`,
         overflow:"hidden"
       }}>
-        {/* Background pattern */}
-        <div style={{ position:"absolute", inset:0, opacity:0.06 }}
-          dangerouslySetInnerHTML={{__html:`<svg width="60" height="60" xmlns="http://www.w3.org/2000/svg"><path d="M30 5 C30 5 20 20 20 28 C20 36 24 40 30 40 C36 40 40 36 40 28 C40 20 30 5 30 5Z" fill="white"/></svg>`}}
-        />
-        {/* Decorative blobs */}
-        <div style={{ position:"absolute", top:-100, right:-100, width:600, height:600, borderRadius:"50%", background:"radial-gradient(circle,rgba(196,18,48,0.3) 0%,transparent 70%)" }}/>
-        <div style={{ position:"absolute", bottom:-150, left:-100, width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(139,0,0,0.25) 0%,transparent 70%)" }}/>
+        {/* Ambient glows behind the heart */}
+        <div style={{
+          position:"absolute", top:"18%", right:"18%", width:560, height:560,
+          borderRadius:"50%", background:`radial-gradient(circle, ${RED_GLOW} 0%, transparent 70%)`,
+          filter:"blur(40px)", animation:"heroGlow 6s ease-in-out infinite"
+        }}/>
+        <div style={{
+          position:"absolute", bottom:"5%", left:"8%", width:420, height:420,
+          borderRadius:"50%", background:"radial-gradient(circle,rgba(59,130,246,0.1) 0%,transparent 70%)",
+          filter:"blur(70px)"
+        }}/>
 
-        {/* Floating blood drop decorations */}
-        <div className="animate-float" style={{ position:"absolute", right:"8%", top:"20%", fontSize:"6rem", opacity:0.12 }}>🩸</div>
-        <div className="animate-float" style={{ position:"absolute", right:"18%", bottom:"25%", fontSize:"4rem", opacity:0.08, animationDelay:"1.5s" }}>🩸</div>
+        <div style={{ maxWidth:1400, margin:"0 auto", padding:"0 32px", width:"100%", paddingTop:120, position:"relative", zIndex:1 }}>
+          <div className="hero-grid" style={{ display:"grid", gridTemplateColumns:"1.1fr 0.9fr", gap:40, alignItems:"center" }}>
 
-        <div style={{ maxWidth:1200, margin:"0 auto", padding:"0 24px", width:"100%", paddingTop:96 }}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:64, alignItems:"center" }} className="two-col">
+            {/* Left - Content */}
+            <div className={`hero-reveal${heroLoaded ? " in" : ""}`}>
+              {/* Premium Badge */}
+              <div style={{
+                display:"inline-flex", alignItems:"center", gap:10,
+                background:"rgba(255,77,109,0.1)", border:"1px solid rgba(255,77,109,0.25)",
+                borderRadius:50, padding:"8px 20px", marginBottom:28
+              }}>
+                <span style={{ width:8, height:8, borderRadius:"50%", background:EMBER, boxShadow:"0 0 0 3px rgba(255,77,109,0.25)" }}/>
+                <span style={{ color:EMBER, fontSize:"0.85rem", fontWeight:700, letterSpacing:"0.05em", textTransform:"uppercase" }}>
+                  India's #1 Blood Bank Platform
+                </span>
+              </div>
 
-            {/* Left */}
-            <div className="animate-fade-up">
+              {/* User Profile Card (if logged in) */}
               {isSignedIn && userProfile && (
-                <div style={{ background:"rgba(255,255,255,0.15)", backdropFilter:"blur(12px)", border:"1px solid rgba(255,255,255,0.25)", borderRadius:16, padding:"16px 20px", marginBottom:24 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <div style={{ width:48, height:48, borderRadius:12, background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontWeight:800, fontSize:"1.2rem" }}>
+                <div style={{
+                  background:"rgba(255,255,255,0.06)", boxShadow:"0 4px 24px rgba(0,0,0,0.3)",
+                  border:"1px solid rgba(255,255,255,0.12)", borderRadius:16, padding:"20px 24px", marginBottom:28,
+                  backdropFilter:"blur(12px)"
+                }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                    <div style={{
+                      width:56, height:56, borderRadius:16,
+                      background:`linear-gradient(135deg,${RED},${RED_DARK})`,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      color:WHITE, fontWeight:800, fontSize:"1.4rem"
+                    }}>
                       {userProfile.fullName?.charAt(0)?.toUpperCase() || "U"}
                     </div>
                     <div style={{ flex:1 }}>
-                      <p style={{ color:WHITE, fontWeight:800, fontSize:"1rem", lineHeight:1.2 }}>{userProfile.fullName || "User"}</p>
-                      <p style={{ color:"rgba(255,255,255,0.75)", fontSize:"0.8rem", marginTop:2 }}>{userProfile.email || ""}</p>
-                      <span style={{ background:RED, color:WHITE, fontWeight:700, fontSize:"0.7rem", padding:"2px 10px", borderRadius:12, marginTop:4, display:"inline-block", textTransform:"capitalize" }}>{userProfile.role?.replace("_"," ") || "Donor"}</span>
+                      <p style={{ color:WHITE, fontWeight:800, fontSize:"1.1rem", lineHeight:1.2 }}>
+                        {userProfile.fullName || "User"}
+                      </p>
+                      <p style={{ color:"rgba(255,255,255,0.55)", fontSize:"0.9rem", marginTop:2 }}>
+                        {userProfile.email || ""}
+                      </p>
+                      <span style={{
+                        background:"rgba(255,77,109,0.15)", color:EMBER, fontWeight:700, fontSize:"0.75rem",
+                        padding:"4px 14px", borderRadius:20, marginTop:6, display:"inline-block",
+                        textTransform:"capitalize"
+                      }}>
+                        {userProfile.role?.replace("_"," ") || "Donor"}
+                      </span>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div style={{ display:"inline-flex", alignItems:"center", gap:8, background:"rgba(255,255,255,0.12)", backdropFilter:"blur(8px)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:40, padding:"6px 16px", marginBottom:24 }}>
-                <span style={{ width:8, height:8, borderRadius:"50%", background:"#4ADE80", boxShadow:"0 0 0 3px rgba(74,222,128,0.3)", animation:"pulse 2s infinite" }}/>
-                <span style={{ color:"rgba(255,255,255,0.9)", fontSize:"0.8rem", fontWeight:600 }}>Live: 3 Emergency Requests Active</span>
-              </div>
-
-              <h1 style={{ fontFamily:FONT, fontSize:"clamp(2.8rem,6vw,4.5rem)", fontWeight:900, color:WHITE, lineHeight:1.05, letterSpacing:"-0.03em", marginBottom:24 }}>
-                Donate Blood,<br/>
-                <span style={{ background:`linear-gradient(90deg,#FCA5A5,#FECACA)`, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Save Lives</span>
+              {/* Main Heading */}
+              <h1 style={{
+                fontFamily:FONT, fontSize:"clamp(2.8rem,5.4vw,4.6rem)", fontWeight:900,
+                color:WHITE, lineHeight:1.05, letterSpacing:"-0.03em", marginBottom:24
+              }}>
+                Every Drop<br/>
+                <span style={{
+                  background:`linear-gradient(135deg,${EMBER},${RED})`,
+                  WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent"
+                }}>
+                  Saves a Life
+                </span>
               </h1>
 
-              <p style={{ color:"rgba(255,255,255,0.7)", fontSize:"1.1rem", lineHeight:1.7, marginBottom:36, maxWidth:480 }}>
-                Every donation matters. Connect with blood banks, find donors, and manage emergency requests — all in one trusted platform used by 200+ hospitals.
+              {/* Subheading */}
+              <p style={{
+                color:"rgba(255,255,255,0.65)", fontSize:"1.15rem", lineHeight:1.8, marginBottom:36,
+                maxWidth:520, fontWeight:400
+              }}>
+                Connect with 200+ hospitals across India. Find blood donors, manage emergency requests, and track donations — all in one trusted platform.
               </p>
 
-              <div className="hero-buttons" style={{ display:"flex", gap:12, marginBottom:48 }}>
-                <PrimaryBtn onClick={handleProtectedAction} style={{ padding:"16px 36px", fontSize:"1rem", borderRadius:14 }}>🩸 Donate Now</PrimaryBtn>
-                <GhostBtn dark onClick={(e) => handleSmoothScroll(e, "blood-search")} style={{ padding:"16px 36px", fontSize:"1rem", borderRadius:14 }}>🔍 Find Blood</GhostBtn>
+              {/* CTA Buttons */}
+              <div className="hero-buttons" style={{ display:"flex", gap:16, marginBottom:48 }}>
+                <PrimaryBtn onClick={handleProtectedAction} style={{
+                  padding:"18px 40px", fontSize:"1rem", borderRadius:16,
+                  boxShadow:"0 8px 32px rgba(196,18,48,0.35)"
+                }}>
+                  🩸 Donate Now
+                </PrimaryBtn>
+                <GhostBtn dark onClick={(e) => handleSmoothScroll(e, "blood-search")} style={{
+                  padding:"18px 40px", fontSize:"1rem", borderRadius:16
+                }}>
+                  🔍 Find Blood
+                </GhostBtn>
               </div>
 
-              {/* Mini stats */}
-              <div className="hero-stats" style={{ display:"flex", gap:32, borderTop:"1px solid rgba(255,255,255,0.15)", paddingTop:28 }}>
-                {[["48K+","Registered Donors"],["12K+","Lives Saved"],["200+","Partner Hospitals"]].map(([n,l]) => (
+              {/* Stats */}
+              <div className="hero-stats" style={{
+                display:"flex", gap:48,
+                borderTop:"1px solid rgba(255,255,255,0.12)", paddingTop:32
+              }}>
+                {[
+                  ["48K+", "Registered Donors"],
+                  ["12K+", "Lives Saved"],
+                  ["200+", "Partner Hospitals"],
+                  ["24/7", "Emergency Support"]
+                ].map(([n,l]) => (
                   <div key={l}>
-                    <div style={{ color:WHITE, fontWeight:800, fontSize:"1.6rem", lineHeight:1 }}>{n}</div>
-                    <div style={{ color:"rgba(255,255,255,0.55)", fontSize:"0.8rem", marginTop:4 }}>{l}</div>
+                    <div style={{ color:WHITE, fontWeight:800, fontSize:"1.8rem", lineHeight:1 }}>
+                      {n}
+                    </div>
+                    <div style={{ color:"rgba(255,255,255,0.5)", fontSize:"0.85rem", marginTop:4, fontWeight:500 }}>
+                      {l}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Right – Glassmorphism panel */}
-            <div style={{ display:"flex", justifyContent:"center" }}>
+            {/* Right — the 3D heart, the hero's one deliberate moment */}
+            <div className="hero-3d-col" style={{ position:"relative", height:560 }}>
+              <Heart3D accent={RED} glow={EMBER} bpm={62} style={{ opacity: heroLoaded ? 1 : 0, transition:"opacity 1.1s ease 0.2s" }} />
+
+              {/* Floating live-availability chip, anchored over the 3D canvas */}
               <div className="animate-float" style={{
-                background:"rgba(255,255,255,0.1)", backdropFilter:"blur(20px)",
-                border:"1px solid rgba(255,255,255,0.2)", borderRadius:28,
-                padding:32, width:"100%", maxWidth:380,
-                boxShadow:"0 32px 80px rgba(0,0,0,0.3)"
+                position:"absolute", left:"50%", bottom:8, transform:"translateX(-50%)",
+                background:"rgba(10,12,20,0.75)", backdropFilter:"blur(16px)",
+                border:"1px solid rgba(255,255,255,0.14)", borderRadius:16,
+                padding:"14px 22px", display:"flex", alignItems:"center", gap:14,
+                boxShadow:"0 20px 60px rgba(0,0,0,0.5)", maxWidth:"90%"
               }}>
-                <div style={{ fontWeight:800, color:WHITE, fontSize:"1.05rem", marginBottom:20, display:"flex", alignItems:"center", gap:8 }}>
-                  <span>🏥</span> Blood Availability
+                <span style={{ width:9, height:9, borderRadius:"50%", background:"#22C55E", boxShadow:"0 0 0 4px rgba(34,197,94,0.2)", flexShrink:0 }}/>
+                <div>
+                  <div style={{ color:WHITE, fontWeight:700, fontSize:"0.85rem" }}>Live blood availability</div>
+                  <div style={{ color:"rgba(255,255,255,0.5)", fontSize:"0.75rem" }}>12,840 units across 214 hospitals</div>
                 </div>
-                {[["O+","124 units","Available"],["A+","89 units","Available"],["B+","42 units","Low"],["AB-","8 units","Critical"],["O-","5 units","Critical"]].map(([g,u,s]) => {
-                  const sc = s==="Critical"?RED:s==="Low"?"#F59E0B":"#22C55E";
-                  return (
-                    <div key={g} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 14px", background:"rgba(255,255,255,0.08)", borderRadius:10, marginBottom:6, border:"1px solid rgba(255,255,255,0.1)" }}>
-                      <span style={{ background:BG_COLOR[g]||RED, color:WHITE, fontWeight:700, fontSize:"0.78rem", padding:"3px 9px", borderRadius:16 }}>{g}</span>
-                      <span style={{ color:"rgba(255,255,255,0.8)", fontWeight:600, fontSize:"0.85rem" }}>{u}</span>
-                      <span style={{ color:sc, fontWeight:700, fontSize:"0.75rem" }}>{s}</span>
-                    </div>
-                  );
-                })}
-                <PrimaryBtn onClick={(e) => handleSmoothScroll(e, "blood-search")} style={{ width:"100%", marginTop:16, borderRadius:12, justifyContent:"center", display:"block" }}>Check Full Availability</PrimaryBtn>
+                <button onClick={(e) => handleSmoothScroll(e, "blood-search")} style={{
+                  marginLeft:4, background:`linear-gradient(135deg,${RED},${RED_DARK})`, color:WHITE,
+                  border:"none", borderRadius:10, padding:"8px 14px", fontSize:"0.78rem", fontWeight:700,
+                  cursor:"pointer", whiteSpace:"nowrap", flexShrink:0
+                }}>View →</button>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div style={{ position:"absolute", bottom:32, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-          <span style={{ color:"rgba(255,255,255,0.4)", fontSize:"0.75rem", letterSpacing:"0.1em" }}>SCROLL</span>
-          <div style={{ width:1, height:36, background:"rgba(255,255,255,0.2)", borderRadius:1 }}/>
+        {/* Scroll Indicator */}
+        <div className="scroll-indicator" style={{
+          position:"absolute", bottom:32, left:"50%", transform:"translateX(-50%)",
+          display:"flex", flexDirection:"column", alignItems:"center", gap:8,
+          color:"rgba(255,255,255,0.45)", fontSize:"0.8rem", fontWeight:600
+        }}>
+          <span>Scroll to explore</span>
+          <div style={{
+            width:24, height:40, borderRadius:12, border:"2px solid rgba(255,255,255,0.25)",
+            position:"relative"
+          }}>
+            <div style={{
+              position:"absolute", top:8, left:"50%", transform:"translateX(-50%)",
+              width:4, height:8, borderRadius:2, background:"rgba(255,255,255,0.45)",
+              animation:"float 1.5s ease-in-out infinite"
+            }}/>
+          </div>
         </div>
       </header>
 
@@ -1186,6 +1269,63 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* ════════════════════════════════════════════════
+          FEATURES - Premium Design with Images
+      ════════════════════════════════════════════════ */}
+      <Section bg={WHITE} id="features" theme={theme}>
+        <div style={{ textAlign:"center", marginBottom:64 }}>
+          <SectionLabel text="Why Choose Us" />
+          <SectionTitle theme={theme}>Everything You Need in One Platform</SectionTitle>
+          <p style={{ color:SLATE_LT, fontSize:"1rem", lineHeight:1.7, maxWidth:600, margin:"0 auto" }}>
+            Our comprehensive blood bank management system connects donors, hospitals, and patients seamlessly.
+          </p>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:32 }} className="three-col">
+          {/* Feature 1 */}
+          <Card theme={theme} style={{ padding:0, overflow:"hidden" }}>
+            <div style={{ height:200, backgroundImage:"url('/images/Blood Donation Center with Heartbeat Glow.png')", backgroundSize:"cover", backgroundPosition:"center" }} />
+            <div style={{ padding:28 }}>
+              <div style={{ width:48, height:48, borderRadius:12, background:`${RED}15`, display:"flex", alignItems:"center", justifyContent:"center", color:RED, fontSize:"1.3rem", marginBottom:20 }}>
+                🩸
+              </div>
+              <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.2rem", marginBottom:12 }}>Real-Time Blood Availability</h3>
+              <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+                Check live blood stock across 200+ hospitals nationwide. Get instant updates on availability for all blood groups.
+              </p>
+            </div>
+          </Card>
+
+          {/* Feature 2 */}
+          <Card theme={theme} style={{ padding:0, overflow:"hidden" }}>
+            <div style={{ height:200, backgroundImage:"url('/images/blood_lab.png')", backgroundSize:"cover", backgroundPosition:"center" }} />
+            <div style={{ padding:28 }}>
+              <div style={{ width:48, height:48, borderRadius:12, background:`${RED}15`, display:"flex", alignItems:"center", justifyContent:"center", color:RED, fontSize:"1.3rem", marginBottom:20 }}>
+                🔔
+              </div>
+              <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.2rem", marginBottom:12 }}>Emergency Alerts</h3>
+              <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+                Get notified instantly when your blood type is needed. Save lives quickly with our emergency alert system.
+              </p>
+            </div>
+          </Card>
+
+          {/* Feature 3 */}
+          <Card theme={theme} style={{ padding:0, overflow:"hidden" }}>
+            <div style={{ height:200, backgroundImage:"url('/images/campaign_drive.png')", backgroundSize:"cover", backgroundPosition:"center" }} />
+            <div style={{ padding:28 }}>
+              <div style={{ width:48, height:48, borderRadius:12, background:`${RED}15`, display:"flex", alignItems:"center", justifyContent:"center", color:RED, fontSize:"1.3rem", marginBottom:20 }}>
+                🏆
+              </div>
+              <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.2rem", marginBottom:12 }}>Donation Campaigns</h3>
+              <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+                Organize and participate in blood donation drives. Track campaigns, manage volunteers, and measure impact.
+              </p>
+            </div>
+          </Card>
+        </div>
+      </Section>
 
       {/* ════════════════════════════════════════════════
           BLOOD SEARCH
@@ -1406,6 +1546,152 @@ export default function HomePage() {
             })}
           </div>
         )}
+      </Section>
+
+      {/* ════════════════════════════════════════════════
+          TESTIMONIALS - Premium Design
+      ════════════════════════════════════════════════ */}
+      <Section bg={SMOKE} id="testimonials" theme={theme}>
+        <div style={{ textAlign:"center", marginBottom:64 }}>
+          <SectionLabel text="Testimonials" />
+          <SectionTitle theme={theme}>Trusted by Thousands</SectionTitle>
+          <p style={{ color:SLATE_LT, fontSize:"1rem", lineHeight:1.7, maxWidth:600, margin:"0 auto" }}>
+            Hear from donors, hospitals, and patients who have experienced the power of our platform.
+          </p>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:32 }} className="three-col">
+          {/* Testimonial 1 */}
+          <Card theme={theme}>
+            <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+              <div style={{ width:56, height:56, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontWeight:800, fontSize:"1.4rem" }}>
+                RS
+              </div>
+              <div>
+                <div style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1rem" }}>Dr. Rajesh Sharma</div>
+                <div style={{ color:SLATE_LT, fontSize:"0.85rem" }}>AIIMS, New Delhi</div>
+              </div>
+            </div>
+            <p style={{ color:SLATE_LT, fontSize:"0.95rem", lineHeight:1.7, fontStyle:"italic" }}>
+              "HemoCare has revolutionized how we manage blood inventory. The real-time tracking and emergency alerts have saved countless lives in our hospital."
+            </p>
+            <div style={{ marginTop:20, display:"flex", gap:4 }}>
+              {[...Array(5)].map((_, i) => (
+                <span key={i} style={{ color:RED, fontSize:"1.1rem" }}>★</span>
+              ))}
+            </div>
+          </Card>
+
+          {/* Testimonial 2 */}
+          <Card theme={theme}>
+            <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+              <div style={{ width:56, height:56, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontWeight:800, fontSize:"1.4rem" }}>
+                PK
+              </div>
+              <div>
+                <div style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1rem" }}>Priya Kumar</div>
+                <div style={{ color:SLATE_LT, fontSize:"0.85rem" }}>Regular Donor</div>
+              </div>
+            </div>
+            <p style={{ color:SLATE_LT, fontSize:"0.95rem", lineHeight:1.7, fontStyle:"italic" }}>
+              "As a regular donor, I love how easy it is to track my donations and get notified when my blood type is needed. The app makes giving blood so rewarding!"
+            </p>
+            <div style={{ marginTop:20, display:"flex", gap:4 }}>
+              {[...Array(5)].map((_, i) => (
+                <span key={i} style={{ color:RED, fontSize:"1.1rem" }}>★</span>
+              ))}
+            </div>
+          </Card>
+
+          {/* Testimonial 3 */}
+          <Card theme={theme}>
+            <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+              <div style={{ width:56, height:56, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontWeight:800, fontSize:"1.4rem" }}>
+                AM
+              </div>
+              <div>
+                <div style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1rem" }}>Ankit Mehta</div>
+                <div style={{ color:SLATE_LT, fontSize:"0.85rem" }}>Patient</div>
+              </div>
+            </div>
+            <p style={{ color:SLATE_LT, fontSize:"0.95rem", lineHeight:1.7, fontStyle:"italic" }}>
+              "When my father needed emergency blood, HemoCare helped us find available units within minutes. The platform literally saved his life. Forever grateful!"
+            </p>
+            <div style={{ marginTop:20, display:"flex", gap:4 }}>
+              {[...Array(5)].map((_, i) => (
+                <span key={i} style={{ color:RED, fontSize:"1.1rem" }}>★</span>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </Section>
+
+      {/* ════════════════════════════════════════════════
+          HOW IT WORKS - Premium Design
+      ════════════════════════════════════════════════ */}
+      <Section bg={WHITE} id="how-it-works" theme={theme}>
+        <div style={{ textAlign:"center", marginBottom:64 }}>
+          <SectionLabel text="How It Works" />
+          <SectionTitle theme={theme}>Simple Steps to Save Lives</SectionTitle>
+          <p style={{ color:SLATE_LT, fontSize:"1rem", lineHeight:1.7, maxWidth:600, margin:"0 auto" }}>
+            Getting started is easy. Follow these simple steps to make a difference.
+          </p>
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:32, position:"relative" }} className="four-col">
+          {/* Connecting line */}
+          <div style={{ position:"absolute", top:40, left:50, right:50, height:2, background:`linear-gradient(90deg,${RED},${RED_DARK})`, opacity:0.2 }} />
+
+          {/* Step 1 */}
+          <div style={{ textAlign:"center", position:"relative" }}>
+            <div style={{ width:80, height:80, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontSize:"2rem", fontWeight:800, margin:"0 auto 24", boxShadow:"0 8px 32px rgba(196,18,48,0.3)", position:"relative", zIndex:1 }}>
+              1
+            </div>
+            <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.1rem", marginBottom:12 }}>Register</h3>
+            <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+              Create your account as a donor, hospital, or patient in just a few minutes.
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div style={{ textAlign:"center", position:"relative" }}>
+            <div style={{ width:80, height:80, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontSize:"2rem", fontWeight:800, margin:"0 auto 24", boxShadow:"0 8px 32px rgba(196,18,48,0.3)", position:"relative", zIndex:1 }}>
+              2
+            </div>
+            <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.1rem", marginBottom:12 }}>Search</h3>
+            <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+              Find blood availability near you or search for donors in your area.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div style={{ textAlign:"center", position:"relative" }}>
+            <div style={{ width:80, height:80, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontSize:"2rem", fontWeight:800, margin:"0 auto 24", boxShadow:"0 8px 32px rgba(196,18,48,0.3)", position:"relative", zIndex:1 }}>
+              3
+            </div>
+            <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.1rem", marginBottom:12 }}>Connect</h3>
+            <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+              Connect with blood banks or donors directly through our secure platform.
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div style={{ textAlign:"center", position:"relative" }}>
+            <div style={{ width:80, height:80, borderRadius:"50%", background:`linear-gradient(135deg,${RED},${RED_DARK})`, display:"flex", alignItems:"center", justifyContent:"center", color:WHITE, fontSize:"2rem", fontWeight:800, margin:"0 auto 24", boxShadow:"0 8px 32px rgba(196,18,48,0.3)", position:"relative", zIndex:1 }}>
+              4
+            </div>
+            <h3 style={{ fontWeight:800, color:theme === "dark" ? WHITE : SLATE, fontSize:"1.1rem", marginBottom:12 }}>Save Lives</h3>
+            <p style={{ color:SLATE_LT, fontSize:"0.9rem", lineHeight:1.6 }}>
+              Complete the donation or request and help save lives in your community.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ textAlign:"center", marginTop:48 }}>
+          <PrimaryBtn onClick={handleProtectedAction} style={{ padding:"18px 48px", fontSize:"1.1rem", borderRadius:16 }}>
+            Get Started Now →
+          </PrimaryBtn>
+        </div>
       </Section>
 
       {/* ════════════════════════════════════════════════
