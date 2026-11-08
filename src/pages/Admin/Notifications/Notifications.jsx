@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaBell, FaCheckDouble, FaTrash, FaDroplet, FaHospital, FaUserDoctor, FaFilter } from 'react-icons/fa6';
+import { FaBell, FaCheckDouble, FaTrash, FaDroplet, FaHospital, FaUserDoctor, FaFilter, FaBullhorn, FaPaperPlane, FaXmark } from 'react-icons/fa6';
 import DashboardLayout from '../../../components/DashboardLayout';
+import { useNotification } from '../../../contexts/NotificationContext';
 import { bloodBankDatabase, doctorDatabase, bloodGroups } from '../../../data/hospitalData';
+import { apiFetch } from '../../../utils/apiConfig';
 
 /* Design Tokens matching Dashboard */
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
@@ -20,9 +22,16 @@ function Notifications() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [broadcastData, setBroadcastData] = useState({
+    targetRole: 'all_staff',
+    title: '',
+    message: ''
+  });
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
 
-  // Enhanced notifications with hospital/doctor integration
-  const notifications = [
+  // Dynamic notifications state
+  const [notificationsList, setNotificationsList] = useState([
     { id: 1, title: 'Critical Blood Shortage', message: 'Apollo Hospital Blood Bank - O- blood stock critically low (5 units remaining)', time: '2 minutes ago', read: false, type: 'critical', hospitalId: 6, category: 'blood' },
     { id: 2, title: 'New Blood Donation', message: 'J.J. Hospital Blood Bank received 10 units of A+ blood from donor Robert Davis', time: '15 minutes ago', read: false, type: 'success', hospitalId: 13, category: 'blood' },
     { id: 3, title: 'Doctor Availability Update', message: 'Dr. Rajesh Kumar is now available for appointments at Apollo Hospital', time: '30 minutes ago', read: false, type: 'info', hospitalId: 6, doctorId: 1, category: 'doctor' },
@@ -31,23 +40,127 @@ function Notifications() {
     { id: 6, title: 'New Doctor Registration', message: 'Dr. Priya Sharma has been registered at KEM Hospital Blood Bank', time: '3 hours ago', read: true, type: 'success', hospitalId: 19, doctorId: 2, category: 'doctor' },
     { id: 7, title: 'Stock Alert', message: 'Multiple blood banks in Maharashtra reporting low stock for B- blood type', time: '5 hours ago', read: true, type: 'warning', category: 'blood' },
     { id: 8, title: 'System Maintenance', message: 'Scheduled system maintenance tonight at 2:00 AM IST - Expected downtime: 30 minutes', time: '6 hours ago', read: true, type: 'info', category: 'system' },
-  ];
+  ]);
+
+  const { showNotification } = useNotification();
+
+  // Load any backend admin alerts
+  useEffect(() => {
+    apiFetch('/api/notifications/admin?role=admin')
+      .then(res => res.json())
+      .then(data => {
+        if (data.notifications && data.notifications.length > 0) {
+          const mapped = data.notifications.map(n => ({
+            id: n._id || n.id,
+            title: n.title,
+            message: n.message,
+            time: new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            read: n.isRead,
+            type: n.priority === 'urgent' ? 'critical' : (n.notificationType === 'blood_stock_alert' ? 'warning' : 'info'),
+            category: n.relatedEntityType === 'blood_request' ? 'request' : 'system'
+          }));
+          setNotificationsList(prev => [...mapped, ...prev]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSendBroadcast = async (e) => {
+    e.preventDefault();
+    if (!broadcastData.title.trim() || !broadcastData.message.trim()) {
+      showNotification({
+        title: "Missing Information",
+        message: "Please provide both a subject title and message content for the broadcast.",
+        type: "warning"
+      });
+      return;
+    }
+
+    setSendingBroadcast(true);
+    try {
+      const res = await apiFetch("/api/admin/messages/broadcast-staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adminId: "admin",
+          adminName: "System Administrator",
+          targetRole: broadcastData.targetRole,
+          title: broadcastData.title,
+          message: broadcastData.message
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        showNotification({
+          title: "Announcement Dispatched",
+          message: `Broadcast delivered to ${data.recipientCount} staff members with real-time in-app & SMTP email alerts.`,
+          type: "success",
+          playSound: true
+        });
+
+        // Add to local admin log
+        setNotificationsList(prev => [
+          {
+            id: Date.now(),
+            title: `Broadcast: ${broadcastData.title}`,
+            message: `Dispatched to ${broadcastData.targetRole.replace('_', ' ')}: "${broadcastData.message}"`,
+            time: "Just now",
+            read: true,
+            type: "info",
+            category: "system"
+          },
+          ...prev
+        ]);
+
+        setShowBroadcastModal(false);
+        setBroadcastData({ targetRole: 'all_staff', title: '', message: '' });
+      } else {
+        throw new Error(data.error || "Failed to dispatch announcement");
+      }
+    } catch (err) {
+      showNotification({
+        title: "Broadcast Failed",
+        message: err.message || "Could not deliver staff broadcast.",
+        type: "critical"
+      });
+    } finally {
+      setSendingBroadcast(false);
+    }
+  };
 
   const markAsRead = (id) => {
-    // In a real app, this would update the state
-    console.log('Mark as read:', id);
+    setNotificationsList(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    showNotification({
+      title: "Notification Acknowledged",
+      message: "The notification has been marked as read.",
+      type: "info",
+      playSound: true
+    });
   };
 
   const markAllAsRead = () => {
-    console.log('Mark all as read');
+    setNotificationsList(prev => prev.map(n => ({ ...n, read: true })));
+    showNotification({
+      title: "All Notifications Acknowledged",
+      message: "All alerts have been marked as read.",
+      type: "success",
+      playSound: true
+    });
   };
 
   const deleteNotification = (id) => {
-    console.log('Delete notification:', id);
+    setNotificationsList(prev => prev.filter(n => n.id !== id));
+    showNotification({
+      title: "Notification Dismissed",
+      message: "The notification was removed from your center.",
+      type: "warning",
+      playSound: true
+    });
   };
 
   const filteredNotifications = useMemo(() => {
-    let filtered = notifications;
+    let filtered = notificationsList;
     
     if (filter === 'unread') {
       filtered = filtered.filter(n => !n.read);
@@ -58,7 +171,7 @@ function Notifications() {
     }
     
     return filtered;
-  }, [filter, filterType]);
+  }, [notificationsList, filter, filterType]);
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -84,26 +197,42 @@ function Notifications() {
     <DashboardLayout activeTab="notifications" title="Notifications Center" subtitle="Real-time alerts and system notifications">
       <div style={{ fontFamily:FONT }}>
         {/* Page Header */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:28 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:28, flexWrap:'wrap', gap:16 }}>
           <div>
             <h2 style={{ fontFamily:FONT, fontWeight:800, fontSize:'1.5rem', color:SLATE, lineHeight:1.2 }}>Notifications Center</h2>
             <p style={{ fontFamily:FONT, fontSize:'0.85rem', color:SLATE_LT, marginTop:4 }}>
-              {notifications.filter(n => !n.read).length} unread notifications
+              {notificationsList.filter(n => !n.read).length} unread notifications
             </p>
           </div>
-          <button 
-            onClick={markAllAsRead}
-            style={{ 
-              background:WHITE, border:`1px solid ${BORDER}`, borderRadius:12, padding:'12px 20px',
-              fontFamily:FONT, fontSize:'0.9rem', fontWeight:600, cursor:'pointer',
-              display:'flex', alignItems:'center', gap:8, color:SLATE,
-              transition:'all 0.25s'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = SMOKE; e.currentTarget.style.borderColor = RED; }}
-            onMouseLeave={e => { e.currentTarget.style.background = WHITE; e.currentTarget.style.borderColor = BORDER; }}
-          >
-            <FaCheckDouble /> Mark All Read
-          </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button 
+              onClick={() => setShowBroadcastModal(true)}
+              style={{ 
+                background: RED, border: `1px solid ${RED}`, borderRadius: 12, padding: '12px 20px',
+                fontFamily: FONT, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8, color: WHITE,
+                boxShadow: '0 4px 14px rgba(196,18,48,0.25)',
+                transition: 'all 0.25s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = RED_DARK; }}
+              onMouseLeave={e => { e.currentTarget.style.background = RED; }}
+            >
+              <FaBullhorn /> Broadcast to Staff
+            </button>
+            <button 
+              onClick={markAllAsRead}
+              style={{ 
+                background: WHITE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '12px 20px',
+                fontFamily: FONT, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8, color: SLATE,
+                transition: 'all 0.25s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = SMOKE; e.currentTarget.style.borderColor = RED; }}
+              onMouseLeave={e => { e.currentTarget.style.background = WHITE; e.currentTarget.style.borderColor = BORDER; }}
+            >
+              <FaCheckDouble /> Mark All Read
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -262,6 +391,141 @@ function Notifications() {
             </div>
           )}
         </div>
+
+        {/* Admin Broadcast to Staff Modal */}
+        {showBroadcastModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 1000, padding: 16
+          }}>
+            <div style={{
+              background: WHITE, borderRadius: 20, width: '100%', maxWidth: 540,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden',
+              border: `1px solid ${BORDER}`, animation: 'fadeIn 0.2s ease-out'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '20px 24px', background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                color: WHITE, display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, background: 'rgba(196,18,48,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: '1.2rem'
+                  }}>
+                    <FaBullhorn />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700 }}>Staff Broadcast Announcement</h3>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#94A3B8', marginTop: 2 }}>
+                      Dispatch real-time notification & SMTP email alert to staff
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowBroadcastModal(false)}
+                  style={{
+                    background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer',
+                    fontSize: '1.2rem', padding: 4, display: 'flex'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = WHITE}
+                  onMouseLeave={e => e.currentTarget.style.color = '#94A3B8'}
+                >
+                  <FaXmark />
+                </button>
+              </div>
+
+              {/* Modal Form */}
+              <form onSubmit={handleSendBroadcast} style={{ padding: 24 }}>
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: SLATE, marginBottom: 6 }}>
+                    Target Audience
+                  </label>
+                  <select
+                    value={broadcastData.targetRole}
+                    onChange={e => setBroadcastData(prev => ({ ...prev, targetRole: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10, border: `1px solid ${BORDER}`,
+                      fontFamily: FONT, fontSize: '0.9rem', color: SLATE, background: SMOKE, outline: 'none'
+                    }}
+                  >
+                    <option value="all_staff">📢 All Staff (Hospital Staff + Blood Bank Staff)</option>
+                    <option value="hospital_staff">🏥 Hospital Staff Only</option>
+                    <option value="bloodbank_staff">🩸 Blood Bank Staff Only</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: SLATE, marginBottom: 6 }}>
+                    Subject / Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Critical Blood Inventory Policy Update"
+                    value={broadcastData.title}
+                    onChange={e => setBroadcastData(prev => ({ ...prev, title: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 14px', borderRadius: 10, border: `1px solid ${BORDER}`,
+                      fontFamily: FONT, fontSize: '0.9rem', color: SLATE, outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: SLATE, marginBottom: 6 }}>
+                    Announcement Message *
+                  </label>
+                  <textarea
+                    required
+                    rows={5}
+                    placeholder="Provide full details. This message will be sent to their notifications center and delivered directly to their registered email addresses..."
+                    value={broadcastData.message}
+                    onChange={e => setBroadcastData(prev => ({ ...prev, message: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '12px 14px', borderRadius: 10, border: `1px solid ${BORDER}`,
+                      fontFamily: FONT, fontSize: '0.9rem', color: SLATE, outline: 'none', resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowBroadcastModal(false)}
+                    disabled={sendingBroadcast}
+                    style={{
+                      padding: '10px 18px', borderRadius: 10, border: `1px solid ${BORDER}`,
+                      background: WHITE, color: SLATE, fontFamily: FONT, fontSize: '0.9rem',
+                      fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={sendingBroadcast}
+                    style={{
+                      padding: '10px 22px', borderRadius: 10, border: 'none',
+                      background: RED, color: WHITE, fontFamily: FONT, fontSize: '0.9rem',
+                      fontWeight: 600, cursor: sendingBroadcast ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      opacity: sendingBroadcast ? 0.7 : 1,
+                      boxShadow: '0 4px 14px rgba(196,18,48,0.3)'
+                    }}
+                  >
+                    <FaPaperPlane />
+                    {sendingBroadcast ? 'Delivering...' : 'Send Broadcast'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa6";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { clearAuthSession, resolveUserRole } from "../../utils/authUtils";
 
 /* ─────────────────────────────────────────────────
    DESIGN TOKENS
@@ -586,72 +587,49 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!userLoaded || !user) return;
+      const activeClerkId = user?.id || localStorage.getItem("clerkId");
+      const activeEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail");
+      if (!activeClerkId && !activeEmail) return;
+
       try {
-        const r = await fetch(`http://127.0.0.1:5000/api/users/profile/${user.id}`);
-        if (r.ok) {
-          const data = await r.json();
-          console.log("Profile data from API:", data);
+        const { role: resolvedRole, profile: data } = await resolveUserRole({
+          clerkId: activeClerkId,
+          email: activeEmail,
+          clerkUser: user,
+        });
+
+        if (data) {
           setProfile(data);
-          // Update localStorage with API data
           localStorage.setItem("userFullName", data.fullName || "");
           localStorage.setItem("userEmail", data.email || "");
-          localStorage.setItem("userRole", data.role || "donor");
+          if (resolvedRole) localStorage.setItem("userRole", resolvedRole);
         } else {
-          console.error("Profile fetch failed:", r.status);
-          // Fallback to localStorage
           const storedName = localStorage.getItem("userFullName");
           const storedEmail = localStorage.getItem("userEmail");
-          const storedRole = localStorage.getItem("userRole");
-          if (storedName || storedEmail || storedRole) {
-            console.log("Using localStorage fallback:", { storedName, storedEmail, storedRole });
-            setProfile({
-              fullName: storedName || user?.fullName || "",
-              email: storedEmail || user?.primaryEmailAddress?.emailAddress || "",
-              role: storedRole || "donor"
-            });
-          } else {
-            // Final fallback to Clerk user data
-            console.log("Using Clerk user data as final fallback");
-            const clerkName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User";
-            setProfile({
-              fullName: clerkName,
-              email: user?.primaryEmailAddress?.emailAddress || "",
-              role: "donor"
-            });
-            localStorage.setItem("userFullName", clerkName);
-            localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-            localStorage.setItem("userRole", "donor");
+          const storedRole = localStorage.getItem("userRole") || resolvedRole || "patient";
+
+          setProfile({
+            fullName: storedName || user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User",
+            email: storedEmail || activeEmail || "",
+            role: storedRole,
+          });
+
+          if (storedRole) {
+            localStorage.setItem("userRole", storedRole);
           }
         }
-      } catch (e) { 
-        console.error("Profile fetch error:", e);
-        // Fallback to localStorage if API fails
-        const storedName = localStorage.getItem("userFullName");
-        const storedEmail = localStorage.getItem("userEmail");
+      } catch (err) {
+        console.error("Error fetching user profile from MongoDB:", err);
         const storedRole = localStorage.getItem("userRole");
-        if (storedName || storedEmail || storedRole) {
-          console.log("Using localStorage fallback (catch):", { storedName, storedEmail, storedRole });
-          setProfile({
-            fullName: storedName || user?.fullName || "",
-            email: storedEmail || user?.primaryEmailAddress?.emailAddress || "",
-            role: storedRole || "donor"
-          });
-        } else {
-          // Final fallback to Clerk user data
-          console.log("Using Clerk user data as final fallback (catch)");
-          const clerkName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User";
-          setProfile({
-            fullName: clerkName,
-            email: user?.primaryEmailAddress?.emailAddress || "",
-            role: "donor"
-          });
-          localStorage.setItem("userFullName", clerkName);
-          localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-          localStorage.setItem("userRole", "donor");
+        if (storedRole) {
+          setProfile(prev => ({
+            ...(prev || {}),
+            role: storedRole,
+          }));
         }
       }
     };
+
     fetchProfile();
   }, [user, userLoaded]);
 
@@ -679,7 +657,13 @@ function Dashboard() {
     fetchAdminStats();
   }, []);
 
-  const handleLogout = async () => { await signOut(); navigate("/login"); };
+  const handleLogout = async () => {
+    clearAuthSession();
+    try {
+      await signOut();
+    } catch (_) {}
+    navigate("/login");
+  };
   const handleNavigate = (path) => { setActiveNav(path.replace("/","")); navigate(path); };
 
   if (!userLoaded) return (

@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import "./VerifyOTP.css";
+import "../Home/VerifyOTP.css";
 import { useSignUp, useSignIn } from "@clerk/clerk-react";
 import { FaShieldHalved, FaCircleCheck, FaDroplet } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
+import {
+  roleToDashboardPath,
+  persistAuthSession,
+} from "../../utils/authUtils";
+
+const API_LOCAL = "http://127.0.0.1:5000";
+const API_REMOTE = "https://hospital-resource-and-blood-bank.onrender.com";
 
 function VerifyOTP() {
   const { isLoaded: signUpLoaded, signUp } = useSignUp();
@@ -11,20 +18,24 @@ function VerifyOTP() {
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
+  const [infoNotice, setInfoNotice] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
 
   const inputs = useRef([]);
   const pendingEmail = localStorage.getItem("pendingEmail") || "";
+  const pendingFullName = localStorage.getItem("pendingFullName") || "HRBMS Administrator";
+  const pendingRole =
+    localStorage.getItem("pendingRole") ||
+    localStorage.getItem("userRole") ||
+    "administrator";
 
   useEffect(() => {
     if (timer <= 0) return;
-
     const interval = setInterval(() => {
       setTimer((prev) => prev - 1);
     }, 1000);
-
     return () => clearInterval(interval);
   }, [timer]);
 
@@ -61,16 +72,89 @@ function VerifyOTP() {
     inputs.current[nextIndex]?.focus();
   };
 
-  const verifyOTP = async () => {
-    if (!signUpLoaded || !signInLoaded || !signUp) {
-      setError("Auth is still initializing. Please wait.");
+  const saveProfileToDatabase = async ({ clerkId, fullName, email, role }) => {
+    const payload = JSON.stringify({ clerkId, fullName, email, role });
+    const headers = { "Content-Type": "application/json" };
+
+    const endpoints = [
+      `${API_LOCAL}/api/users/create-profile`,
+      `${API_REMOTE}/api/users/create-profile`,
+    ];
+
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, { method: "POST", headers, body: payload });
+        if (res.ok) {
+          console.log(`[HRBMS Admin] Profile successfully synced to backend: ${url}`);
+          return true;
+        }
+      } catch (err) {
+        console.warn(`[HRBMS Admin] Could not reach ${url}:`, err.message);
+      }
+    }
+    return false;
+  };
+
+  const completeActivation = async (clerkId, sessionId) => {
+    if (!clerkId || !sessionId) {
+      setError("Authentication failed: Missing verification credentials.");
       return;
     }
 
-    const otp = code.join("");
+    const email = pendingEmail || signUp?.emailAddress || "";
+    const fullName = pendingFullName || "HRBMS Administrator";
+    const role = (pendingRole || "administrator").toLowerCase().trim();
+
+    try {
+      await saveProfileToDatabase({
+        clerkId,
+        fullName,
+        email,
+        role,
+      });
+    } catch (e) {
+      console.warn("DB admin profile sync fallback:", e);
+    }
+
+    persistAuthSession({
+      clerkId,
+      fullName,
+      email,
+      role,
+    });
+
+    localStorage.removeItem("pendingEmail");
+    localStorage.removeItem("pendingFullName");
+    localStorage.removeItem("pendingRole");
+    localStorage.removeItem("quotaExceeded");
+
+    if (setActive && typeof setActive === "function") {
+      try {
+        await setActive({ session: sessionId });
+      } catch (err) {
+        console.warn("Admin setActive error:", err);
+      }
+    }
+
+    setSuccess(true);
+    setError("");
+    setInfoNotice("");
+
+    setTimeout(() => {
+      navigate(roleToDashboardPath(role));
+    }, 1200);
+  };
+
+  const verifyOTP = async () => {
+    const otp = code.join("").trim();
+
+    if (!signUpLoaded || !signUp) {
+      setError("Authentication service is initializing. Please wait.");
+      return;
+    }
 
     if (otp.length !== 6) {
-      setError("Please enter a valid 6-digit code.");
+      setError("Please enter the complete 6-digit verification code.");
       return;
     }
 
@@ -86,72 +170,14 @@ function VerifyOTP() {
 
       if (completeSignUp?.status === "complete" && createdSessionId) {
         const clerkId = completeSignUp.createdUserId;
-        const email = pendingEmail || completeSignUp.emailAddress;
-        const fullName = localStorage.getItem("pendingFullName") || "John Doe Tester";
-        const role = localStorage.getItem("pendingRole") || "donor";
-
-        try {
-          const profileResponse = await fetch("http://127.0.0.1:5000/api/users/create-profile", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              clerkId,
-              fullName,
-              email,
-              role,
-            }),
-          });
-          
-          if (profileResponse.ok) {
-            console.log("Profile created successfully");
-          } else {
-            console.error("Profile creation failed:", profileResponse.status);
-          }
-        } catch (dbErr) {
-          console.error("Failed to store user profile in MongoDB:", dbErr);
-        }
-
-        // Store user data in localStorage for Dashboard to use as fallback
-        localStorage.setItem("userFullName", fullName);
-        localStorage.setItem("userEmail", email);
-        localStorage.setItem("userRole", role);
-
-        localStorage.removeItem("pendingEmail");
-        localStorage.removeItem("pendingFullName");
-        localStorage.removeItem("pendingRole");
-
-        if (setActive && typeof setActive === "function") {
-          await setActive({ session: createdSessionId });
-        }
-
-        setSuccess(true);
-        setTimeout(() => {
-          // Navigate to role-specific dashboard
-          switch (role) {
-            case "patient":
-              navigate("/patient-dashboard");
-              break;
-            case "hospital_staff":
-              navigate("/hospital-dashboard");
-              break;
-            case "blood_bank_staff":
-              navigate("/bloodbank-dashboard");
-              break;
-            case "administrator":
-              navigate("/dashboard");
-              break;
-            case "donor":
-            default:
-              navigate("/");
-          }
-        }, 1100);
+        await completeActivation(clerkId, createdSessionId);
       } else {
-        setError("Verification failed. Please try again.");
+        setError("Verification could not be completed. Please enter a valid code.");
       }
     } catch (err) {
-      setError(err?.errors?.[0]?.message || err?.message || "Invalid verification code.");
+      console.warn("Clerk Admin OTP verification error:", err);
+      const rawMsg = err?.errors?.[0]?.message || err?.message || "";
+      setError(rawMsg || "Invalid verification code. Please check your email and try again.");
     } finally {
       setLoading(false);
     }
@@ -170,9 +196,10 @@ function VerifyOTP() {
       });
       setTimer(60);
       setError("");
+      setInfoNotice("A new 6-digit code has been sent to your email.");
     } catch (err) {
-      setError("Failed to resend OTP.");
-      console.error(err);
+      const rawMsg = err?.errors?.[0]?.message || err?.message || "";
+      setError("Failed to resend OTP: " + (rawMsg || "Please try again later."));
     } finally {
       setLoading(false);
     }
@@ -185,6 +212,7 @@ function VerifyOTP() {
   return (
     <div className="verify-shell">
       <div className="verify-bg-grid" aria-hidden="true" />
+      <div id="clerk-captcha" />
 
       <div className="verify-card">
         <div className={`verify-icon-ring ${success ? "is-success" : ""}`}>
@@ -192,17 +220,35 @@ function VerifyOTP() {
           {success ? <FaCircleCheck /> : <FaShieldHalved />}
         </div>
 
-        <h1>{success ? "Verified" : "Verify your email"}</h1>
+        <h1>{success ? "Verified" : "Verify Admin Email"}</h1>
 
         <p>
           {success ? (
-            "Your identity has been confirmed."
+            "Your identity has been confirmed. Redirecting to admin console…"
           ) : (
             <>
               We sent a 6-digit code to <strong>{maskedEmail}</strong>
             </>
           )}
         </p>
+
+        {infoNotice && (
+          <div
+            style={{
+              background: "rgba(59, 130, 246, 0.12)",
+              border: "1px solid rgba(59, 130, 246, 0.35)",
+              color: "#93C5FD",
+              padding: "10px 14px",
+              borderRadius: "8px",
+              fontSize: "0.85rem",
+              marginBottom: "16px",
+              textAlign: "left",
+              lineHeight: 1.45,
+            }}
+          >
+            ℹ️ {infoNotice}
+          </div>
+        )}
 
         {error && (
           <div className="verify-error" role="alert">
@@ -213,7 +259,7 @@ function VerifyOTP() {
         {success ? (
           <div className="success-text">
             <span className="success-bar" />
-            Redirecting to home page…
+            Redirecting to admin console…
           </div>
         ) : (
           <>
@@ -234,7 +280,11 @@ function VerifyOTP() {
               ))}
             </div>
 
-            <button className="verify-btn" onClick={verifyOTP} disabled={loading}>
+            <button
+              className="verify-btn"
+              onClick={verifyOTP}
+              disabled={loading}
+            >
               {loading ? <span className="btn-spinner" /> : "Verify email"}
             </button>
 

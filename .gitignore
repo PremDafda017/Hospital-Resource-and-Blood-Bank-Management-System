@@ -36,3 +36,10 @@ yarn-error.log*
 # OS
 Thumbs.db
 .DS_Store
+nul
+
+# Runtime data stores (contain user/patient data - do not commit)
+server/mockDb.json
+server/adminNotifications.json
+server/auditLogs.json
+server/systemSettings.json

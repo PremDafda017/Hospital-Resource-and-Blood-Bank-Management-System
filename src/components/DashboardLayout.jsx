@@ -8,6 +8,8 @@ import {
 } from "react-icons/fa6";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { clearAuthSession, fetchUserProfileFromDatabase, resolveUserRole } from "../utils/authUtils";
+import NotificationBell from "./NotificationBell";
 
 /* ─────────────────────────────────────────────────
    DESIGN TOKENS (Exact match with Dashboard.jsx)
@@ -198,36 +200,8 @@ function Topbar({ displayName, displayRole, user, profile, theme, toggleTheme, s
           {theme === "light" ? <FaMoon /> : <FaSun />}
         </button>
 
-        {/* Notifications */}
-        <div style={{ position:"relative" }}>
-          <button onClick={() => setNotifOpen(!notifOpen)}
-            style={{ width:40, height:40, borderRadius:10, border:`1px solid ${BORDER}`, background:SMOKE, color:SLATE, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s", position:"relative" }}
-            onMouseEnter={e => { e.currentTarget.style.background = BORDER; }}
-            onMouseLeave={e => { e.currentTarget.style.background = SMOKE; }}
-          >
-            <FaBell />
-            <span style={{ position:"absolute", top:-2, right:-2, width:18, height:18, background:RED, color:WHITE, borderRadius:"50%", fontSize:"0.65rem", fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center" }}>3</span>
-          </button>
-
-          {notifOpen && (
-            <div style={{ position:"absolute", top:48, right:0, width:320, background:WHITE, borderRadius:16, border:`1px solid ${BORDER}`, boxShadow:"0 8px 32px rgba(0,0,0,0.12)", zIndex:150, maxHeight:400, overflowY:"auto" }}>
-              <div style={{ padding:"16px", borderBottom:`1px solid ${BORDER}`, fontWeight:700, color:SLATE, fontSize:"0.9rem" }}>Notifications</div>
-              {notifications.map((n,i) => (
-                <div key={i} style={{ padding:"12px 16px", borderBottom:i<notifications.length-1?`1px solid ${BORDER}`:"none", display:"flex", gap:12, alignItems:"flex-start", cursor:"pointer", transition:"background 0.2s" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = SMOKE; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = WHITE; }}
-                >
-                  <span style={{ fontSize:"1.1rem" }}>{n.icon}</span>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:"0.85rem", color:SLATE, marginBottom:2 }}>{n.text}</div>
-                    <div style={{ fontSize:"0.75rem", color:SLATE_L }}>{n.time}</div>
-                  </div>
-                  {n.urgent && <div style={{ width:8, height:8, background:RED, borderRadius:"50%", flexShrink:0 }} />}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Real-time Connected Notifications */}
+        <NotificationBell />
 
         {/* Profile */}
         <div style={{ position:"relative" }}>
@@ -288,58 +262,45 @@ function DashboardLayout({ children, activeTab, title, subtitle }) {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!userLoaded || !user) return;
+      const activeClerkId = user?.id || localStorage.getItem("clerkId");
+      const activeEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail");
+      if (!activeClerkId && !activeEmail) return;
+
       try {
-        const response = await fetch(`http://127.0.0.1:5000/api/users/profile/${user.id}`);
-        if (response.ok) {
-          const data = await response.json();
+        const { role: resolvedRole, profile: data } = await resolveUserRole({
+          clerkId: activeClerkId,
+          email: activeEmail,
+          clerkUser: user,
+        });
+
+        if (data) {
           setProfile(data);
           localStorage.setItem("userFullName", data.fullName || "");
           localStorage.setItem("userEmail", data.email || "");
-          localStorage.setItem("userRole", data.role || "donor");
+          if (resolvedRole) localStorage.setItem("userRole", resolvedRole);
         } else {
           const storedName = localStorage.getItem("userFullName");
           const storedEmail = localStorage.getItem("userEmail");
-          const storedRole = localStorage.getItem("userRole");
-          if (storedName || storedEmail || storedRole) {
-            setProfile({
-              fullName: storedName || user?.fullName || "",
-              email: storedEmail || user?.primaryEmailAddress?.emailAddress || "",
-              role: storedRole || "donor"
-            });
-          } else {
-            const clerkName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User";
-            setProfile({
-              fullName: clerkName,
-              email: user?.primaryEmailAddress?.emailAddress || "",
-              role: "donor"
-            });
-            localStorage.setItem("userFullName", clerkName);
-            localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-            localStorage.setItem("userRole", "donor");
+          const storedRole = localStorage.getItem("userRole") || resolvedRole || "patient";
+
+          setProfile({
+            fullName: storedName || user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User",
+            email: storedEmail || activeEmail || "",
+            role: storedRole,
+          });
+
+          if (storedRole) {
+            localStorage.setItem("userRole", storedRole);
           }
         }
       } catch (err) {
         console.error("Error fetching user profile from MongoDB:", err);
-        const storedName = localStorage.getItem("userFullName");
-        const storedEmail = localStorage.getItem("userEmail");
         const storedRole = localStorage.getItem("userRole");
-        if (storedName || storedEmail || storedRole) {
-          setProfile({
-            fullName: storedName || user?.fullName || "",
-            email: storedEmail || user?.primaryEmailAddress?.emailAddress || "",
-            role: storedRole || "donor"
-          });
-        } else {
-          const clerkName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User";
-          setProfile({
-            fullName: clerkName,
-            email: user?.primaryEmailAddress?.emailAddress || "",
-            role: "donor"
-          });
-          localStorage.setItem("userFullName", clerkName);
-          localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-          localStorage.setItem("userRole", "donor");
+        if (storedRole) {
+          setProfile(prev => ({
+            ...(prev || {}),
+            role: storedRole,
+          }));
         }
       }
     };
@@ -348,7 +309,10 @@ function DashboardLayout({ children, activeTab, title, subtitle }) {
   }, [user, userLoaded]);
 
   const handleLogout = async () => {
-    await signOut();
+    clearAuthSession();
+    try {
+      await signOut();
+    } catch (_) {}
     navigate("/login");
   };
 

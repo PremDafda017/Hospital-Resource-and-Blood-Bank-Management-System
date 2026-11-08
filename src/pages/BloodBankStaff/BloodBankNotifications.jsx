@@ -1,32 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  FaBell,
-  FaBars,
-  FaRightFromBracket,
-  FaChartLine,
-  FaDroplet,
-  FaPlus,
-  FaTimeline,
-  FaHeartPulse,
-  FaUsers,
-  FaFileMedical,
-  FaUser,
-  FaBuilding,
-  FaAward,
-  FaCalendarCheck,
-  FaCheck,
-  FaXmark
+  FaChartLine, FaDroplet, FaPlus, FaTimeline, FaHeartPulse,
+  FaAward, FaCalendarCheck, FaUsers, FaBuilding, FaFileMedical,
+  FaBell, FaUser, FaBars, FaCheck, FaTrash, FaCheckDouble,
+  FaCommentDots, FaTriangleExclamation, FaGear, FaArrowUpRightFromSquare,
+  FaMagnifyingGlass, FaHospital, FaRightFromBracket, FaXmark
 } from "react-icons/fa6";
-import { bloodBankNotifications } from "../../data/indianBloodBankData";
-import { breakpoints, animationVariants, useResponsive } from "../../utils/responsiveDesign";
+import { apiFetch } from "../../utils/apiConfig";
+import { useNotification } from "../../contexts/NotificationContext";
+import NotificationPreferencesModal from "../../components/NotificationPreferencesModal";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
 const RED_DK = "#8B0000";
-const RED_GL = "rgba(196,18,48,0.12)";
 const NAVY = "#0F172A";
 const NAVY2 = "#1E293B";
 const SLATE = "#334155";
@@ -37,355 +25,582 @@ const WHITE = "#FFFFFF";
 const SIDEBAR_W = 260;
 const SIDEBAR_COL = NAVY;
 
-function BloodBankNotifications() {
+export default function BloodBankNotifications() {
   const { user } = useUser();
   const navigate = useNavigate();
-  const screenSize = useResponsive();
+  const { openConversation } = useNotification();
+
+  const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" && window.innerWidth < 768);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showPrefsModal, setShowPrefsModal] = useState(false);
 
-  // Auto-collapse sidebar on mobile
-  const isMobile = screenSize === 'xs' || screenSize === 'sm';
-  const isTablet = screenSize === 'md';
-  const sidebarWidth = isMobile ? 0 : (sidebarCollapsed ? 68 : SIDEBAR_W);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const userId = user?.id || localStorage.getItem("clerkId") || "";
 
   const nav = [
-    { key:"bloodbank-dashboard", icon:<FaChartLine/>, label:"Dashboard", path:"/bloodbank-dashboard" },
-    { key:"bloodbank-inventory", icon:<FaDroplet/>, label:"Blood Inventory", path:"/bloodbank-inventory" },
-    { key:"bloodbank-add-stock", icon:<FaPlus/>, label:"Add Blood Stock", path:"/bloodbank-add-stock" },
-    { key:"bloodbank-stock-history", icon:<FaTimeline/>, label:"Stock History", path:"/bloodbank-stock-history" },
-    { key:"bloodbank-requests", icon:<FaHeartPulse/>, label:"Blood Requests", path:"/bloodbank-requests" },
-    { key:"donation-requests", icon:<FaHeartPulse/>, label:"Donation Requests", path:"/donation-requests" },
-    { key:"campaign-management", icon:<FaAward/>, label:"Campaign Management", path:"/campaign-management" },
-    { key:"appointment-management", icon:<FaCalendarCheck/>, label:"Appointments", path:"/appointment-management" },
-    { key:"bloodbank-donors", icon:<FaUsers/>, label:"Donor List", path:"/bloodbank-donors" },
-    { key:"bloodbank-details", icon:<FaBuilding/>, label:"Blood Bank Details", path:"/bloodbank-details" },
-    { key:"bloodbank-reports", icon:<FaFileMedical/>, label:"Reports", path:"/bloodbank-reports" },
-    { key:"bloodbank-notifications", icon:<FaBell/>, label:"Notifications", path:"/bloodbank-notifications" },
-    { key:"bloodbank-profile", icon:<FaUser/>, label:"Profile", path:"/bloodbank-profile" },
+    { key: "bloodbank-dashboard", icon: <FaChartLine />, label: "Dashboard", path: "/bloodbank-dashboard" },
+    { key: "bloodbank-inventory", icon: <FaDroplet />, label: "Blood Inventory", path: "/bloodbank-inventory" },
+    { key: "bloodbank-add-stock", icon: <FaPlus />, label: "Add Blood Stock", path: "/bloodbank-add-stock" },
+    { key: "bloodbank-stock-history", icon: <FaTimeline />, label: "Stock History", path: "/bloodbank-stock-history" },
+    { key: "bloodbank-requests", icon: <FaHeartPulse />, label: "Blood Requests", path: "/bloodbank-requests" },
+    { key: "donation-requests", icon: <FaHeartPulse />, label: "Donation Requests", path: "/donation-requests" },
+    { key: "campaign-management", icon: <FaAward />, label: "Campaign Management", path: "/campaign-management" },
+    { key: "appointment-management", icon: <FaCalendarCheck />, label: "Appointments", path: "/appointment-management" },
+    { key: "bloodbank-donors", icon: <FaUsers />, label: "Donor List", path: "/bloodbank-donors" },
+    { key: "bloodbank-details", icon: <FaBuilding />, label: "Blood Bank Details", path: "/bloodbank-details" },
+    { key: "bloodbank-reports", icon: <FaFileMedical />, label: "Reports", path: "/bloodbank-reports" },
+    { key: "bloodbank-notifications", icon: <FaBell />, label: "Notifications", path: "/bloodbank-notifications" },
+    { key: "bloodbank-profile", icon: <FaUser />, label: "Profile", path: "/bloodbank-profile" },
   ];
 
-  const active = "bloodbank-notifications";
+  const loadNotifications = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const endpoint = `/api/notifications/${encodeURIComponent(userId)}?tab=${activeTab}&search=${encodeURIComponent(searchQuery)}&limit=100`;
+      const res = await apiFetch(endpoint);
+      if (res && res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : data.notifications || [];
+        setNotifications(list);
+        setUnreadCount(typeof data.unreadCount === "number" ? data.unreadCount : list.filter((n) => !n.isRead && !n.read).length);
+      }
+    } catch (err) {
+      console.error("Error loading blood bank notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, activeTab, searchQuery]);
 
-  const notifications = bloodBankNotifications;
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  const handleMarkAsRead = async (id) => {
+    setNotifications((prev) => prev.map((n) => (n._id === id || n.id === id ? { ...n, isRead: true, read: true } : n)));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+    try {
+      await apiFetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: "PUT" });
+    } catch (e) {}
+  };
+
+  const handleMarkAllAsRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, read: true })));
+    setUnreadCount(0);
+    try {
+      await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}`, { method: "PUT" });
+    } catch (e) {}
+  };
+
+  const handleDelete = async (id) => {
+    setNotifications((prev) => prev.filter((n) => n._id !== id && n.id !== id));
+    try {
+      await apiFetch(`/api/notifications/${encodeURIComponent(id)}`, { method: "DELETE" });
+    } catch (e) {}
+  };
+
+  const w = sidebarCollapsed ? 68 : SIDEBAR_W;
 
   return (
-    <div style={{ fontFamily: FONT, background: SMOKE, minHeight: "100vh", display: "flex" }}>
-      {/* Sidebar - Hidden on mobile */}
-      {!isMobile && (
-        <aside style={{
-          width:sidebarWidth, minHeight:"100vh", background:SIDEBAR_COL,
-          position:"fixed", top:0, left:0, zIndex:200,
-          display:"flex", flexDirection:"column",
-          transition:"width 0.3s ease"
-        }}>
-          <div style={{
-            height:64, borderBottom:`1px solid rgba(255,255,255,0.1)`,
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding: sidebarCollapsed ? "0 16px" : "0 24px"
-          }}>
-            <div style={{
-              display:"flex", alignItems:"center", gap:12,
-              color:WHITE, fontWeight:700, fontSize:"1.1rem"
-            }}>
-              <FaDroplet style={{ color:RED, fontSize:"1.4rem" }} />
-              {!sidebarCollapsed && <span>Blood Bank Staff</span>}
-            </div>
-            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{
-              background:"none", border:"none", color:WHITE,
-              cursor:"pointer", padding:4, borderRadius:4
-            }}>
-              <FaBars />
-            </button>
-          </div>
-
-          <nav style={{ flex:1, padding:"16px 12px", overflowY:"auto" }}>
-            {nav.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => navigate(item.path)}
-                style={{
-                  width:"100%",
-                  display:"flex",
-                  alignItems:"center",
-                  gap:12,
-                  padding:"12px 16px",
-                  borderRadius:8,
-                  border:"none",
-                  background: active === item.key ? RED : "transparent",
-                  color:WHITE,
-                  cursor:"pointer",
-                  transition:"all 0.2s",
-                  fontSize:"0.9rem",
-                  fontWeight:500
-                }}
-                onMouseEnter={e => {
-                  if (active !== item.key) {
-                    e.currentTarget.style.background = `${SLATE}22`;
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (active !== item.key) {
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
-              >
-                <span style={{ fontSize:"1.1rem" }}>{item.icon}</span>
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </button>
-            ))}
-          </nav>
-
-          <div style={{ padding:"16px 12px", borderTop:`1px solid rgba(255,255,255,0.1)` }}>
-            <SignOutButton>
-              <button style={{
-                width:"100%",
-                display:"flex",
-                alignItems:"center",
-                gap:12,
-                padding:"12px 16px",
-                borderRadius:8,
-                border:"none",
-                background:"transparent",
-                color:WHITE,
-                cursor:"pointer",
-                transition:"all 0.2s",
-                fontSize:"0.9rem",
-                fontWeight:500
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = `${SLATE}22`}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <span style={{ fontSize:"1.1rem" }}><FaRightFromBracket /></span>
-                {!sidebarCollapsed && <span>Logout</span>}
-              </button>
-            </SignOutButton>
-          </div>
-        </aside>
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: FONT, background: SMOKE }}>
+      {/* Mobile Menu Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 999
+          }}
+        />
       )}
 
-      {/* Main Content */}
-      <main style={{ flex:1, marginLeft:sidebarWidth, transition:"margin-left 0.3s ease" }}>
-        {/* Mobile Header */}
-        {isMobile && (
-          <motion.header
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
+      {/* Sidebar */}
+      <aside
+        style={{
+          width: isMobile ? (mobileMenuOpen ? 260 : 0) : w,
+          minHeight: "100vh",
+          background: SIDEBAR_COL,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: 1000,
+          display: "flex",
+          flexDirection: "column",
+          transition: "width 0.3s ease",
+          overflowX: "hidden",
+          color: WHITE
+        }}
+      >
+        <div
+          style={{
+            height: 64,
+            borderBottom: `1px solid rgba(255,255,255,0.1)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: sidebarCollapsed ? "0 16px" : "0 24px",
+          }}
+        >
+          <div
             style={{
-              background:WHITE,
-              padding: "12px 16px",
-              borderBottom:`1px solid ${BORDER}`,
-              display:"flex",
-              justifyContent:"space-between",
-              alignItems:"center",
-              position:"sticky",
-              top:0,
-              zIndex:50
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              color: WHITE,
+              fontWeight: 700,
+              fontSize: "1.1rem",
             }}
           >
+            <FaDroplet style={{ color: RED, fontSize: "1.4rem" }} />
+            {(!sidebarCollapsed || isMobile) && <span>Blood Bank Staff</span>}
+          </div>
+          {!isMobile && (
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               style={{
-                background:"none",
-                border:"none",
-                cursor:"pointer",
-                padding:8,
-                borderRadius:4,
-                color:NAVY2
+                background: "none",
+                border: "none",
+                color: WHITE,
+                cursor: "pointer",
+                padding: 4,
+                borderRadius: 4,
               }}
             >
-              <FaBars style={{ fontSize:"1.2rem" }} />
+              <FaBars />
             </button>
-            <h1 style={{ fontSize:"1.1rem", fontWeight:700, color:NAVY2, margin:0 }}>
-              Notifications
-            </h1>
-            <div style={{ width:32 }} />
-          </motion.header>
-        )}
-
-        {/* Desktop Header */}
-        {!isMobile && (
-          <motion.header
-            initial={{ y: -20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            style={{
-              background:WHITE,
-              padding: isTablet ? "12px 20px" : "16px 32px",
-              borderBottom:`1px solid ${BORDER}`,
-              display:"flex",
-              justifyContent:"space-between",
-              alignItems:"center",
-              position:"sticky",
-              top:0,
-              zIndex:50
-            }}
-          >
-            <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-              <div>
-                <h1 style={{ fontSize:isTablet ? "1.2rem" : "1.4rem", fontWeight:700, color:NAVY2, margin:0 }}>Notifications</h1>
-                <p style={{ fontSize:isTablet ? "0.8rem" : "0.85rem", color:SLATE_L, margin:"4px 0 0 0" }}>View blood bank notifications</p>
-              </div>
-            </div>
-          </motion.header>
-        )}
-
-        {/* Mobile Menu Overlay */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+          )}
+          {isMobile && (
+            <button
               onClick={() => setMobileMenuOpen(false)}
               style={{
-                position:"fixed",
-                top:0,
-                left:0,
-                right:0,
-                bottom:0,
-                background:"rgba(0,0,0,0.5)",
-                zIndex:1000
+                background: "none",
+                border: "none",
+                color: WHITE,
+                cursor: "pointer",
+                padding: 4,
+                borderRadius: 4,
               }}
             >
-              <motion.div
-                initial={{ x: -260 }}
-                animate={{ x: 0 }}
-                exit={{ x: -260 }}
-                onClick={(e) => e.stopPropagation()}
+              <FaXmark />
+            </button>
+          )}
+        </div>
+
+        <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
+          {nav.map((item) => {
+            const isActive = item.key === "bloodbank-notifications";
+            return (
+              <button
+                key={item.key}
+                onClick={() => {
+                  navigate(item.path);
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
                 style={{
-                  width:260,
-                  height:"100%",
-                  background:SIDEBAR_COL,
-                  padding:"16px"
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: isActive ? RED : "transparent",
+                  color: WHITE,
+                  cursor: "pointer",
+                  marginBottom: 4,
+                  fontSize: "0.9rem",
+                  fontWeight: isActive ? 700 : 500,
+                  textAlign: "left"
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ fontSize: "1.1rem", minWidth: 20 }}>{item.icon}</span>
+                {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div style={{ padding: "16px 12px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <SignOutButton>
+            <button
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 16px",
+                borderRadius: 8,
+                border: "none",
+                background: "transparent",
+                color: "#F87171",
+                cursor: "pointer",
+                fontSize: "0.9rem"
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ fontSize: "1.1rem", minWidth: 20 }}><FaRightFromBracket /></span>
+              {(!sidebarCollapsed || isMobile) && <span>Logout</span>}
+            </button>
+          </SignOutButton>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main style={{ marginLeft: isMobile ? 0 : w, flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", transition: "margin-left 0.3s" }}>
+        {/* Top Header */}
+        <header
+          style={{
+            height: 64,
+            background: WHITE,
+            borderBottom: `1px solid ${BORDER}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: isMobile ? "0 16px" : "0 32px",
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {isMobile && (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${BORDER}`, background: SMOKE, color: SLATE, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <FaBars />
+              </button>
+            )}
+            <div>
+              <h1 style={{ fontSize: "1.25rem", fontWeight: 800, color: NAVY2, margin: 0 }}>Blood Bank Staff Notifications</h1>
+              <p style={{ fontSize: "0.78rem", color: SLATE_L, margin: 0 }}>Review hospital forwarded requisitions, donor requests & inventory alerts</p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              onClick={() => setShowPrefsModal(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                borderRadius: 8,
+                border: `1px solid ${BORDER}`,
+                background: SMOKE,
+                color: SLATE,
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              <FaGear />
+              <span>Preferences</span>
+            </button>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllAsRead}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  background: `${RED}10`,
+                  border: `1px solid ${RED}30`,
+                  color: RED,
+                  fontSize: "0.82rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
                 }}
               >
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12, color:WHITE, fontWeight:700 }}>
-                    <FaDroplet style={{ color:RED }} />
-                    <span>Blood Bank</span>
-                  </div>
-                  <button onClick={() => setMobileMenuOpen(false)} style={{ background:"none", border:"none", color:WHITE, cursor:"pointer" }}>
-                    <FaXmark />
-                  </button>
-                </div>
-                {nav.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => { navigate(item.path); setMobileMenuOpen(false); }}
-                    style={{
-                      width:"100%",
-                      display:"flex",
-                      alignItems:"center",
-                      gap:12,
-                      padding:"12px 16px",
-                      borderRadius:8,
-                      border:"none",
-                      background:active === item.key ? `${RED}22` : "transparent",
-                      color:active === item.key ? RED : WHITE,
-                      cursor:"pointer",
-                      marginBottom:8,
-                      fontSize:"0.9rem"
-                    }}
-                  >
-                    {item.icon} {item.label}
-                  </button>
-                ))}
-                <SignOutButton>
-                  <button style={{
-                    width:"100%",
-                    display:"flex",
-                    alignItems:"center",
-                    gap:12,
-                    padding:"12px 16px",
-                    borderRadius:8,
-                    border:"none",
-                    background:"transparent",
-                    color:"#F87171",
-                    cursor:"pointer",
-                    marginTop:16
-                  }}>
-                    <FaRightFromBracket /> Logout
-                  </button>
-                </SignOutButton>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <FaCheckDouble />
+                <span>Mark All Read</span>
+              </button>
+            )}
+          </div>
+        </header>
 
-        {/* Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          style={{ padding:isMobile ? "16px" : isTablet ? "20px" : "32px" }}
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-            style={{ background:WHITE, borderRadius:12, border:`1px solid ${BORDER}`, overflow:"hidden" }}
-          >
-            {notifications.length === 0 ? (
-              <div style={{ padding:isMobile ? 40 : 60, textAlign:"center" }}>
-                <FaBell style={{ fontSize:isMobile ? "2.5rem" : "3rem", color:SLATE_L, marginBottom:16 }} />
-                <div style={{ fontSize:isMobile ? "0.95rem" : "1rem", color:SLATE_L }}>No notifications</div>
-              </div>
-            ) : (
-              notifications.map((notification, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+        {/* Content Container */}
+        <div style={{ padding: "28px", maxWidth: 1100, width: "100%", margin: "0 auto" }}>
+          {/* Controls Bar */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20 }}>
+            {/* Tabs */}
+            <div style={{ display: "flex", gap: 6, background: WHITE, padding: 4, borderRadius: 10, border: `1px solid ${BORDER}` }}>
+              {[
+                { id: "all", label: "All" },
+                { id: "unread", label: `Unread (${unreadCount})` },
+                { id: "requests", label: "Hospital Requisitions" },
+                { id: "appointments", label: "Donor Appointments" },
+                { id: "messages", label: "Messages" },
+                { id: "system", label: "Stock & Telemetry Alerts" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
                   style={{
-                    padding:isMobile ? 16 : 20,
-                    borderBottom:index !== notifications.length - 1 ? `1px solid ${BORDER}` : "none",
-                    display:"flex",
-                    alignItems:"flex-start",
-                    gap:16
+                    padding: "7px 14px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: activeTab === tab.id ? RED : "transparent",
+                    color: activeTab === tab.id ? WHITE : SLATE,
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
                   }}
                 >
-                  <div style={{
-                    width:isMobile ? 40 : 48,
-                    height:isMobile ? 40 : 48,
-                    borderRadius:12,
-                    background:notification.type === "success" ? "#DCFCE7" : notification.type === "warning" ? "#FEF3C7" : "#FEE2E2",
-                    display:"flex",
-                    alignItems:"center",
-                    justifyContent:"center",
-                    color:notification.type === "success" ? "#16A34A" : notification.type === "warning" ? "#D97706" : "#DC2626",
-                    fontSize:isMobile ? "1.1rem" : "1.3rem",
-                    flexShrink:0
-                  }}>
-                    <FaBell />
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:isMobile ? "0.95rem" : "1rem", fontWeight:600, color:NAVY2, marginBottom:4 }}>{notification.message}</div>
-                    <div style={{ fontSize:isMobile ? "0.75rem" : "0.85rem", color:SLATE_L }}>{notification.time}</div>
-                  </div>
-                  <button
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Search Input */}
+            <div style={{ position: "relative", minWidth: 260 }}>
+              <FaMagnifyingGlass style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontSize: "0.85rem" }} />
+              <input
+                type="text"
+                placeholder="Search requisitions, donors, ref ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px 9px 34px",
+                  borderRadius: 10,
+                  border: `1px solid ${BORDER}`,
+                  background: WHITE,
+                  fontSize: "0.84rem",
+                  color: SLATE,
+                  outline: "none",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Notifications Feed */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "60px 0", color: SLATE_L }}>Loading blood bank notifications...</div>
+          ) : notifications.length === 0 ? (
+            <div
+              style={{
+                background: WHITE,
+                borderRadius: 16,
+                border: `1px solid ${BORDER}`,
+                padding: "60px 20px",
+                textAlign: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <FaBell style={{ fontSize: "2.8rem", color: "#CBD5E1" }} />
+              <h3 style={{ margin: 0, color: SLATE, fontSize: "1.1rem" }}>No Notifications Found</h3>
+              <p style={{ margin: 0, color: SLATE_L, fontSize: "0.85rem", maxWidth: 420 }}>
+                {activeTab === "unread" ? "All notifications have been reviewed." : "Forwarded blood requisitions from hospitals, voluntary donation appointment requests, and cold-chain inventory alerts will appear here."}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {notifications.map((notif) => {
+                const isUnread = !notif.isRead && !notif.read;
+                const isCritical = notif.priority === "Critical" || notif.notificationType?.includes("Alert");
+                const isSuccess = notif.priority === "High" || notif.notificationType?.includes("Approve") || notif.notificationType?.includes("Ready");
+
+                return (
+                  <div
+                    key={notif._id || notif.id}
                     style={{
-                      background:"none",
-                      border:"none",
-                      cursor:"pointer",
-                      color:SLATE_L,
-                      padding:4,
-                      borderRadius:4,
-                      transition:"all 0.2s"
+                      background: WHITE,
+                      borderRadius: 14,
+                      border: isUnread ? `1.5px solid ${RED}60` : `1px solid ${BORDER}`,
+                      padding: "18px 22px",
+                      boxShadow: isUnread ? "0 4px 16px rgba(196,18,48,0.06)" : "0 2px 6px rgba(0,0,0,0.02)",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: 16,
                     }}
-                    onMouseEnter={e => e.currentTarget.style.color = NAVY2}
-                    onMouseLeave={e => e.currentTarget.style.color = SLATE_L}
                   >
-                    <FaCheck />
-                  </button>
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        </motion.div>
+                    <div style={{ display: "flex", gap: 16, flex: 1 }}>
+                      {/* Icon */}
+                      <div
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 12,
+                          background: isCritical ? "#FEE2E2" : isSuccess ? "#DCFCE7" : "#EFF6FF",
+                          color: isCritical ? "#DC2626" : isSuccess ? "#16A34A" : "#2563EB",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "1.1rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isCritical ? <FaTriangleExclamation /> : notif.relatedEntityType === "Appointment" ? <FaCalendarCheck /> : notif.relatedEntityType === "Message" ? <FaCommentDots /> : <FaDroplet />}
+                      </div>
+
+                      {/* Content */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                          <span style={{ fontWeight: 800, fontSize: "0.95rem", color: NAVY }}>{notif.title}</span>
+                          {isUnread && (
+                            <span style={{ background: RED, color: WHITE, fontSize: "0.65rem", fontWeight: 800, padding: "2px 7px", borderRadius: 8, textTransform: "uppercase" }}>
+                              Unread
+                            </span>
+                          )}
+                          {notif.priority && notif.priority !== "Normal" && (
+                            <span style={{ background: isCritical ? "#FEF2F2" : "#FEF3C7", color: isCritical ? "#B91C1C" : "#B45309", fontSize: "0.68rem", fontWeight: 700, padding: "2px 8px", borderRadius: 8 }}>
+                              {notif.priority}
+                            </span>
+                          )}
+                          {notif.requestId && (
+                            <span style={{ background: SMOKE, border: `1px solid ${BORDER}`, color: SLATE_L, fontSize: "0.68rem", fontWeight: 600, padding: "2px 8px", borderRadius: 6 }}>
+                              ID: {notif.requestId}
+                            </span>
+                          )}
+                        </div>
+
+                        <p style={{ margin: "4px 0 10px 0", color: SLATE, fontSize: "0.88rem", lineHeight: 1.45 }}>{notif.message}</p>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: "0.75rem", color: SLATE_L, flexWrap: "wrap" }}>
+                          <span>🕒 {notif.createdAt ? new Date(notif.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : notif.date || "Today"}</span>
+                          {notif.senderName && (
+                            <span>👤 From: <strong>{notif.senderName}</strong> {notif.senderRole ? `(${notif.senderRole.replace("_", " ")})` : ""}</span>
+                          )}
+                          {notif.emailStatus && (
+                            <span>✉️ SMTP Email: <strong style={{ color: notif.emailStatus === "sent" ? "#16A34A" : "#D97706" }}>{notif.emailStatus}</strong></span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      {notif.requestId && (
+                        <button
+                          onClick={() =>
+                            openConversation({
+                              requestId: notif.requestId,
+                              requestNumber: notif.requestId,
+                              recipientRole: "hospital_staff",
+                              recipientUserId: "hospital_staff_general",
+                              recipientName: "Hospital Staff",
+                            })
+                          }
+                          title="Open Discussion Thread"
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            background: `${RED}10`,
+                            color: RED,
+                            border: `1px solid ${RED}30`,
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <FaCommentDots />
+                          <span>Reply</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => navigate(notif.actionUrl || (notif.relatedEntityType === "Appointment" ? "/appointment-management" : "/bloodbank-requests"))}
+                        title="Process Request in Blood Bank Portal"
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          background: SMOKE,
+                          color: SLATE,
+                          border: `1px solid ${BORDER}`,
+                          fontSize: "0.78rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <span>Open</span>
+                        <FaArrowUpRightFromSquare style={{ fontSize: "0.65rem" }} />
+                      </button>
+
+                      {isUnread && (
+                        <button
+                          onClick={() => handleMarkAsRead(notif._id || notif.id)}
+                          title="Mark as Read"
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 8,
+                            background: SMOKE,
+                            border: `1px solid ${BORDER}`,
+                            color: "#16A34A",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <FaCheck />
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => handleDelete(notif._id || notif.id)}
+                        title="Archive Notification"
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          background: SMOKE,
+                          border: `1px solid ${BORDER}`,
+                          color: "#94A3B8",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <FaTrash style={{ fontSize: "0.78rem" }} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </main>
+
+      {/* Preferences Modal */}
+      <NotificationPreferencesModal isOpen={showPrefsModal} onClose={() => setShowPrefsModal(false)} />
     </div>
   );
 }
-
-export default BloodBankNotifications;

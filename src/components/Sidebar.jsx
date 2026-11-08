@@ -10,7 +10,7 @@ function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
   const { userProfile } = useAuth();
 
-  const userRole = userProfile?.role || 'donor';
+  const userRole = userProfile?.role || localStorage.getItem("userRole") || 'patient';
   const menuItems = getNavigationForRole(userRole);
 
   const handleNavigation = (item) => {

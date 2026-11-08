@@ -19,6 +19,8 @@ import {
 } from "react-icons/fa6";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { clearAuthSession, resolveUserRole } from "../utils/authUtils";
+import NotificationBell from "./NotificationBell";
 import "./ConsoleLayout.css";
 
 /* Design Tokens matching Dashboard */
@@ -52,63 +54,45 @@ function ConsoleLayout({ children, title, subtitle, activeTab }) {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            if (!userLoaded || !user) return;
+            const activeClerkId = user?.id || localStorage.getItem("clerkId");
+            const activeEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail");
+            if (!activeClerkId && !activeEmail) return;
+
             try {
-                const response = await fetch(`http://127.0.0.1:5000/api/users/profile/${user.id}`);
-                if (response.ok) {
-                    const data = await response.json();
+                const { role: resolvedRole, profile: data } = await resolveUserRole({
+                    clerkId: activeClerkId,
+                    email: activeEmail,
+                    clerkUser: user,
+                });
+
+                if (data) {
                     setProfile(data);
-                    // Update localStorage with API data
                     localStorage.setItem("userFullName", data.fullName || "");
                     localStorage.setItem("userEmail", data.email || "");
-                    localStorage.setItem("userRole", data.role || "donor");
+                    if (resolvedRole) localStorage.setItem("userRole", resolvedRole);
                 } else {
-                    // Fallback to localStorage
                     const storedName = localStorage.getItem("userFullName");
                     const storedEmail = localStorage.getItem("userEmail");
-                    const storedRole = localStorage.getItem("userRole");
-                    if (storedName || storedEmail || storedRole) {
-                        setProfile({
-                            fullName: storedName || user?.fullName || "",
-                            email: storedEmail || user?.primaryEmailAddress?.emailAddress || "",
-                            role: storedRole || "donor"
-                        });
-                    } else {
-                        // Final fallback to Clerk user data
-                        const clerkName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User";
-                        setProfile({
-                            fullName: clerkName,
-                            email: user?.primaryEmailAddress?.emailAddress || "",
-                            role: "donor"
-                        });
-                        localStorage.setItem("userFullName", clerkName);
-                        localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-                        localStorage.setItem("userRole", "donor");
+                    const storedRole = localStorage.getItem("userRole") || resolvedRole || "patient";
+
+                    setProfile({
+                        fullName: storedName || user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User",
+                        email: storedEmail || activeEmail || "",
+                        role: storedRole,
+                    });
+
+                    if (storedRole) {
+                        localStorage.setItem("userRole", storedRole);
                     }
                 }
             } catch (err) {
                 console.error("Error fetching user profile from MongoDB:", err);
-                // Fallback to localStorage if API fails
-                const storedName = localStorage.getItem("userFullName");
-                const storedEmail = localStorage.getItem("userEmail");
                 const storedRole = localStorage.getItem("userRole");
-                if (storedName || storedEmail || storedRole) {
-                    setProfile({
-                        fullName: storedName || user?.fullName || "",
-                        email: storedEmail || user?.primaryEmailAddress?.emailAddress || "",
-                        role: storedRole || "donor"
-                    });
-                } else {
-                    // Final fallback to Clerk user data
-                    const clerkName = user?.fullName || `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "User";
-                    setProfile({
-                        fullName: clerkName,
-                        email: user?.primaryEmailAddress?.emailAddress || "",
-                        role: "donor"
-                    });
-                    localStorage.setItem("userFullName", clerkName);
-                    localStorage.setItem("userEmail", user?.primaryEmailAddress?.emailAddress || "");
-                    localStorage.setItem("userRole", "donor");
+                if (storedRole) {
+                    setProfile(prev => ({
+                        ...(prev || {}),
+                        role: storedRole,
+                    }));
                 }
             }
         };
@@ -117,7 +101,10 @@ function ConsoleLayout({ children, title, subtitle, activeTab }) {
     }, [user, userLoaded]);
 
     const handleLogout = async () => {
-        await signOut();
+        clearAuthSession();
+        try {
+            await signOut();
+        } catch (_) {}
         navigate("/login");
     };
 
@@ -274,38 +261,8 @@ function ConsoleLayout({ children, title, subtitle, activeTab }) {
                             {theme === "dark" ? <FaSun/> : <FaMoon/>}
                         </button>
 
-                        {/* Notification */}
-                        <div style={{ position:"relative" }}>
-                            <button onClick={() => { setNotifOpen(o => !o); setProfileDropdownOpen(false); }}
-                                style={{ width:42, height:42, borderRadius:12, border:`1px solid ${BORDER}`, background:SMOKE, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:SLATE_MD, fontSize:"1rem", position:"relative", transition:"all 0.25s" }}
-                                onMouseEnter={e => e.currentTarget.style.borderColor = RED}
-                                onMouseLeave={e => e.currentTarget.style.borderColor = BORDER}
-                            >
-                                <FaBell/>
-                                <span style={{ position:"absolute", top:-2, right:-2, background:RED, color:WHITE, fontSize:"0.65rem", fontWeight:800, minWidth:18, height:18, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center" }}>{notifications.length}</span>
-                            </button>
-                            {notifOpen && (
-                                <div style={{ position:"absolute", right:0, top:50, width:340, background:WHITE, border:`1px solid ${BORDER}`, borderRadius:18, boxShadow:"0 20px 60px rgba(0,0,0,0.15)", zIndex:300, overflow:"hidden", animation:"fadeUp 0.2s ease" }}>
-                                    <div style={{ padding:"16px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center", background:SMOKE }}>
-                                        <span style={{ fontWeight:800, color:SLATE, fontSize:"0.95rem" }}>Notifications</span>
-                                        <span style={{ background:RED, color:WHITE, fontSize:"0.7rem", fontWeight:800, padding:"3px 8px", borderRadius:12 }}>{notifications.length}</span>
-                                    </div>
-                                    {notifications.map((n,i) => (
-                                        <div key={i} style={{ padding:"14px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:12, cursor:"pointer", background:n.urgent?"rgba(196,18,48,0.05)":WHITE,
-                                            transition:"background 0.15s" }}
-                                            onMouseEnter={e => e.currentTarget.style.background = SMOKE}
-                                            onMouseLeave={e => e.currentTarget.style.background = n.urgent?"rgba(196,18,48,0.05)":WHITE}
-                                        >
-                                            <span style={{ fontSize:"1.15rem", flexShrink:0 }}>{n.icon}</span>
-                                            <div>
-                                                <p style={{ fontSize:"0.88rem", color:SLATE, fontWeight:n.urgent?700:500, lineHeight:1.4 }}>{n.text}</p>
-                                                <span style={{ fontSize:"0.78rem", color:SLATE_LT }}>{n.time}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        {/* Real-time Connected Notification */}
+                        <NotificationBell />
 
                         {/* Avatar */}
                         <div style={{ position:"relative" }}>

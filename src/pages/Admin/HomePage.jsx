@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import { roleToDashboardPath, clearAuthSession, resolveUserRole } from "../../utils/authUtils";
 import {
   FaRightFromBracket,
   FaDroplet,
@@ -289,28 +290,9 @@ export default function HomePage() {
   };
 
   const handleDashboardNavigation = () => {
-    const userRole = userProfile?.role || localStorage.getItem("userRole") || "donor";
+    const userRole = userProfile?.role || localStorage.getItem("userRole") || "administrator";
     setMobileMenuOpen(false);
-
-    switch (userRole) {
-      case "patient":
-        navigate("/patient-dashboard");
-        break;
-      case "donor":
-        navigate("/dashboard");
-        break;
-      case "hospital_staff":
-        navigate("/hospital-dashboard");
-        break;
-      case "blood_bank_staff":
-        navigate("/dashboard");
-        break;
-      case "administrator":
-        navigate("/dashboard");
-        break;
-      default:
-        navigate("/dashboard");
-    }
+    navigate(roleToDashboardPath(userRole));
   };
 
   // Comprehensive blood bank database
@@ -656,10 +638,20 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isSignedIn) {
-      const fullName = localStorage.getItem("userFullName") || user?.fullName || "";
-      const email = localStorage.getItem("userEmail") || user?.primaryEmailAddress?.emailAddress || "";
-      const role = localStorage.getItem("userRole") || "donor";
-      setUserProfile({ fullName, email, role });
+      const activeClerkId = user?.id || localStorage.getItem("clerkId");
+      const activeEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail") || "";
+      const storedFullName = localStorage.getItem("userFullName") || user?.fullName || "";
+
+      resolveUserRole({ clerkId: activeClerkId, email: activeEmail, clerkUser: user }).then(({ role, profile }) => {
+        const finalRole = role || localStorage.getItem("userRole") || "administrator";
+        const finalName = profile?.fullName || storedFullName;
+        setUserProfile({
+          fullName: finalName,
+          email: activeEmail,
+          role: finalRole,
+        });
+        if (finalRole) localStorage.setItem("userRole", finalRole);
+      });
     } else {
       setUserProfile(null);
     }
@@ -671,10 +663,10 @@ export default function HomePage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    localStorage.removeItem("userFullName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
+    clearAuthSession();
+    try {
+      await signOut();
+    } catch (_) {}
     setProfileDropdownOpen(false);
     setMobileMenuOpen(false);
     navigate("/");
@@ -1896,7 +1888,7 @@ export default function HomePage() {
           <div style={{ background: theme === "dark" ? "#1E293B" : WHITE, borderRadius: 24, width: "100%", maxWidth: 420, padding: 36, boxShadow: "0 25px 60px rgba(0,0,0,0.4)", margin: 20 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
               <div style={{ width: 50, height: 50, borderRadius: 16, background: `${RED}18`, display: "flex", alignItems: "center", justifyContent: "center", color: RED, fontSize: "1.4rem" }}>
-                🔒
+                from data
               </div>
               <div>
                 <h3 style={{ fontSize: "1.25rem", fontWeight: 800, color: theme === "dark" ? WHITE : SLATE }}>Login Required</h3>

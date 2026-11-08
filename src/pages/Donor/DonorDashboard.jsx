@@ -181,11 +181,14 @@ function DonorDashboard() {
         setCertificates(certificatesData);
       }
 
-      // Placeholder notifications
-      setNotifications([
-        { id: 1, message: "Welcome to the Donor Portal", time: "Just now", read: false },
-        { id: 2, message: "You are eligible to donate blood", time: "2 hours ago", read: true },
-      ]);
+      // Load real notifications from database
+      try {
+        const notifRes = await fetch(`http://127.0.0.1:5000/api/notifications/${user.id}?limit=5`);
+        if (notifRes.ok) {
+          const notifData = await notifRes.json();
+          setNotifications(Array.isArray(notifData) ? notifData : notifData.notifications || []);
+        }
+      } catch (_) {}
     } catch (error) {
       console.error('Error loading donor data:', error);
       // Set default values on error

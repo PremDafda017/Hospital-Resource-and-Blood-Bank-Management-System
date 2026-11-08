@@ -10,7 +10,10 @@ const path = require("path");
 const PDFDocument = require("pdfkit");
 const http = require("http");
 const { Server } = require("socket.io");
-require("dotenv").config({ path: "../.env" });
+const dotenv = require("dotenv");
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +26,28 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
+
+// Super Admin Suite Routes
+const adminRoutes = require("./adminRoutes");
+app.use(adminRoutes);
+
+// Patient profile completion routes
+const patientProfileRoutes = require("./patientProfileRoutes");
+app.use("/api/patients", patientProfileRoutes);
+
+// Centralized Notification & Communication Systems
+const notificationService = require("./services/notificationService");
+notificationService.setSocketIo(io);
+
+const messageRoutes = require("./routes/messageRoutes");
+messageRoutes.setSocketIo(io);
+
+const emailService = require("./services/emailService");
+
+const notificationRoutes = require("./routes/notificationRoutes");
+app.use(notificationRoutes);
+app.use(messageRoutes.router);
+
 
 // MongoDB connection
 const mongoUri = process.env.MONGODB_URI;
@@ -59,6 +84,20 @@ const userProfileSchema = new mongoose.Schema(
     email: { type: String, required: true },
     role: { type: String, required: true },
     isVerified: { type: Boolean, default: true },
+    // Admin-managed profile extensions
+    phone: { type: String, default: "" },
+    bloodGroup: { type: String, default: "" },
+    accountStatus: { type: String, default: "Active" },
+    status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
+    address: { type: String, default: "" },
+    city: { type: String, default: "" },
+    state: { type: String, default: "" },
+    pincode: { type: String, default: "" },
+    dateOfBirth: { type: String, default: "" },
+    gender: { type: String, default: "" },
+    hospitalName: { type: String, default: "" },
+    condition: { type: String, default: "Stable" },
   },
   { timestamps: true }
 );
@@ -83,7 +122,17 @@ const patientSchema = new mongoose.Schema(
       pincode: { type: String, default: "" },
       emergencyContact: { type: String, default: "" },
       emergencyPhone: { type: String, default: "" },
+      emergencyContactRelationship: { type: String, default: "" },
+      country: { type: String, default: "" },
+      // Sensitive medical information - collected only for patient care coordination
+      medicalConditions: { type: String, default: "" },
+      allergies: { type: String, default: "" },
+      currentMedications: { type: String, default: "" },
+      previousBloodTransfusion: { type: String, default: "" },
+      additionalMedicalInfo: { type: String, default: "" },
     },
+    isProfileComplete: { type: Boolean, default: false },
+    profileCompletedAt: { type: Date, default: null },
     bloodRequests: [{
       id: { type: Number, required: true },
       bloodGroup: { type: String, required: true },
@@ -119,6 +168,12 @@ const patientSchema = new mongoose.Schema(
       description: { type: String, default: "" },
       fileUrl: { type: String, default: "" },
     }],
+    // Admin-managed fields
+    status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
+    condition: { type: String, default: "Stable" },
+    hospitalName: { type: String, default: "" },
+    age: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -174,6 +229,11 @@ const donorSchema = new mongoose.Schema(
       bloodGroup: { type: String, required: true },
       units: { type: Number, required: true },
     }],
+    // Admin-managed fields
+    status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
+    verificationStatus: { type: String, default: "Verified" },
+    isEligible: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
@@ -253,7 +313,7 @@ const appointmentSchema = new mongoose.Schema(
     date: { type: String, required: true },
     time: { type: String, required: true },
     doctor: { type: String, default: "" },
-    status: { type: String, enum: ["Upcoming", "Completed", "Cancelled", "Rescheduled", "No Show"], default: "Upcoming" },
+    status: { type: String, enum: ["Upcoming", "Completed", "Cancelled", "Rescheduled", "No Show", "Scheduled", "Pending", "Approved"], default: "Upcoming" },
     reminders: {
       sent24h: { type: Boolean, default: false },
       sent2h: { type: Boolean, default: false },
@@ -516,6 +576,8 @@ const hospitalStaffSchema = new mongoose.Schema(
       read: { type: Boolean, default: false },
       type: { type: String, default: "info" },
     }],
+    status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -543,6 +605,8 @@ const bloodBankStaffSchema = new mongoose.Schema(
       read: { type: Boolean, default: false },
       type: { type: String, default: "info" },
     }],
+    status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -591,6 +655,12 @@ const doctorsSchema = new mongoose.Schema(
     patientsTreated: { type: Number, default: 0 },
     rating: { type: Number, default: 0 },
     photo: { type: String, default: "" },
+    // Admin-managed fields
+    status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
+    qualification: { type: String, default: "" },
+    experience: { type: Number, default: 0 },
+    licenseNumber: { type: String, default: "" },
     availabilitySchedule: {
       monday: { available: { type: Boolean, default: true }, startTime: { type: String, default: "09:00" }, endTime: { type: String, default: "17:00" } },
       tuesday: { available: { type: Boolean, default: true }, startTime: { type: String, default: "09:00" }, endTime: { type: String, default: "17:00" } },
@@ -685,6 +755,10 @@ const bloodBankSchema = new mongoose.Schema(
     type: { type: String, default: "Government" },
     capacity: { type: Number, default: 0 },
     status: { type: String, default: "Active" },
+    isDeleted: { type: Boolean, default: false },
+    verificationStatus: { type: String, default: "Pending" },
+    bloodStock: { type: Object, default: {} },
+    staffCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
@@ -711,7 +785,7 @@ const bloodRequestSchema = new mongoose.Schema(
     status: { 
       type: String, 
       required: true, 
-      enum: ["Pending", "Under Verification", "Forwarded", "Blood Ready", "Completed", "Rejected"],
+      enum: ["Pending", "Under Verification", "Forwarded", "Blood Ready", "Completed", "Rejected", "Approved", "Dispatched"],
       default: "Pending" 
     },
     urgency: { type: String, default: "Normal" },
@@ -774,23 +848,8 @@ const reportSchema = new mongoose.Schema(
 
 const Report = mongoose.model("Report", reportSchema);
 
-// Notification Schema for MongoDB (separate collection)
-const notificationSchema = new mongoose.Schema(
-  {
-    _id: { type: String, default: generateCustomId },
-    userId: { type: String, required: true },
-    userRole: { type: String, required: true },
-    title: { type: String, required: true },
-    message: { type: String, required: true },
-    type: { type: String, default: "info" },
-    requestId: { type: String, default: "" },
-    read: { type: Boolean, default: false },
-    priority: { type: String, default: "Normal" },
-  },
-  { timestamps: true }
-);
-
-const Notification = mongoose.model("Notification", notificationSchema);
+// Unified Canonical Notification Model
+const Notification = require("./models/Notification");
 
 // Appointment Request Schema for MongoDB (donor appointment requests pending approval)
 const appointmentRequestSchema = new mongoose.Schema(
@@ -845,16 +904,43 @@ const CampaignRequest = mongoose.model("CampaignRequest", campaignRequestSchema)
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
-  // Join user-specific room for notifications
+  // Join user-specific room for notifications & private messaging
   socket.on("join-user-room", (userId) => {
-    socket.join(`user-${userId}`);
-    console.log(`User ${userId} joined room`);
+    if (userId) {
+      socket.join(`user-${userId}`);
+      console.log(`User ${userId} joined room user-${userId}`);
+    }
   });
 
-  // Join blood bank staff room
+  // Join role room (e.g. role-patient, role-hospital_staff, role-donor, role-blood_bank_staff, role-administrator)
+  socket.on("join-role-room", (role) => {
+    if (role) {
+      const canonicalRole = role.toLowerCase().trim();
+      socket.join(`role-${canonicalRole}`);
+      console.log(`Socket ${socket.id} joined role room: role-${canonicalRole}`);
+    }
+  });
+
+  // Join blood bank staff room (legacy compatibility)
   socket.on("join-staff-room", () => {
     socket.join("blood-bank-staff");
     console.log("Blood bank staff joined room");
+  });
+
+  // Join request conversation thread room
+  socket.on("join-conversation", (requestId) => {
+    if (requestId) {
+      socket.join(`conversation-${requestId}`);
+      console.log(`Socket ${socket.id} joined conversation: ${requestId}`);
+    }
+  });
+
+  // Leave request conversation room
+  socket.on("leave-conversation", (requestId) => {
+    if (requestId) {
+      socket.leave(`conversation-${requestId}`);
+      console.log(`Socket ${socket.id} left conversation: ${requestId}`);
+    }
   });
 
   // Handle disconnection
@@ -928,54 +1014,133 @@ app.post("/api/users/create-profile", async (req, res) => {
     return res.status(400).json({ message: "clerkId, fullName, email, and role are required." });
   }
 
+  const normalizedRole = role.toLowerCase().trim();
   const isDbConnected = mongoose.connection.readyState === 1;
 
   if (isDbConnected) {
     try {
-      // Check if profile already exists for this clerkId
-      let profile = await UserProfile.findOne({ clerkId });
-
-      if (profile) {
-        // Update existing profile
-        profile.fullName = fullName;
-        profile.email = email;
-        profile.role = role;
-        profile.isVerified = true;
-        await profile.save();
-        console.log(`[MongoDB] Updated profile for Clerk ID: ${clerkId}`);
-        return res.status(200).json({ message: "Profile updated successfully.", profile });
-      }
-
-      // Create new profile with custom ID
-      const customId = generateCustomId();
-      profile = new UserProfile({
-        _id: customId,
-        clerkId,
-        fullName,
-        email,
-        role,
-        isVerified: true
+      // Check if profile already exists for this clerkId or email
+      let profile = await UserProfile.findOne({
+        $or: [{ clerkId }, { email: { $regex: new RegExp(`^${email.trim()}$`, "i") } }]
       });
 
-      await profile.save();
-      console.log(`[MongoDB] Created profile in database:`, profile);
-      res.status(201).json({ message: "Profile created successfully in database.", profile });
+      if (profile) {
+        // Update existing profile - preserve patient/donor role, do not overwrite unintentionally
+        profile.fullName = fullName || profile.fullName;
+        profile.email = email || profile.email;
+        profile.role = normalizedRole;
+        profile.clerkId = clerkId;
+        profile.isVerified = true;
+        await profile.save();
+        console.log(`[MongoDB] Updated profile for Clerk ID: ${clerkId}, role: ${normalizedRole}`);
+      } else {
+        // Create new profile with custom ID
+        const customId = generateCustomId();
+        profile = new UserProfile({
+          _id: customId,
+          clerkId,
+          fullName,
+          email,
+          role: normalizedRole,
+          isVerified: true
+        });
+        await profile.save();
+        console.log(`[MongoDB] Created profile in database:`, profile);
+      }
+
+      // If role is patient, ensure Patient document exists
+      if (normalizedRole === "patient") {
+        try {
+          let patient = await Patient.findOne({ $or: [{ clerkId }, { email }] });
+          if (!patient) {
+            patient = new Patient({
+              clerkId,
+              email,
+              profile: { fullName },
+              bloodRequests: [],
+              appointments: [],
+              notifications: [],
+              reports: [],
+            });
+            await patient.save();
+            console.log(`[MongoDB] Synchronized Patient collection for: ${clerkId}`);
+          }
+        } catch (patErr) {
+          console.warn("[MongoDB] Patient sync notice:", patErr.message);
+        }
+      }
+
+      // If role is donor, ensure Donor document exists
+      if (normalizedRole === "donor") {
+        try {
+          let donor = await Donor.findOne({ $or: [{ clerkId }, { email }] });
+          if (!donor) {
+            donor = new Donor({
+              clerkId,
+              email,
+              profile: { fullName },
+            });
+            await donor.save();
+            console.log(`[MongoDB] Synchronized Donor collection for: ${clerkId}`);
+          }
+        } catch (donErr) {
+          console.warn("[MongoDB] Donor sync notice:", donErr.message);
+        }
+      }
+
+      // Also sync to Mock Database as persistent offline backup
+      try {
+        saveMockProfile({ clerkId, fullName, email, role: normalizedRole });
+      } catch (_) {}
+
+      // Trigger Registration Confirmation Notification & SMTP Email
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.registrationConfirmation({
+            name: fullName,
+            role: normalizedRole,
+            email,
+          });
+          await notificationService.createAndSendNotification({
+            recipientUserId: clerkId,
+            recipientRole: normalizedRole,
+            recipientEmail: email,
+            recipientName: fullName,
+            title: "Welcome to HemoCare",
+            message: `Your account has been registered as ${normalizedRole.replace("_", " ").toUpperCase()}. Welcome to HemoCare.`,
+            notificationType: "System Notification",
+            priority: "Normal",
+            actionUrl: "/login",
+            emailPayload,
+          });
+        } catch (e) {
+          console.warn("[RegisterNotification] Warning:", e.message);
+        }
+      });
+
+      return res.status(200).json({ message: "Profile saved successfully.", profile });
     } catch (err) {
       console.error("Create profile error:", err);
-      res.status(500).json({ message: "Server error occurred while creating profile." });
+      // Fallback save to Mock Database
+      try {
+        const profile = saveMockProfile({ clerkId, fullName, email, role: normalizedRole });
+        return res.status(201).json({ message: "Profile saved in local fallback database.", profile });
+      } catch (mockErr) {
+        return res.status(500).json({ message: "Server error occurred while creating profile." });
+      }
     }
   } else {
     // Fallback to Mock Database
     try {
-      const profile = saveMockProfile({ clerkId, fullName, email, role });
+      const profile = saveMockProfile({ clerkId, fullName, email, role: normalizedRole });
       console.log(`[MockDB] Saved profile (MongoDB offline):`, profile);
-      res.status(201).json({
-        message: "Profile saved successfully in Mock local database (MongoDB connection not active).",
+      return res.status(201).json({
+        message: "Profile saved successfully in Mock local database.",
         profile,
       });
     } catch (err) {
       console.error("Mock save profile error:", err);
-      res.status(500).json({ message: "Server error saving to mock database." });
+      return res.status(500).json({ message: "Server error saving to mock database." });
     }
   }
 });
@@ -987,14 +1152,48 @@ app.get("/api/users/profile/:clerkId", async (req, res) => {
 
   if (isDbConnected) {
     try {
-      const profile = await UserProfile.findOne({ clerkId });
+      let profile = await UserProfile.findOne({ clerkId });
       if (!profile) {
+        // Also check Patient collection
+        const patient = await Patient.findOne({ clerkId });
+        if (patient) {
+          profile = {
+            clerkId,
+            fullName: patient.profile?.fullName || "",
+            email: patient.email || "",
+            role: "patient",
+            isVerified: true,
+          };
+          return res.status(200).json(profile);
+        }
+        // Also check Donor collection
+        const donor = await Donor.findOne({ clerkId });
+        if (donor) {
+          profile = {
+            clerkId,
+            fullName: donor.profile?.fullName || "",
+            email: donor.email || "",
+            role: "donor",
+            isVerified: true,
+          };
+          return res.status(200).json(profile);
+        }
+        // Check Mock DB fallback
+        const profiles = getMockProfiles();
+        const mockProfile = profiles.find((p) => p.clerkId === clerkId);
+        if (mockProfile) {
+          return res.status(200).json(mockProfile);
+        }
         return res.status(404).json({ message: "Profile not found in database." });
       }
-      res.status(200).json(profile);
+      return res.status(200).json(profile);
     } catch (err) {
       console.error("Get profile error:", err);
-      res.status(500).json({ message: "Server error occurred while retrieving profile." });
+      // Try mock fallback on error
+      const profiles = getMockProfiles();
+      const mockProfile = profiles.find((p) => p.clerkId === clerkId);
+      if (mockProfile) return res.status(200).json(mockProfile);
+      return res.status(500).json({ message: "Server error occurred while retrieving profile." });
     }
   } else {
     // Fallback to Mock Database
@@ -1003,7 +1202,79 @@ app.get("/api/users/profile/:clerkId", async (req, res) => {
     if (!profile) {
       return res.status(404).json({ message: "Profile not found in Mock database." });
     }
-    res.status(200).json(profile);
+    return res.status(200).json(profile);
+  }
+});
+
+// Check profile in MongoDB / MockDB by email
+app.get("/api/users/profile-by-email", async (req, res) => {
+  const email = (req.query.email || "").trim().toLowerCase();
+  if (!email) {
+    return res.status(400).json({ message: "email query parameter is required." });
+  }
+
+  const isDbConnected = mongoose.connection.readyState === 1;
+  if (isDbConnected) {
+    try {
+      let profile = await UserProfile.findOne({
+        email: { $regex: new RegExp(`^${email}$`, "i") }
+      });
+      if (!profile) {
+        // Also check Patient collection
+        const patient = await Patient.findOne({
+          email: { $regex: new RegExp(`^${email}$`, "i") }
+        });
+        if (patient) {
+          return res.status(200).json({
+            clerkId: patient.clerkId,
+            fullName: patient.profile?.fullName || "",
+            email: patient.email,
+            role: "patient",
+            isVerified: true
+          });
+        }
+        // Also check Donor collection
+        const donor = await Donor.findOne({
+          email: { $regex: new RegExp(`^${email}$`, "i") }
+        });
+        if (donor) {
+          return res.status(200).json({
+            clerkId: donor.clerkId,
+            fullName: donor.profile?.fullName || "",
+            email: donor.email,
+            role: "donor",
+            isVerified: true
+          });
+        }
+        // Check Mock DB fallback
+        const profiles = getMockProfiles();
+        const mockProfile = profiles.find(
+          (p) => (p.email || "").toLowerCase() === email
+        );
+        if (mockProfile) {
+          return res.status(200).json(mockProfile);
+        }
+        return res.status(404).json({ message: "Profile not found." });
+      }
+      return res.status(200).json(profile);
+    } catch (err) {
+      console.error("Get profile by email error:", err);
+      const profiles = getMockProfiles();
+      const mockProfile = profiles.find(
+        (p) => (p.email || "").toLowerCase() === email
+      );
+      if (mockProfile) return res.status(200).json(mockProfile);
+      return res.status(500).json({ message: "Server error occurred while retrieving profile." });
+    }
+  } else {
+    const profiles = getMockProfiles();
+    const profile = profiles.find(
+      (p) => (p.email || "").toLowerCase() === email
+    );
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found in Mock database." });
+    }
+    return res.status(200).json(profile);
   }
 });
 
@@ -1107,6 +1378,31 @@ app.put("/api/patient/:clerkId/profile", async (req, res) => {
       }
       patient.profile = { ...patient.profile, ...profile };
       await patient.save();
+
+      // Trigger Profile Update Confirmation Notification & SMTP Email
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.profileCompleted({
+            name: patient.profile?.fullName || "Patient",
+            bloodGroup: patient.profile?.bloodGroup || "",
+          });
+          await notificationService.createAndSendNotification({
+            recipientUserId: clerkId,
+            recipientRole: "patient",
+            recipientEmail: patient.email,
+            recipientName: patient.profile?.fullName || "Patient",
+            title: "Medical Profile Completed",
+            message: "Your clinical profile has been completed and verified for blood requests and appointments.",
+            notificationType: "Important Update",
+            priority: "Normal",
+            actionUrl: "/patient-dashboard",
+            emailPayload,
+          });
+        } catch (e) {
+          console.warn("[ProfileNotification] Warning:", e.message);
+        }
+      });
+
       res.status(200).json({ message: "Profile updated successfully.", patient });
     } catch (err) {
       console.error("Update profile error:", err);
@@ -1202,45 +1498,87 @@ app.post("/api/patient/:clerkId/blood-requests", async (req, res) => {
       });
       await patient.save();
       
-      // Create notification for patient
-      const patientNotification = new Notification({
-        userId: patient._id,
-        userRole: "patient",
+      const patientDisplayName = patient.profile?.fullName || req.body.patientName || "Patient";
+      const patientDisplayId = clerkId || patient._id;
+      const resolvedPatientEmail = email || request.email || patient.email || patient.profile?.email || "";
+
+      // Create rich notification for patient
+      await notificationService.createAndSendNotification({
+        recipientUserId: patient.clerkId || clerkId || patient._id,
+        recipientRole: "patient",
+        recipientEmail: resolvedPatientEmail,
+        recipientName: patientDisplayName,
         title: "Blood Request Submitted",
-        message: `Your blood request #${requestNumber} has been submitted successfully. Status: Pending`,
-        type: "success",
+        message: `Your blood request #${requestNumber} for ${request.bloodGroup} (${request.units} units) has been submitted. Status: Pending.`,
+        notificationType: "Request Submitted",
+        relatedEntityType: "BloodRequest",
+        relatedEntityId: bloodRequest._id,
         requestId: bloodRequest._id,
-        priority: "Normal"
+        priority: request.urgency === "Critical" ? "Critical" : "Normal",
+        actionUrl: "/blood-requests",
       });
-      await patientNotification.save();
       
-      // Notify all hospital staff about new blood request (non-blocking)
+      // Notify all hospital staff about new blood request (non-blocking with SMTP email)
       setImmediate(async () => {
         try {
+          const emailPayload = emailService.EmailTemplates.bloodRequestSubmitted({
+            requestNumber,
+            patientName: patientDisplayName,
+            bloodGroup: request.bloodGroup,
+            units: request.units,
+            hospitalName: request.hospital || "Partner Hospital",
+            urgency: request.urgency || "Normal",
+          });
+
+          const staffNotificationMessage = `New Blood Request #${requestNumber}: Patient ${patientDisplayName} (ID: ${patientDisplayId}) requested ${request.units} unit(s) of ${request.bloodGroup} blood at ${request.hospital || "Hospital"}. Status: Pending Verification.`;
+
+          // 1. General role broadcast so ALL hospital staff members see it immediately on their notification page
+          await notificationService.createAndSendNotification({
+            recipientUserId: "hospital_staff_role",
+            recipientRole: "hospital_staff",
+            title: `New Blood Request #${requestNumber} - ${patientDisplayName}`,
+            message: staffNotificationMessage,
+            notificationType: "Request Submitted",
+            relatedEntityType: "BloodRequest",
+            relatedEntityId: bloodRequest._id,
+            requestId: bloodRequest._id,
+            priority: request.urgency === "Critical" ? "Critical" : "Normal",
+            actionUrl: "/hospital-blood-requests",
+            emailPayload,
+          });
+
+          // 2. Direct notifications to individual staff records
           const allStaff = await HospitalStaff.find({});
           if (allStaff && allStaff.length > 0) {
             for (const staff of allStaff) {
-              const staffNotification = new Notification({
-                userId: staff._id,
-                userRole: "hospitalstaff",
-                title: "New Blood Request",
-                message: `New blood request #${requestNumber} for ${request.bloodGroup} (${request.units} units) from ${patient.profile?.fullName || "Patient"}`,
-                type: "info",
+              await notificationService.createAndSendNotification({
+                recipientUserId: staff.clerkId || staff._id,
+                recipientRole: "hospital_staff",
+                recipientEmail: staff.email,
+                recipientName: staff.profile?.fullName || "Hospital Staff",
+                title: `New Blood Request #${requestNumber} - ${patientDisplayName}`,
+                message: staffNotificationMessage,
+                notificationType: "Request Submitted",
+                relatedEntityType: "BloodRequest",
+                relatedEntityId: bloodRequest._id,
                 requestId: bloodRequest._id,
-                priority: request.urgency === "Critical" ? "High" : "Normal"
+                priority: request.urgency === "Critical" ? "Critical" : request.urgency === "High" ? "High" : "Normal",
+                actionUrl: "/hospital-blood-requests",
+                emailPayload,
               });
-              await staffNotification.save();
               
               // Also add to staff's notifications array for backward compatibility
-              staff.notifications.unshift({
-                id: Date.now(),
-                title: "New Blood Request",
-                message: `New blood request for ${request.bloodGroup} (${request.units} units) from ${patient.profile?.fullName || "Patient"}`,
-                date: new Date().toISOString().split('T')[0],
-                read: false,
-                type: "info"
-              });
-              await staff.save();
+              if (Array.isArray(staff.notifications)) {
+                staff.notifications.unshift({
+                  id: Date.now(),
+                  title: "New Blood Request",
+                  message: `New blood request #${requestNumber} for ${request.bloodGroup} (${request.units} units) from ${patientDisplayName}`,
+                  date: new Date().toISOString().split('T')[0],
+                  read: false,
+                  type: "info"
+                });
+                await staff.save().catch(() => {});
+              }
             }
           }
         } catch (notifyErr) {
@@ -1613,6 +1951,35 @@ app.post("/api/patient/:clerkId/reports", async (req, res) => {
       }
       patient.reports.push(report);
       await patient.save();
+
+      // Notify Patient that a medical report has been uploaded
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.systemAnnouncement({
+            recipientName: patient.profile?.fullName || "Patient",
+            title: `New Medical Report: ${report?.title || "Clinical Record"}`,
+            message: `A new medical record has been uploaded by the hospital staff to your HemoCare profile. You can review or download it from your patient dashboard.`,
+          });
+
+          await notificationService.createAndSendNotification({
+            recipientUserId: clerkId,
+            recipientRole: "patient",
+            recipientEmail: email || patient.email,
+            recipientName: patient.profile?.fullName || "Patient",
+            title: "Medical Report Uploaded",
+            message: `New clinical report "${report?.title || "Medical Report"}" is now available in your health records.`,
+            notificationType: "Important Update",
+            relatedEntityType: "Report",
+            relatedEntityId: String(report?.id || ""),
+            priority: "Normal",
+            actionUrl: "/my-reports",
+            emailPayload,
+          });
+        } catch (e) {
+          console.warn("[ReportNotif] Warning:", e.message);
+        }
+      });
+
       res.status(201).json({ message: "Report added successfully.", patient });
     } catch (err) {
       console.error("Add report error:", err);
@@ -2184,6 +2551,62 @@ app.post("/api/donor/:clerkId/appointment-requests", async (req, res) => {
       });
       await activityLog.save();
 
+      // Notify Donor of successful submission
+      await notificationService.createAndSendNotification({
+        recipientUserId: clerkId,
+        recipientRole: "donor",
+        recipientEmail: newRequest.donorEmail,
+        recipientName: newRequest.donorName,
+        title: "Donation Appointment Requested",
+        message: `Your appointment request for ${newRequest.preferredDate} (${newRequest.preferredTime}) at ${newRequest.bloodBankName || "Blood Bank"} has been submitted and is pending staff approval.`,
+        notificationType: "Appointment Booked",
+        relatedEntityType: "Appointment",
+        relatedEntityId: newRequest._id,
+        requestId: newRequest._id,
+        priority: "Normal",
+        actionUrl: "/donor-dashboard",
+      });
+
+      // Notify Blood Bank Staff of incoming donor appointment request with email
+      setImmediate(async () => {
+        try {
+          const bloodBankStaffList = await BloodBankStaff.find({});
+          if (bloodBankStaffList && bloodBankStaffList.length > 0) {
+            for (const staff of bloodBankStaffList) {
+              await notificationService.createAndSendNotification({
+                recipientUserId: staff.clerkId || staff._id,
+                recipientRole: "blood_bank_staff",
+                recipientEmail: staff.email,
+                recipientName: staff.profile?.fullName || "Blood Bank Officer",
+                title: "New Donor Appointment Request",
+                message: `Donor ${newRequest.donorName} (${newRequest.bloodGroup}) requested donation appointment for ${newRequest.preferredDate} at ${newRequest.preferredTime}.`,
+                notificationType: "Appointment Booked",
+                relatedEntityType: "Appointment",
+                relatedEntityId: newRequest._id,
+                requestId: newRequest._id,
+                priority: "Normal",
+                actionUrl: "/appointment-management",
+              });
+            }
+          } else {
+            await notificationService.createAndSendNotification({
+              recipientUserId: "blood_bank_staff_general",
+              recipientRole: "blood_bank_staff",
+              title: "New Donor Appointment Request",
+              message: `Donor ${newRequest.donorName} (${newRequest.bloodGroup}) requested donation appointment for ${newRequest.preferredDate}.`,
+              notificationType: "Appointment Booked",
+              relatedEntityType: "Appointment",
+              relatedEntityId: newRequest._id,
+              requestId: newRequest._id,
+              priority: "Normal",
+              actionUrl: "/appointment-management",
+            });
+          }
+        } catch (e) {
+          console.warn("[DonorApptNotifyBBS] Warning:", e.message);
+        }
+      });
+
       res.status(201).json({ message: "Appointment request submitted successfully.", request: newRequest });
     } catch (err) {
       console.error("Create appointment request error:", err);
@@ -2579,6 +3002,38 @@ app.post("/api/bloodbank/appointment-requests/:requestId/approve", async (req, r
       });
       await activityLog.save();
 
+      // Notify Donor of appointment approval with SMTP email
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.donorAppointmentApproved({
+            donorName: request.donorName || "Donor",
+            bloodBankName: request.bloodBankName || "Blood Bank",
+            date: request.preferredDate || "",
+            time: request.preferredTime || "",
+            location: request.location || "Blood Bank Center",
+            instructions: "Please remember to hydrate, consume a light meal prior to intake, and carry your identification.",
+          });
+
+          await notificationService.createAndSendNotification({
+            recipientUserId: request.clerkId || request.donorId,
+            recipientRole: "donor",
+            recipientEmail: request.donorEmail,
+            recipientName: request.donorName,
+            title: "Donation Appointment Approved",
+            message: `Your donation appointment has been approved for ${request.preferredDate} at ${request.preferredTime} at ${request.bloodBankName || "Blood Bank"}.`,
+            notificationType: "Appointment Approved",
+            relatedEntityType: "Appointment",
+            relatedEntityId: request._id,
+            requestId: request._id,
+            priority: "High",
+            actionUrl: "/donor-dashboard",
+            emailPayload,
+          });
+        } catch (e) {
+          console.warn("[DonorApproveNotif] Warning:", e.message);
+        }
+      });
+
       res.status(200).json({ message: "Appointment request approved successfully.", request, appointment, donationHistory });
     } catch (err) {
       console.error("Approve appointment request error:", err);
@@ -2606,6 +3061,35 @@ app.post("/api/bloodbank/appointment-requests/:requestId/reject", async (req, re
       request.rejectionReason = rejectionReason || "Request rejected by blood bank staff";
 
       await request.save();
+
+      // Notify Donor of rejection with reason and SMTP email
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.donorAppointmentRejected({
+            donorName: request.donorName || "Donor",
+            reason: request.rejectionReason,
+          });
+
+          await notificationService.createAndSendNotification({
+            recipientUserId: request.clerkId || request.donorId,
+            recipientRole: "donor",
+            recipientEmail: request.donorEmail,
+            recipientName: request.donorName,
+            title: "Donation Appointment Update",
+            message: `Your donation appointment request could not be approved. Reason: ${request.rejectionReason}`,
+            notificationType: "Appointment Rejected",
+            relatedEntityType: "Appointment",
+            relatedEntityId: request._id,
+            requestId: request._id,
+            priority: "High",
+            actionUrl: "/donor-dashboard",
+            emailPayload,
+          });
+        } catch (e) {
+          console.warn("[DonorRejectNotif] Warning:", e.message);
+        }
+      });
+
       res.status(200).json({ message: "Appointment request rejected successfully.", request });
     } catch (err) {
       console.error("Reject appointment request error:", err);
@@ -2667,6 +3151,37 @@ app.post("/api/bloodbank/appointment-requests/:requestId/complete", async (req, 
         metadata: { requestId: request._id, certificateNumber: certificate.certificateNumber }
       });
       await activityLog.save();
+
+      // Notify Donor of completed donation, reward points & certificate with SMTP email
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.donationCompleted({
+            donorName: request.donorName || "Donor",
+            bloodGroup: request.bloodGroup,
+            units: 1,
+            date: request.preferredDate || new Date().toISOString().split('T')[0],
+            location: request.bloodBankName || "Blood Bank",
+          });
+
+          await notificationService.createAndSendNotification({
+            recipientUserId: request.clerkId || request.donorId,
+            recipientRole: "donor",
+            recipientEmail: request.donorEmail,
+            recipientName: request.donorName,
+            title: "Donation Completed & Certificate Available",
+            message: `Thank you for your life-saving blood donation (${request.bloodGroup})! Your official certificate and 100 reward points are now ready.`,
+            notificationType: "Donation Completed",
+            relatedEntityType: "Donation",
+            relatedEntityId: request._id,
+            requestId: request._id,
+            priority: "High",
+            actionUrl: "/donor-dashboard",
+            emailPayload,
+          });
+        } catch (e) {
+          console.warn("[DonationCompleteNotif] Warning:", e.message);
+        }
+      });
 
       res.status(200).json({ message: "Appointment request completed successfully.", request, certificate, donationHistory });
     } catch (err) {
@@ -3585,16 +4100,20 @@ app.put("/api/blood-requests/:requestId/status/under-verification", async (req, 
       await bloodRequest.save();
 
       // Notify patient
-      const patientNotification = new Notification({
-        userId: bloodRequest.patientId,
-        userRole: "patient",
+      await notificationService.createAndSendNotification({
+        recipientUserId: bloodRequest.patientId,
+        recipientRole: "patient",
+        recipientEmail: bloodRequest.patientEmail,
+        recipientName: bloodRequest.patientName,
         title: "Request Under Verification",
-        message: `Your blood request #${bloodRequest.requestNumber} is under verification by hospital staff.`,
-        type: "info",
+        message: `Your blood request #${bloodRequest.requestNumber} is under active clinical verification by hospital staff.`,
+        notificationType: "Status Updated",
+        relatedEntityType: "BloodRequest",
+        relatedEntityId: bloodRequest._id,
         requestId: bloodRequest._id,
-        priority: "Normal"
+        priority: "Normal",
+        actionUrl: "/blood-requests",
       });
-      await patientNotification.save();
 
       res.status(200).json({ message: "Blood request status updated successfully.", bloodRequest });
     } catch (err) {
@@ -3639,34 +4158,81 @@ app.put("/api/blood-requests/:requestId/status/forwarded", async (req, res) => {
 
       await bloodRequest.save();
 
-      // Notify patient
-      const patientNotification = new Notification({
-        userId: bloodRequest.patientId,
-        userRole: "patient",
-        title: "Request Forwarded to Blood Bank",
-        message: `Your blood request #${bloodRequest.requestNumber} has been forwarded to ${bloodBankName || "Blood Bank"}.`,
-        type: "info",
-        requestId: bloodRequest._id,
-        priority: "Normal"
-      });
-      await patientNotification.save();
+      // Resolve patient details
+      const patientDoc = await Patient.findById(bloodRequest.patientId).catch(() => null);
+      const patientClerkId = patientDoc?.clerkId || bloodRequest.patientId;
+      const patientEmail = bloodRequest.patientEmail || patientDoc?.email || patientDoc?.profile?.email || "";
+      const patientDisplayName = bloodRequest.patientName || patientDoc?.profile?.fullName || "Patient";
 
-      // Notify blood bank staff
-      const bloodBankStaff = await HospitalStaff.find({ profile: { hospitalName: bloodBankName } });
-      if (bloodBankStaff && bloodBankStaff.length > 0) {
-        for (const staff of bloodBankStaff) {
-          const staffNotification = new Notification({
-            userId: staff._id,
-            userRole: "bloodbankstaff",
-            title: "New Blood Request Forwarded",
-            message: `Blood request #${bloodRequest.requestNumber} forwarded from ${bloodRequest.hospitalName} - ${bloodRequest.bloodGroup} (${bloodRequest.units} units)`,
-            type: "info",
-            requestId: bloodRequest._id,
-            priority: bloodRequest.urgency === "Critical" ? "High" : "Normal"
+      // Notify patient
+      await notificationService.createAndSendNotification({
+        recipientUserId: patientClerkId,
+        recipientRole: "patient",
+        recipientEmail: patientEmail,
+        recipientName: patientDisplayName,
+        title: "Request Forwarded to Blood Bank",
+        message: `Your blood request #${bloodRequest.requestNumber} for ${bloodRequest.units} unit(s) of ${bloodRequest.bloodGroup} has been verified by ${bloodRequest.hospitalName || "Hospital"} and forwarded to ${bloodBankName || "Blood Bank"} for stock fulfillment.`,
+        notificationType: "Status Updated",
+        relatedEntityType: "BloodRequest",
+        relatedEntityId: bloodRequest._id,
+        requestId: bloodRequest._id,
+        priority: "Normal",
+        actionUrl: "/blood-requests",
+      });
+
+      // Notify blood bank staff with SMTP Email & in-app notifications
+      setImmediate(async () => {
+        try {
+          const emailPayload = emailService.EmailTemplates.bloodRequestForwarded({
+            requestNumber: bloodRequest.requestNumber,
+            bloodGroup: bloodRequest.bloodGroup,
+            units: bloodRequest.units,
+            hospitalName: bloodRequest.hospitalName || "Partner Hospital",
+            forwardedByName: forwardedByName || "Hospital Staff",
           });
-          await staffNotification.save();
+
+          const bloodBankNotifMessage = `Forwarded Request #${bloodRequest.requestNumber}: Hospital "${bloodRequest.hospitalName || 'General Hospital'}" forwarded a blood request for Patient ${patientDisplayName} (ID: ${patientClerkId}) requiring ${bloodRequest.units} unit(s) of ${bloodRequest.bloodGroup} blood. Please review and allocate.`;
+
+          // 1. Role-wide notification for all blood bank personnel
+          await notificationService.createAndSendNotification({
+            recipientUserId: "blood_bank_staff_role",
+            recipientRole: "blood_bank_staff",
+            title: `Forwarded Request #${bloodRequest.requestNumber} from ${bloodRequest.hospitalName || "Hospital"}`,
+            message: bloodBankNotifMessage,
+            notificationType: "Request Received",
+            relatedEntityType: "BloodRequest",
+            relatedEntityId: bloodRequest._id,
+            requestId: bloodRequest._id,
+            priority: bloodRequest.urgency === "Critical" ? "Critical" : "High",
+            actionUrl: "/bloodbank-requests",
+            emailPayload,
+          });
+
+          // 2. Direct notifications to registered blood bank staff accounts
+          const bloodBankStaffList = await BloodBankStaff.find({});
+          if (bloodBankStaffList && bloodBankStaffList.length > 0) {
+            for (const staff of bloodBankStaffList) {
+              await notificationService.createAndSendNotification({
+                recipientUserId: staff.clerkId || staff._id,
+                recipientRole: "blood_bank_staff",
+                recipientEmail: staff.email,
+                recipientName: staff.profile?.fullName || "Blood Bank Officer",
+                title: `Forwarded Request #${bloodRequest.requestNumber} from ${bloodRequest.hospitalName || "Hospital"}`,
+                message: bloodBankNotifMessage,
+                notificationType: "Request Received",
+                relatedEntityType: "BloodRequest",
+                relatedEntityId: bloodRequest._id,
+                requestId: bloodRequest._id,
+                priority: bloodRequest.urgency === "Critical" ? "Critical" : "High",
+                actionUrl: "/bloodbank-requests",
+                emailPayload,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("[ForwardNotifyStaff] Warning:", e.message);
         }
-      }
+      });
 
       res.status(200).json({ message: "Blood request forwarded successfully.", bloodRequest });
     } catch (err) {
@@ -3784,6 +4350,35 @@ app.put("/api/blood-requests/:requestId/status/blood-ready", async (req, res) =>
         await inventory.save();
       }
 
+      // Check for low/critical blood inventory threshold and notify staff
+      if (inventory.units <= 10) {
+        setImmediate(async () => {
+          try {
+            const stockEmailPayload = emailService.EmailTemplates.stockAlert({
+              recipientName: "Clinical & Blood Bank Staff",
+              bloodGroup: bloodRequest.bloodGroup,
+              remainingUnits: inventory.units,
+              hospitalName: bloodRequest.hospitalName || "Partner Facility",
+              threshold: 10,
+            });
+
+            await notificationService.createAndSendNotification({
+              recipientUserId: "blood_bank_staff_general",
+              recipientRole: "blood_bank_staff",
+              title: `Critical Stock Alert: ${bloodRequest.bloodGroup}`,
+              message: `Blood stock for ${bloodRequest.bloodGroup} has dropped to ${inventory.units} unit(s) at ${bloodRequest.bloodBankName || "Blood Bank"}. Immediate replenishment needed.`,
+              notificationType: "Blood Stock Alert",
+              relatedEntityType: "Stock",
+              priority: "Critical",
+              actionUrl: "/bloodbank-inventory",
+              emailPayload: stockEmailPayload,
+            });
+          } catch (e) {
+            console.warn("[StockAlertWarning]:", e.message);
+          }
+        });
+      }
+
       bloodRequest.status = "Blood Ready";
       bloodRequest.approvedBy = approvedBy || "";
       bloodRequest.approvedByName = approvedByName || "";
@@ -3799,49 +4394,75 @@ app.put("/api/blood-requests/:requestId/status/blood-ready", async (req, res) =>
 
       await bloodRequest.save();
 
-      // Notify patient
+      // Notify patient with rich notification and SMTP email
       try {
         if (bloodRequest.patientId) {
-          const patientNotification = new Notification({
-            userId: bloodRequest.patientId,
-            userRole: "patient",
-            title: "Blood Ready",
-            message: `Good news! Blood is available for your request #${bloodRequest.requestNumber}. Please wait for confirmation from the hospital.`,
-            type: "success",
-            requestId: bloodRequest._id,
-            priority: "High"
+          const patientDoc = await Patient.findById(bloodRequest.patientId).catch(() => null);
+          const patientClerkId = patientDoc?.clerkId || bloodRequest.patientId;
+          const patientEmail = bloodRequest.patientEmail || patientDoc?.email || patientDoc?.profile?.email || "";
+          const patientDisplayName = bloodRequest.patientName || patientDoc?.profile?.fullName || "Patient";
+
+          const patientEmailPayload = emailService.EmailTemplates.bloodRequestApproved({
+            requestNumber: bloodRequest.requestNumber,
+            recipientName: patientDisplayName,
+            bloodGroup: bloodRequest.bloodGroup,
+            units: bloodRequest.units,
+            bloodBankName: bloodRequest.bloodBankName,
+            instructions: `Your requested blood units have been allocated (Bag #${bloodBagNumber || "Assigned"}) and are ready for collection or delivery.`,
           });
-          await patientNotification.save();
+
+          await notificationService.createAndSendNotification({
+            recipientUserId: patientClerkId,
+            recipientRole: "patient",
+            recipientEmail: patientEmail,
+            recipientName: patientDisplayName,
+            title: "Blood Ready for Your Request",
+            message: `Good news! Blood is ready for request #${bloodRequest.requestNumber} (${bloodRequest.bloodGroup} - ${bloodRequest.units} units). Bag #${bloodBagNumber || "Assigned"}. Please proceed to collect or pay for delivery.`,
+            notificationType: "Request Approved",
+            relatedEntityType: "BloodRequest",
+            relatedEntityId: bloodRequest._id,
+            requestId: bloodRequest._id,
+            priority: "High",
+            actionUrl: "/blood-requests",
+            emailPayload: patientEmailPayload,
+          });
           console.log('Patient notification sent successfully');
         } else {
           console.log('Patient ID missing, skipping patient notification');
         }
       } catch (notificationError) {
         console.error('Error sending patient notification:', notificationError);
-        // Don't block the approval process if notification fails
       }
 
-      // Notify hospital staff
+      // Notify EXACT hospital staff member who originally forwarded or submitted the request
       try {
-        const hospitalStaff = await HospitalStaff.findOne({ _id: bloodRequest.hospitalId });
-        if (hospitalStaff && hospitalStaff._id) {
-          const staffNotification = new Notification({
-            userId: hospitalStaff._id,
-            userRole: "hospitalstaff",
-            title: "Blood Ready for Collection",
-            message: `Blood is ready for request #${bloodRequest.requestNumber} - ${bloodRequest.bloodGroup} (${bloodRequest.units} units)`,
-            type: "success",
-            requestId: bloodRequest._id,
-            priority: "High"
-          });
-          await staffNotification.save();
-          console.log('Hospital staff notification sent successfully');
-        } else {
-          console.log('Hospital staff not found or invalid ID for notification');
-        }
+        const staffEmailPayload = emailService.EmailTemplates.bloodRequestApproved({
+          requestNumber: bloodRequest.requestNumber,
+          recipientName: bloodRequest.forwardedByName || "Hospital Staff",
+          bloodGroup: bloodRequest.bloodGroup,
+          units: bloodRequest.units,
+          bloodBankName: bloodRequest.bloodBankName,
+          instructions: `Bag Number: ${bloodBagNumber || "Assigned"}. Units ready for pickup/dispatch.`,
+        });
+
+        const targetHospitalStaffUserId = bloodRequest.forwardedBy || bloodRequest.hospitalId || "hospital_staff_general";
+        await notificationService.createAndSendNotification({
+          recipientUserId: targetHospitalStaffUserId,
+          recipientRole: "hospital_staff",
+          recipientName: bloodRequest.forwardedByName || "Hospital Staff",
+          title: `Requisition Ready: ${bloodRequest.requestNumber}`,
+          message: `Blood is ready for request #${bloodRequest.requestNumber} (${bloodRequest.bloodGroup} - ${bloodRequest.units} units). Bag #${bloodBagNumber || "Assigned"}.`,
+          notificationType: "Request Approved",
+          relatedEntityType: "BloodRequest",
+          relatedEntityId: bloodRequest._id,
+          requestId: bloodRequest._id,
+          priority: "High",
+          actionUrl: "/hospital-blood-requests",
+          emailPayload: staffEmailPayload,
+        });
+        console.log('Hospital staff notification sent successfully to:', targetHospitalStaffUserId);
       } catch (notificationError) {
         console.error('Error sending hospital staff notification:', notificationError);
-        // Don't block the approval process if notification fails
       }
 
       res.status(200).json({ message: "Blood request approved successfully.", bloodRequest });
@@ -3869,8 +4490,8 @@ app.put("/api/blood-requests/:requestId/status/rejected", async (req, res) => {
         return res.status(404).json({ message: "Blood request not found." });
       }
 
-      if (!["Pending", "Forwarded"].includes(bloodRequest.status)) {
-        return res.status(400).json({ message: "Can only reject Pending or Forwarded requests." });
+      if (!["Pending", "Under Verification", "Forwarded"].includes(bloodRequest.status)) {
+        return res.status(400).json({ message: "Can only reject Pending, Under Verification, or Forwarded requests." });
       }
 
       bloodRequest.status = "Rejected";
@@ -3885,17 +4506,71 @@ app.put("/api/blood-requests/:requestId/status/rejected", async (req, res) => {
 
       await bloodRequest.save();
 
-      // Notify patient
-      const patientNotification = new Notification({
-        userId: bloodRequest.patientId,
-        userRole: "patient",
-        title: "Blood Request Rejected",
-        message: `Your blood request #${bloodRequest.requestNumber} has been rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`,
-        type: "danger",
-        requestId: bloodRequest._id,
-        priority: "High"
-      });
-      await patientNotification.save();
+      // Notify patient with rich notification and SMTP email
+      try {
+        const patientDoc = await Patient.findById(bloodRequest.patientId).catch(() => null);
+        const patientClerkId = patientDoc?.clerkId || bloodRequest.patientId;
+        const patientEmail = bloodRequest.patientEmail || patientDoc?.email || patientDoc?.profile?.email || "";
+        const patientDisplayName = bloodRequest.patientName || patientDoc?.profile?.fullName || "Patient";
+
+        const patientRejectionEmail = emailService.EmailTemplates.bloodRequestRejected({
+          requestNumber: bloodRequest.requestNumber,
+          recipientName: patientDisplayName,
+          bloodGroup: bloodRequest.bloodGroup,
+          units: bloodRequest.units,
+          reason: rejectionReason || "Requisition criteria not met.",
+          rejectedByName: rejectedByName || "Medical Staff",
+        });
+
+        await notificationService.createAndSendNotification({
+          recipientUserId: patientClerkId,
+          recipientRole: "patient",
+          recipientEmail: patientEmail,
+          recipientName: patientDisplayName,
+          title: "Blood Request Rejected",
+          message: `Your blood request #${bloodRequest.requestNumber} for ${bloodRequest.bloodGroup} (${bloodRequest.units} units) has been rejected by ${rejectedByName || "Hospital Staff"}. Reason: ${rejectionReason || "Criteria not met"}`,
+          notificationType: "Request Rejected",
+          relatedEntityType: "BloodRequest",
+          relatedEntityId: bloodRequest._id,
+          requestId: bloodRequest._id,
+          priority: "High",
+          actionUrl: "/blood-requests",
+          emailPayload: patientRejectionEmail,
+        });
+      } catch (e) {
+        console.warn("Patient rejection notification failed:", e.message);
+      }
+
+      // If rejected by Blood Bank, notify the exact Hospital Staff member who forwarded the request
+      try {
+        if (bloodRequest.forwardedBy || bloodRequest.hospitalId) {
+          const staffRejectionEmail = emailService.EmailTemplates.bloodRequestRejected({
+            requestNumber: bloodRequest.requestNumber,
+            recipientName: bloodRequest.forwardedByName || "Hospital Staff",
+            bloodGroup: bloodRequest.bloodGroup,
+            units: bloodRequest.units,
+            reason: rejectionReason || "Blood Bank unable to fulfill requisition at this time",
+            rejectedByName: rejectedByName || "Blood Bank Staff",
+          });
+
+          await notificationService.createAndSendNotification({
+            recipientUserId: bloodRequest.forwardedBy || bloodRequest.hospitalId,
+            recipientRole: "hospital_staff",
+            recipientName: bloodRequest.forwardedByName || "Hospital Staff",
+            title: `Requisition Rejected by Blood Bank: ${bloodRequest.requestNumber}`,
+            message: `Blood request #${bloodRequest.requestNumber} (${bloodRequest.bloodGroup}) was rejected by ${rejectedByName || "Blood Bank Staff"}. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`,
+            notificationType: "Request Rejected",
+            relatedEntityType: "BloodRequest",
+            relatedEntityId: bloodRequest._id,
+            requestId: bloodRequest._id,
+            priority: "High",
+            actionUrl: "/hospital-blood-requests",
+            emailPayload: staffRejectionEmail,
+          });
+        }
+      } catch (e) {
+        console.warn("Staff rejection notification failed:", e.message);
+      }
 
       res.status(200).json({ message: "Blood request rejected successfully.", bloodRequest });
     } catch (err) {
@@ -3939,18 +4614,29 @@ app.put("/api/blood-requests/:requestId/status/completed", async (req, res) => {
 
       await bloodRequest.save();
 
-      // Notify patient about completion (only if patientId exists)
+      // Notify patient about completion with email & rich notification
       if (bloodRequest.patientId) {
-        const patientNotification = new Notification({
-          userId: bloodRequest.patientId,
-          userRole: "patient",
-          title: "Blood Request Completed",
-          message: `Your blood request #${bloodRequest.requestNumber} has been completed. Blood has been issued to you.`,
-          type: "success",
-          requestId: bloodRequest._id,
-          priority: "High"
+        const completionEmail = emailService.EmailTemplates.systemAnnouncement({
+          recipientName: bloodRequest.patientName,
+          title: `Requisition Completed: ${bloodRequest.requestNumber}`,
+          message: `Your blood request #${bloodRequest.requestNumber} for ${bloodRequest.bloodGroup} (${bloodRequest.units} units) has been officially completed and issued by the clinical team.`,
         });
-        await patientNotification.save();
+
+        await notificationService.createAndSendNotification({
+          recipientUserId: bloodRequest.patientId,
+          recipientRole: "patient",
+          recipientEmail: bloodRequest.patientEmail,
+          recipientName: bloodRequest.patientName,
+          title: "Blood Request Completed",
+          message: `Your blood request #${bloodRequest.requestNumber} has been completed and units issued.`,
+          notificationType: "Status Updated",
+          relatedEntityType: "BloodRequest",
+          relatedEntityId: bloodRequest._id,
+          requestId: bloodRequest._id,
+          priority: "High",
+          actionUrl: "/blood-requests",
+          emailPayload: completionEmail,
+        });
       }
 
       // Generate blood issue report
@@ -5356,43 +6042,71 @@ app.put("/api/appointments/:appointmentId/status/:status", async (req, res) => {
         appointment.approvedByName = approvedByName || "";
         appointment.approvedDate = new Date().toISOString().split('T')[0];
         
-        // Send notification to patient
-        try {
-          if (appointment.patientId) {
-            const patientNotification = new Notification({
-              userId: appointment.patientId,
-              userRole: "patient",
-              title: "Appointment Approved",
-              message: `Your appointment #${appointment.appointmentNumber} has been approved for ${appointment.appointmentDate} at ${appointment.appointmentTime}`,
-              type: "success",
-              requestId: appointment._id,
-              priority: "High"
-            });
-            await patientNotification.save();
+        // Send notification & email to patient
+        setImmediate(async () => {
+          try {
+            if (appointment.patientId) {
+              const emailPayload = emailService.EmailTemplates.appointmentBooked({
+                appointmentId: appointment.appointmentNumber || appointment._id,
+                recipientName: appointment.patientName || "Patient",
+                doctorName: appointment.doctorName || "Assigned Specialist",
+                hospitalName: appointment.hospitalName || "Partner Hospital",
+                date: appointment.appointmentDate || "",
+                time: appointment.appointmentTime || "",
+                type: appointment.department || "Consultation",
+              });
+
+              await notificationService.createAndSendNotification({
+                recipientUserId: appointment.patientId,
+                recipientRole: "patient",
+                recipientName: appointment.patientName || "Patient",
+                title: "Appointment Approved",
+                message: `Your appointment #${appointment.appointmentNumber} has been approved for ${appointment.appointmentDate} at ${appointment.appointmentTime} at ${appointment.hospitalName || "Hospital"}.`,
+                notificationType: "Appointment Approved",
+                relatedEntityType: "Appointment",
+                relatedEntityId: appointment._id,
+                requestId: appointment._id,
+                priority: "High",
+                actionUrl: "/my-appointments",
+                emailPayload,
+              });
+            }
+          } catch (notificationError) {
+            console.error('Error sending patient notification:', notificationError);
           }
-        } catch (notificationError) {
-          console.error('Error sending patient notification:', notificationError);
-        }
+        });
       } else if (status === "Rejected") {
         appointment.rejectionReason = rejectionReason || "";
         
-        // Send notification to patient
-        try {
-          if (appointment.patientId) {
-            const patientNotification = new Notification({
-              userId: appointment.patientId,
-              userRole: "patient",
-              title: "Appointment Rejected",
-              message: `Your appointment #${appointment.appointmentNumber} has been rejected. Reason: ${rejectionReason}`,
-              type: "error",
-              requestId: appointment._id,
-              priority: "High"
-            });
-            await patientNotification.save();
+        // Send notification & email to patient
+        setImmediate(async () => {
+          try {
+            if (appointment.patientId) {
+              const emailPayload = emailService.EmailTemplates.systemAnnouncement({
+                recipientName: appointment.patientName || "Patient",
+                title: `Appointment Status: Rejected (${appointment.appointmentNumber})`,
+                message: `We regret to inform you that your appointment request #${appointment.appointmentNumber} could not be approved. Reason: ${rejectionReason || "Unavailable slots or doctor schedule"}`,
+              });
+
+              await notificationService.createAndSendNotification({
+                recipientUserId: appointment.patientId,
+                recipientRole: "patient",
+                recipientName: appointment.patientName || "Patient",
+                title: "Appointment Rejected",
+                message: `Your appointment #${appointment.appointmentNumber} has been rejected. ${rejectionReason ? `Reason: ${rejectionReason}` : ""}`,
+                notificationType: "Appointment Rejected",
+                relatedEntityType: "Appointment",
+                relatedEntityId: appointment._id,
+                requestId: appointment._id,
+                priority: "High",
+                actionUrl: "/my-appointments",
+                emailPayload,
+              });
+            }
+          } catch (notificationError) {
+            console.error('Error sending patient notification:', notificationError);
           }
-        } catch (notificationError) {
-          console.error('Error sending patient notification:', notificationError);
-        }
+        });
       } else if (status === "Completed") {
         appointment.completedBy = completedBy || "";
         appointment.completedByName = completedByName || "";
@@ -5404,23 +6118,35 @@ app.put("/api/appointments/:appointmentId/status/:status", async (req, res) => {
           appointment.followUpDate = followUpDate;
         }
         
-        // Send notification to patient
-        try {
-          if (appointment.patientId) {
-            const patientNotification = new Notification({
-              userId: appointment.patientId,
-              userRole: "patient",
-              title: "Appointment Completed",
-              message: `Your appointment #${appointment.appointmentNumber} has been completed. Prescription is now available.`,
-              type: "success",
-              requestId: appointment._id,
-              priority: "High"
-            });
-            await patientNotification.save();
+        // Send completion notification & email to patient
+        setImmediate(async () => {
+          try {
+            if (appointment.patientId) {
+              const emailPayload = emailService.EmailTemplates.systemAnnouncement({
+                recipientName: appointment.patientName || "Patient",
+                title: `Consultation Completed: #${appointment.appointmentNumber}`,
+                message: `Your consultation #${appointment.appointmentNumber} has been marked complete. Any prescriptions or clinical follow-up notes are now accessible in your patient portal.`,
+              });
+
+              await notificationService.createAndSendNotification({
+                recipientUserId: appointment.patientId,
+                recipientRole: "patient",
+                recipientName: appointment.patientName || "Patient",
+                title: "Appointment Completed",
+                message: `Your appointment #${appointment.appointmentNumber} has been completed. Prescription is now available.`,
+                notificationType: "Status Updated",
+                relatedEntityType: "Appointment",
+                relatedEntityId: appointment._id,
+                requestId: appointment._id,
+                priority: "High",
+                actionUrl: "/my-appointments",
+                emailPayload,
+              });
+            }
+          } catch (notificationError) {
+            console.error('Error sending patient notification:', notificationError);
           }
-        } catch (notificationError) {
-          console.error('Error sending patient notification:', notificationError);
-        }
+        });
       }
       
       // Add timeline entry

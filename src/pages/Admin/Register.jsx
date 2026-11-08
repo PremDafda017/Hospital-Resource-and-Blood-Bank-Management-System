@@ -175,13 +175,18 @@ function Register() {
       await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
+        unsafeMetadata: {
+          role: formData.role || "administrator",
+          fullName: formData.fullName,
+        },
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
 
       localStorage.setItem("pendingEmail", formData.email);
       localStorage.setItem("pendingFullName", formData.fullName);
-      localStorage.setItem("pendingRole", formData.role);
+      localStorage.setItem("pendingRole", formData.role || "administrator");
+      localStorage.setItem("userRole", formData.role || "administrator");
 
       setSuccess("Account created. Verification code sent.");
 

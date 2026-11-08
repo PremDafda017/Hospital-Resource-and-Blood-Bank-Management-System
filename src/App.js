@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import React from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { roleToDashboardPath } from "./utils/authUtils";
 import { BloodBankProvider } from "./contexts/BloodBankContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import NotificationPopup from "./components/NotificationPopup";
@@ -21,12 +22,15 @@ import MyAppointments from "./pages/Patient/MyAppointments";
 import PatientBloodBanks from "./pages/Patient/PatientBloodBanks";
 import PatientNotifications from "./pages/Patient/PatientNotifications";
 import PatientProfile from "./pages/Patient/PatientProfile";
+import CompleteProfile from "./pages/Patient/CompleteProfile";
+import RequirePatientProfile from "./components/RequirePatientProfile";
 import AppointmentWizard from "./components/appointment/AppointmentWizard";
 
 // Donor Pages
 import DonorDashboard from "./pages/Donor/DonorDashboard";
 import DonorProfile from "./pages/Donor/DonorProfile";
 import DonorAppointmentManagement from "./pages/Donor/AppointmentManagement";
+import DonorNotifications from "./pages/Donor/Notifications";
 
 // Hospital Staff Pages
 import HospitalDashboard from "./pages/HospitalStaff/HospitalDashboard";
@@ -135,18 +139,36 @@ const GlobalLoader = () => (
   </div>
 );
 
-// Protected Route Component (Requires Clerk Sign In)
-const ProtectedRoute = ({ children }) => {
+// Protected Route Component (Enforces authentication AND role-based authorization)
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isSignedIn, isLoaded } = useAuth();
-  
+  const { user } = useUser();
+
+  // Allow access if Clerk is still loading — don't flash-redirect
   if (!isLoaded) {
     return <GlobalLoader />;
   }
-  
+
+  const storedRole = (localStorage.getItem("userRole") || "").toLowerCase().trim();
+  const clerkRole = (user?.unsafeMetadata?.role || user?.publicMetadata?.role || "").toLowerCase().trim();
+  const activeRole = clerkRole || storedRole;
+
   if (!isSignedIn) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
-  
+
+  // Enforce role-based access control
+  if (allowedRoles && allowedRoles.length > 0) {
+    const isAdmin = ["administrator", "super_admin", "superadmin", "admin"].includes(activeRole);
+    if (!isAdmin) {
+      const isAllowed = allowedRoles.map((r) => r.toLowerCase().trim()).includes(activeRole);
+      if (!isAllowed) {
+        console.warn(`[HRBMS Auth] Access denied for role "${activeRole}" to route restricted to:`, allowedRoles);
+        return <Navigate to={roleToDashboardPath(activeRole || "patient")} replace />;
+      }
+    }
+  }
+
   return children;
 };
 
@@ -173,12 +195,31 @@ function App() {
         {/* Dashboard redirect (Admin was removed, redirect to home) */}
         <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
+        {/* Route Aliases for Uniform Role Navigation */}
+        <Route path="/patient/dashboard" element={<Navigate to="/patient-dashboard" replace />} />
+        <Route path="/donor/dashboard" element={<Navigate to="/donor-dashboard" replace />} />
+        <Route path="/hospital/dashboard" element={<Navigate to="/hospital-dashboard" replace />} />
+        <Route path="/bloodbank/dashboard" element={<Navigate to="/bloodbank-dashboard" replace />} />
+        <Route path="/admin/dashboard" element={<Navigate to="/admin-dashboard" replace />} />
+
+        {/* Mandatory Patient Profile Completion (auth required, exempt from gate) */}
+        <Route
+          path="/complete-profile"
+          element={
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <CompleteProfile />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Patient Dashboard */}
         <Route
           path="/patient-dashboard"
           element={
-            <ProtectedRoute>
-              <PatientDashboard />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <PatientDashboard />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
@@ -187,72 +228,90 @@ function App() {
         <Route
           path="/blood-requests"
           element={
-            <ProtectedRoute>
-              <PatientBloodRequests />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <PatientBloodRequests />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/my-reports"
           element={
-            <ProtectedRoute>
-              <PatientReports />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <PatientReports />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/my-appointments"
           element={
-            <ProtectedRoute>
-              <MyAppointments />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <MyAppointments />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/appointments"
           element={
-            <ProtectedRoute>
-              <AppointmentHome />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <AppointmentHome />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/book-appointment"
           element={
-            <ProtectedRoute>
-              <BookAppointment />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <BookAppointment />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/book-appointment-wizard"
           element={
-            <ProtectedRoute>
-              <AppointmentWizard />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <AppointmentWizard />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/nearby-blood-banks"
           element={
-            <ProtectedRoute>
-              <PatientBloodBanks />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <PatientBloodBanks />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/notifications"
           element={
-            <ProtectedRoute>
-              <PatientNotifications />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <PatientNotifications />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
-              <PatientProfile />
+            <ProtectedRoute allowedRoles={["patient"]}>
+              <RequirePatientProfile>
+                <PatientProfile />
+              </RequirePatientProfile>
             </ProtectedRoute>
           }
         />
@@ -261,7 +320,7 @@ function App() {
         <Route
           path="/donor-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["donor"]}>
               <DonorDashboard />
             </ProtectedRoute>
           }
@@ -271,7 +330,7 @@ function App() {
         <Route
           path="/donor-profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["donor"]}>
               <DonorProfile />
             </ProtectedRoute>
           }
@@ -279,8 +338,18 @@ function App() {
         <Route
           path="/donor/appointments"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["donor"]}>
               <DonorAppointmentManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/donor-notifications"
+          element={
+            <ProtectedRoute allowedRoles={["donor"]}>
+              <div style={{ background: "#F8FAFC", minHeight: "100vh", padding: "24px" }}>
+                <DonorNotifications />
+              </div>
             </ProtectedRoute>
           }
         />
@@ -289,7 +358,7 @@ function App() {
         <Route
           path="/hospital-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalDashboard />
             </ProtectedRoute>
           }
@@ -299,7 +368,7 @@ function App() {
         <Route
           path="/hospital-patients"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalPatients />
             </ProtectedRoute>
           }
@@ -307,7 +376,7 @@ function App() {
         <Route
           path="/hospital-patient-details/:patientId"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalPatientDetails />
             </ProtectedRoute>
           }
@@ -315,7 +384,7 @@ function App() {
         <Route
           path="/hospital-doctors"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalDoctors />
             </ProtectedRoute>
           }
@@ -323,7 +392,7 @@ function App() {
         <Route
           path="/hospital-appointments"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalAppointments />
             </ProtectedRoute>
           }
@@ -331,7 +400,7 @@ function App() {
         <Route
           path="/hospital-blood-requests"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalBloodRequests />
             </ProtectedRoute>
           }
@@ -339,7 +408,7 @@ function App() {
         <Route
           path="/hospital-blood-inventory"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalBloodInventory />
             </ProtectedRoute>
           }
@@ -347,7 +416,7 @@ function App() {
         <Route
           path="/hospital-reports"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalReports />
             </ProtectedRoute>
           }
@@ -355,7 +424,7 @@ function App() {
         <Route
           path="/hospital-notifications"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["hospital_staff", "hospital", "doctor"]}>
               <HospitalNotifications />
             </ProtectedRoute>
           }
@@ -365,7 +434,7 @@ function App() {
         <Route
           path="/bloodbank-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankDashboard />
             </ProtectedRoute>
           }
@@ -373,7 +442,7 @@ function App() {
         <Route
           path="/bloodbank-inventory"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankInventory />
             </ProtectedRoute>
           }
@@ -381,7 +450,7 @@ function App() {
         <Route
           path="/bloodbank-add-stock"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankAddStock />
             </ProtectedRoute>
           }
@@ -389,7 +458,7 @@ function App() {
         <Route
           path="/bloodbank-stock-history"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankStockHistory />
             </ProtectedRoute>
           }
@@ -397,7 +466,7 @@ function App() {
         <Route
           path="/bloodbank-requests"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankRequests />
             </ProtectedRoute>
           }
@@ -405,7 +474,7 @@ function App() {
         <Route
           path="/donation-requests"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <DonationRequests />
             </ProtectedRoute>
           }
@@ -413,7 +482,7 @@ function App() {
         <Route
           path="/campaign-management"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <CampaignManagement />
             </ProtectedRoute>
           }
@@ -421,7 +490,7 @@ function App() {
         <Route
           path="/appointment-management"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <AppointmentManagement />
             </ProtectedRoute>
           }
@@ -429,7 +498,7 @@ function App() {
         <Route
           path="/bloodbank-donors"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankDonors />
             </ProtectedRoute>
           }
@@ -437,7 +506,7 @@ function App() {
         <Route
           path="/bloodbank-details"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankDetails />
             </ProtectedRoute>
           }
@@ -445,7 +514,7 @@ function App() {
         <Route
           path="/bloodbank-reports"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankReports />
             </ProtectedRoute>
           }
@@ -453,7 +522,7 @@ function App() {
         <Route
           path="/bloodbank-notifications"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankNotifications />
             </ProtectedRoute>
           }
@@ -461,9 +530,25 @@ function App() {
 
         {/* Admin Dashboard */}
         <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={["administrator", "admin", "super_admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute allowedRoles={["administrator", "admin", "super_admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/admin-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["administrator", "admin", "super_admin"]}>
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -471,7 +556,7 @@ function App() {
         <Route
           path="/bloodbank-profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["blood_bank_staff", "blood_bank", "bloodbank"]}>
               <BloodBankProfile />
             </ProtectedRoute>
           }

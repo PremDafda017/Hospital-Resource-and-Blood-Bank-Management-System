@@ -16,6 +16,7 @@ import {
   FaRightFromBracket,
   FaChartLine,
   FaHouse,
+  FaTriangleExclamation,
 } from "react-icons/fa6";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
@@ -85,6 +86,8 @@ function PatientDashboard() {
   const [myAppointments, setMyAppointments] = useState([]);
   const [myReports, setMyReports] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [missingCount, setMissingCount] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
@@ -100,6 +103,18 @@ function PatientDashboard() {
       if (bloodRequestsResponse.ok) {
         const data = await bloodRequestsResponse.json();
         setMyRequests(data.bloodRequests || []);
+
+        // Check if mandatory profile data is complete
+        let prof = data.profile;
+        if (!prof) {
+          try {
+            prof = JSON.parse(localStorage.getItem(`patient_profile_${user.id}`));
+          } catch (e) {}
+        }
+        const requiredKeys = ["fullName", "phone", "dateOfBirth", "gender", "bloodGroup", "address", "city", "state", "pincode", "emergencyContact", "emergencyPhone"];
+        const missing = requiredKeys.filter(k => !prof || !prof[k] || !String(prof[k]).trim());
+        setProfileIncomplete(missing.length > 0);
+        setMissingCount(missing.length);
 
         // Generate reports from completed blood requests
         const completedRequests = (data.bloodRequests || []).filter(req => 
@@ -421,6 +436,84 @@ function PatientDashboard() {
               Book New Appointment
             </motion.button>
           </motion.div>
+
+          {/* Mandatory Profile Incomplete Alert Banner */}
+          {profileIncomplete && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                background: "linear-gradient(135deg, rgba(254, 242, 242, 0.98) 0%, rgba(255, 251, 235, 0.98) 100%)",
+                border: `2px solid ${RED}`,
+                borderRadius: 14,
+                padding: isMobile ? "16px" : "18px 24px",
+                marginBottom: isMobile ? 20 : 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 16,
+                boxShadow: "0 6px 20px rgba(196, 18, 48, 0.12)"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: `${RED}18`,
+                  color: RED,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.3rem",
+                  flexShrink: 0
+                }}>
+                  <FaTriangleExclamation />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: "0.95rem", color: RED }}>
+                      ACTION REQUIRED: Fulfill Mandatory Profile Data
+                    </strong>
+                    <span style={{
+                      background: RED,
+                      color: WHITE,
+                      fontSize: "0.7rem",
+                      fontWeight: 800,
+                      padding: "2px 8px",
+                      borderRadius: 6
+                    }}>
+                      {missingCount} Details Missing
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "0.82rem", color: SLATE, marginTop: 4 }}>
+                    Hospital safety regulations require verified patient identification, blood group, address, and emergency contact details before processing clinical blood allocations.
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate("/profile")}
+                style={{
+                  background: RED,
+                  color: WHITE,
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "10px 20px",
+                  fontSize: "0.85rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 12px rgba(196, 18, 48, 0.25)",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                Complete Profile Now <FaArrowRight />
+              </button>
+            </motion.div>
+          )}
 
           {/* Stats Cards */}
           <motion.div

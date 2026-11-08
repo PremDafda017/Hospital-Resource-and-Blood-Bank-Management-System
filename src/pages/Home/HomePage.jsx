@@ -15,6 +15,7 @@ import {
     FaXmark
 } from "react-icons/fa6";
 import Heart3D from "./Heart3D";
+import { roleToDashboardPath, clearAuthSession, resolveUserRole } from "../../utils/authUtils";
 
 /* ─────────────────────────────────────────────
    INLINE STYLES (no external CSS required)
@@ -266,29 +267,9 @@ export default function HomePage() {
   };
 
   const handleDashboardNavigation = () => {
-    const userRole = userProfile?.role || localStorage.getItem("userRole") || "donor";
+    const userRole = userProfile?.role || localStorage.getItem("userRole") || "patient";
     setMobileMenuOpen(false);
-
-    // Route based on user role
-    switch (userRole) {
-      case "administrator":
-        navigate("/admin-dashboard");
-        break;
-      case "patient":
-        navigate("/patient-dashboard");
-        break;
-      case "donor":
-        navigate("/donor-dashboard");
-        break;
-      case "hospital_staff":
-        navigate("/hospital-dashboard");
-        break;
-      case "blood_bank_staff":
-        navigate("/bloodbank-dashboard");
-        break;
-      default:
-        navigate("/patient-dashboard");
-    }
+    navigate(roleToDashboardPath(userRole));
   };
 
   // Comprehensive blood bank database (simulating ERaktkosh data)
@@ -654,10 +635,21 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isSignedIn) {
-      const fullName = localStorage.getItem("userFullName") || user?.fullName || "";
-      const email = localStorage.getItem("userEmail") || user?.primaryEmailAddress?.emailAddress || "";
-      const role = localStorage.getItem("userRole") || "donor";
-      setUserProfile({ fullName, email, role });
+      const activeClerkId = user?.id || localStorage.getItem("clerkId");
+      const activeEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail") || "";
+      const storedFullName = localStorage.getItem("userFullName") || user?.fullName || "";
+
+      // Fetch authentic role from database / Clerk
+      resolveUserRole({ clerkId: activeClerkId, email: activeEmail, clerkUser: user }).then(({ role, profile }) => {
+        const finalRole = role || localStorage.getItem("userRole") || "patient";
+        const finalName = profile?.fullName || storedFullName;
+        setUserProfile({
+          fullName: finalName,
+          email: activeEmail,
+          role: finalRole,
+        });
+        if (finalRole) localStorage.setItem("userRole", finalRole);
+      });
     } else {
       setUserProfile(null);
     }
@@ -669,10 +661,10 @@ export default function HomePage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    localStorage.removeItem("userFullName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
+    clearAuthSession();
+    try {
+      await signOut();
+    } catch (_) {}
     setProfileDropdownOpen(false);
     setMobileMenuOpen(false);
     navigate("/");
@@ -1691,136 +1683,6 @@ export default function HomePage() {
           <PrimaryBtn onClick={handleProtectedAction} style={{ padding:"18px 48px", fontSize:"1.1rem", borderRadius:16 }}>
             Get Started Now →
           </PrimaryBtn>
-        </div>
-      </Section>
-
-      {/* ════════════════════════════════════════════════
-          EMERGENCY REQUEST
-      ════════════════════════════════════════════════ */}
-      <section style={{ background:`linear-gradient(135deg,${RED_DARK},${RED})`, padding:"80px 24px", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:-60, right:-60, width:300, height:300, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }}/>
-        <div style={{ position:"absolute", bottom:-80, left:-40, width:250, height:250, borderRadius:"50%", background:"rgba(255,255,255,0.04)" }}/>
-        <div style={{ maxWidth:900, margin:"0 auto", position:"relative" }}>
-
-          {/* Urgent Banner */}
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, background:"rgba(255,255,255,0.15)", borderRadius:12, padding:"12px 24px", marginBottom:36, backdropFilter:"blur(8px)", border:"1px solid rgba(255,255,255,0.2)" }}>
-            <span style={{ animation:"pulse 1.5s infinite", fontSize:"1.2rem" }}>🚨</span>
-            <span style={{ color:WHITE, fontWeight:700, fontSize:"0.95rem" }}>EMERGENCY REQUEST — Response within 30 minutes guaranteed</span>
-          </div>
-
-          <SectionTitle light>Emergency Blood Request</SectionTitle>
-          <p style={{ color:"rgba(255,255,255,0.75)", marginBottom:36, fontSize:"0.95rem" }}>Fill this form and our team will match you with available donors and hospitals immediately.</p>
-
-          {emergencySuccess && (
-            <div style={{ background:"rgba(255,255,255,0.95)", color:"#166534", borderRadius:14, padding:"16px 20px", marginBottom:24, fontWeight:700, display:"flex", alignItems:"center", gap:10 }}>
-              ✅ Request submitted! Our team will contact you within 30 minutes.
-            </div>
-          )}
-
-          <div style={{ background:"rgba(255,255,255,0.1)", backdropFilter:"blur(20px)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:24, padding:36 }}>
-            <form onSubmit={handleEmergencySubmit}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:20 }} className="two-col">
-                <Input name="patientName" placeholder="Patient Full Name" required style={{ background:"rgba(255,255,255,0.95)" }} />
-                <Input name="contactNumber" placeholder="Contact Number" type="tel" required style={{ background:"rgba(255,255,255,0.95)" }} />
-                <Select name="bloodGroup" options={["Blood Group Required","A+","A-","B+","B-","AB+","AB-","O+","O-"]} style={{ background:"rgba(255,255,255,0.95)" }} />
-                <Input name="hospitalName" placeholder="Hospital Name" required style={{ background:"rgba(255,255,255,0.95)" }} />
-                <Input name="unitsRequired" placeholder="Units Required" type="number" min="1" required style={{ background:"rgba(255,255,255,0.95)" }} />
-                <Input name="location" placeholder="City / Location" required style={{ background:"rgba(255,255,255,0.95)" }} />
-              </div>
-              <textarea name="additionalInfo" placeholder="Additional information (optional)…" style={{ width:"100%", padding:"14px 18px", borderRadius:12, border:`2px solid ${BORDER}`, fontFamily:FONT, fontSize:"0.95rem", color:SLATE, outline:"none", background:"rgba(255,255,255,0.95)", resize:"vertical", minHeight:80, boxSizing:"border-box", marginBottom:20 }} />
-              <button type="submit" disabled={emergencySubmitting} style={{ width:"100%", background:WHITE, color:RED, border:"none", borderRadius:12, padding:"16px", fontFamily:FONT, fontSize:"1rem", fontWeight:800, cursor: emergencySubmitting ? "not-allowed" : "pointer", opacity: emergencySubmitting ? 0.75 : 1, transition:"all 0.2s", boxShadow:"0 8px 24px rgba(0,0,0,0.2)" }}
-                onMouseEnter={e => { if(!emergencySubmitting){ e.target.style.background = "#FFF5F5"; e.target.style.transform = "translateY(-2px)"; } }}
-                onMouseLeave={e => { e.target.style.background = WHITE; e.target.style.transform = "translateY(0)"; }}
-              >{emergencySubmitting ? "Sending..." : "🚨 Submit Emergency Request"}</button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════════
-          DONOR REGISTRATION (multi-step)
-      ════════════════════════════════════════════════ */}
-      <Section bg={WHITE} id="donate" theme={theme}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:64, alignItems:"start" }} className="two-col">
-          <div>
-            <SectionLabel text="Become a Donor" />
-            <SectionTitle theme={theme}>Register as a Blood Donor</SectionTitle>
-            <p style={{ color:SLATE_LT, fontSize:"0.95rem", lineHeight:1.7, marginBottom:32 }}>
-              Joining takes less than 5 minutes. One donation can save up to 3 lives. Your blood group, health, and schedule — we handle the rest.
-            </p>
-            {[["Why donate?","One unit of blood can save up to 3 lives. Donors also receive free health screenings."],["Who can donate?","Anyone aged 18–65, weighing 50kg+, in general good health can donate every 56 days."],["What to expect?","Registration → Health check → Donation (8–10 min) → Refreshments → Certificate"]].map(([t,d]) => (
-              <div key={t} style={{ display:"flex", gap:14, marginBottom:20 }}>
-                <div style={{ width:8, height:8, borderRadius:"50%", background:RED, flexShrink:0, marginTop:7 }}/>
-                <div>
-                  <div style={{ fontWeight:700, color:theme === "dark" ? WHITE : SLATE, marginBottom:3 }}>{t}</div>
-                  <div style={{ color:SLATE_LT, fontSize:"0.88rem", lineHeight:1.6 }}>{d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <Card style={{ padding:36 }} hover={false} theme={theme}>
-            {donorSuccess && (
-              <div style={{ background:"#DCFCE7", color:"#166534", borderRadius:14, padding:"16px 20px", marginBottom:24, fontWeight:700, display:"flex", alignItems:"center", gap:10 }}>
-                ✅ Donor registration successful! Thank you for saving lives.
-              </div>
-            )}
-            <form onSubmit={handleDonorRegistration}>
-              {/* Step progress */}
-              <div style={{ display:"flex", alignItems:"center", gap:0, marginBottom:32 }}>
-                {[1,2,3].map((s,i) => (
-                  <React.Fragment key={s}>
-                    <div style={{ width:32, height:32, borderRadius:"50%", background: step>=s ? RED : (theme === "dark" ? "#334155" : BORDER), color: step>=s ? WHITE : SLATE_LT, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:"0.85rem", transition:"all 0.3s", flexShrink:0 }}>{s}</div>
-                    {i<2 && <div style={{ flex:1, height:2, background: step>s+1 ? RED : (theme === "dark" ? "#334155" : BORDER), transition:"background 0.3s" }}/>}
-                  </React.Fragment>
-                ))}
-              </div>
-              <div style={{ fontWeight:700, fontSize:"0.8rem", color:SLATE_LT, marginBottom:20, letterSpacing:"0.05em" }}>
-                {step===1?"PERSONAL INFO":step===2?"HEALTH DETAILS":"SCHEDULE"}
-              </div>
-
-              {step===1 && (
-                <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                    <Input placeholder="First Name" required theme={theme} value={donorForm.firstName} onChange={e => updateDonorField("firstName", e.target.value)} />
-                    <Input placeholder="Last Name" required theme={theme} value={donorForm.lastName} onChange={e => updateDonorField("lastName", e.target.value)} />
-                  </div>
-                  <Input placeholder="Email Address" type="email" required theme={theme} value={donorForm.email} onChange={e => updateDonorField("email", e.target.value)} />
-                  <Input placeholder="Phone Number" type="tel" required theme={theme} value={donorForm.phone} onChange={e => updateDonorField("phone", e.target.value)} />
-                  <Input placeholder="Date of Birth" type="date" required theme={theme} value={donorForm.dob} onChange={e => updateDonorField("dob", e.target.value)} />
-                </div>
-              )}
-              {step===2 && (
-                <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                  <Select options={["Select Blood Group","A+","A-","B+","B-","AB+","AB-","O+","O-"]} theme={theme} value={donorForm.bloodGroup} onChange={e => updateDonorField("bloodGroup", e.target.value)} />
-                  <Input placeholder="Weight (kg)" type="number" required theme={theme} value={donorForm.weight} onChange={e => updateDonorField("weight", e.target.value)} />
-                  <Select options={["Last Donation","Never donated","Within 3 months","Within 6 months","Over 6 months ago"]} theme={theme} value={donorForm.lastDonation} onChange={e => updateDonorField("lastDonation", e.target.value)} />
-                  <Select options={["Any medical conditions?","None","Diabetes","Hypertension","Other"]} theme={theme} value={donorForm.conditions} onChange={e => updateDonorField("conditions", e.target.value)} />
-                </div>
-              )}
-              {step===3 && (
-                <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                  <Input placeholder="Preferred Date" type="date" required theme={theme} value={donorForm.preferredDate} onChange={e => updateDonorField("preferredDate", e.target.value)} />
-                  <Select options={["Preferred Time","Morning (9 AM–12 PM)","Afternoon (12–4 PM)","Evening (4–7 PM)"]} theme={theme} value={donorForm.preferredTime} onChange={e => updateDonorField("preferredTime", e.target.value)} />
-                  <Select options={["Preferred Location","City Blood Bank","Apollo Hospital","Fortis Healthcare","AIIMS"]} theme={theme} value={donorForm.preferredLocation} onChange={e => updateDonorField("preferredLocation", e.target.value)} />
-                  <Input placeholder="City" required theme={theme} value={donorForm.city} onChange={e => updateDonorField("city", e.target.value)} />
-                </div>
-              )}
-
-              <div style={{ display:"flex", justifyContent:"space-between", marginTop:24 }}>
-                {step>1 ? <GhostBtn type="button" onClick={() => setStep(s=>s-1)} style={{ flex:1, marginRight:10 }}>← Back</GhostBtn> : <div/>}
-                {step<3
-                  ? <PrimaryBtn
-                      type="button"
-                      disabled={(step===1 && !isStep1Valid) || (step===2 && !isStep2Valid)}
-                      onClick={() => setStep(s=>s+1)}
-                      style={{ flex:1 }}
-                    >Next →</PrimaryBtn>
-                  : <PrimaryBtn type="submit" disabled={!isStep3Valid} style={{ flex:1 }}>✓ Register Donor</PrimaryBtn>
-                }
-              </div>
-            </form>
-          </Card>
         </div>
       </Section>
 

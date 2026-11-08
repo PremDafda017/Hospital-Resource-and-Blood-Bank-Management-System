@@ -1,26 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/clerk-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { useUser, SignOutButton } from "@clerk/clerk-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
-  FaBell,
-  FaCheck,
-  FaXmark,
-  FaCalendar,
-  FaDroplet,
-  FaAward,
-  FaTriangleExclamation,
-  FaCircleInfo,
-  FaHeart,
-  FaFilter,
-  FaTrash,
-  FaCheckDouble,
+  FaBell, FaCheck, FaTrash, FaCalendar, FaDroplet,
+  FaAward, FaTriangleExclamation, FaCircleInfo, FaCheckDouble,
+  FaCommentDots, FaGear, FaArrowUpRightFromSquare, FaMagnifyingGlass,
+  FaHouse, FaHeartPulse, FaBullhorn, FaClockRotateLeft, FaCertificate,
+  FaUser, FaBars, FaRightFromBracket
 } from "react-icons/fa6";
+import { apiFetch } from "../../utils/apiConfig";
+import { useNotification } from "../../contexts/NotificationContext";
+import NotificationPreferencesModal from "../../components/NotificationPreferencesModal";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
-const GREEN = "#16A34A";
-const BLUE = "#2563EB";
-const YELLOW = "#F59E0B";
 const NAVY = "#0F172A";
 const NAVY2 = "#1E293B";
 const SLATE = "#334155";
@@ -28,436 +21,509 @@ const SLATE_L = "#64748B";
 const BORDER = "#E2E8F0";
 const SMOKE = "#F8FAFC";
 const WHITE = "#FFFFFF";
+const SIDEBAR_W = 260;
+const SIDEBAR_COL = NAVY;
 
-const Notifications = () => {
+export default function DonorNotifications() {
   const { user } = useUser();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { openConversation } = useNotification();
+
+  const isStandalone = location.pathname.includes("donor-notifications");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
-  const [filter, setFilter] = useState("all");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showPrefsModal, setShowPrefsModal] = useState(false);
+
+  const userId = user?.id || localStorage.getItem("clerkId") || "";
+
+  const donorNav = [
+    { key: "dashboard", icon: <FaHouse />, label: "Dashboard", path: "/donor-dashboard" },
+    { key: "eligibility", icon: <FaHeartPulse />, label: "Eligibility Checker", path: "/donor-dashboard" },
+    { key: "campaigns", icon: <FaBullhorn />, label: "Campaigns", path: "/donor-dashboard" },
+    { key: "appointments", icon: <FaCalendar />, label: "My Appointments", path: "/donor-dashboard" },
+    { key: "history", icon: <FaClockRotateLeft />, label: "Donation History", path: "/donor-dashboard" },
+    { key: "certificates", icon: <FaCertificate />, label: "Certificates", path: "/donor-dashboard" },
+    { key: "notifications", icon: <FaBell />, label: "Notifications", path: "/donor-notifications" },
+    { key: "profile", icon: <FaUser />, label: "My Profile", path: "/donor-profile" },
+  ];
+
+  const loadNotifications = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const endpoint = `/api/notifications/${encodeURIComponent(userId)}?tab=${activeTab}&search=${encodeURIComponent(searchQuery)}&limit=100&role=donor`;
+      const res = await apiFetch(endpoint);
+      if (res && res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : data.notifications || [];
+        setNotifications(list);
+        setUnreadCount(typeof data.unreadCount === "number" ? data.unreadCount : list.filter((n) => !n.isRead && !n.read).length);
+      }
+    } catch (err) {
+      console.error("Error loading donor notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, activeTab, searchQuery]);
 
   useEffect(() => {
-    if (user?.id) {
-      loadNotifications();
-    }
-  }, [user]);
+    loadNotifications();
+  }, [loadNotifications]);
 
-  const loadNotifications = async () => {
+  const handleMarkAsRead = async (id) => {
+    setNotifications((prev) => prev.map((n) => (n._id === id || n.id === id ? { ...n, isRead: true, read: true } : n)));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
     try {
-      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/donor/${user.id}/notifications`);
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data);
-      } else {
-        // Fallback to mock data if API not available
-        const mockNotifications = [
-          {
-            id: 1,
-            type: "appointment_approved",
-            title: "Appointment Approved",
-            message: "Your blood donation appointment has been approved by Blood Bank Staff",
-            time: "2 hours ago",
-            read: false,
-            icon: <FaCalendar />,
-            color: GREEN,
-          },
-          {
-            id: 2,
-            type: "eligibility",
-            title: "Eligibility Update",
-            message: "You are now eligible to donate blood again!",
-            time: "1 day ago",
-            read: false,
-            icon: <FaDroplet />,
-            color: RED,
-          },
-          {
-            id: 3,
-            type: "campaign_approved",
-            title: "Campaign Participation Approved",
-            message: "Your participation in the World Blood Donor Day campaign has been approved",
-            time: "2 days ago",
-            read: true,
-            icon: <FaAward />,
-            color: YELLOW,
-          },
-          {
-            id: 4,
-            type: "appointment_reminder",
-            title: "Appointment Reminder",
-            message: "Reminder: Your blood donation appointment is tomorrow at 10:00 AM",
-            time: "3 days ago",
-            read: true,
-            icon: <FaBell />,
-            color: BLUE,
-          },
-          {
-            id: 5,
-            type: "donation_completed",
-            title: "Donation Completed",
-            message: "Your blood donation has been completed successfully. Certificate generated!",
-            time: "1 week ago",
-            read: true,
-            icon: <FaHeart />,
-            color: RED,
-          },
-          {
-            id: 6,
-            type: "certificate_generated",
-            title: "Certificate Generated",
-            message: "Your blood donation certificate is now available for download",
-            time: "1 week ago",
-            read: true,
-            icon: <FaAward />,
-            color: YELLOW,
-          },
-        ];
-        setNotifications(mockNotifications);
-      }
-      setLoading(false);
-    } catch (error) {
-      console.error("Error loading notifications:", error);
-      setLoading(false);
-    }
+      await apiFetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: "PUT" });
+    } catch (e) {}
   };
 
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+  const handleMarkAllAsRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, read: true })));
+    setUnreadCount(0);
+    try {
+      await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}`, { method: "PUT" });
+    } catch (e) {}
   };
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const handleDelete = async (id) => {
+    setNotifications((prev) => prev.filter((n) => n._id !== id && n.id !== id));
+    try {
+      await apiFetch(`/api/notifications/${encodeURIComponent(id)}`, { method: "DELETE" });
+    } catch (e) {}
   };
 
-  const deleteNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-  };
+  const w = sidebarCollapsed ? 68 : SIDEBAR_W;
 
-  const clearAll = () => {
-    if (window.confirm("Are you sure you want to clear all notifications?")) {
-      setNotifications([]);
-    }
-  };
+  const content = (
+    <div style={{ fontFamily: FONT, padding: isStandalone ? "24px 32px" : "24px 0", maxWidth: isStandalone ? "100%" : 1000, margin: "0 auto", width: "100%" }}>
+      {/* Header bar */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontSize: "1.35rem", fontWeight: 800, color: NAVY, margin: 0 }}>Donor Notification Center</h2>
+          <p style={{ fontSize: "0.82rem", color: SLATE_L, margin: "4px 0 0 0" }}>Track donation appointments, certificate updates & blood center announcements</p>
+        </div>
 
-  const filteredNotifications = notifications.filter(n => {
-    if (filter === "all") return true;
-    if (filter === "unread") return !n.read;
-    if (filter === "read") return n.read;
-    return n.type === filter;
-  });
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => setShowPrefsModal(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 14px",
+              borderRadius: 8,
+              border: `1px solid ${BORDER}`,
+              background: WHITE,
+              color: SLATE,
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <FaGear />
+            <span>Preferences</span>
+          </button>
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "8px 14px",
+                borderRadius: 8,
+                background: `${RED}10`,
+                border: `1px solid ${RED}30`,
+                color: RED,
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <FaCheckDouble />
+              <span>Mark All Read</span>
+            </button>
+          )}
+        </div>
+      </div>
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+      {/* Tabs & Search */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 6, background: WHITE, padding: 4, borderRadius: 10, border: `1px solid ${BORDER}` }}>
+          {[
+            { id: "all", label: "All" },
+            { id: "unread", label: `Unread (${unreadCount})` },
+            { id: "appointments", label: "Appointments" },
+            { id: "donations", label: "Donations & Certificates" },
+            { id: "messages", label: "Messages" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: "7px 14px",
+                borderRadius: 8,
+                border: "none",
+                background: activeTab === tab.id ? RED : "transparent",
+                color: activeTab === tab.id ? WHITE : SLATE,
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-  const NotificationIcon = ({ icon, color }) => (
-    <div style={{
-      width: 40,
-      height: 40,
-      borderRadius: "50%",
-      background: `${color}15`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: color,
-      fontSize: "1rem",
-    }}>
-      {icon}
+        <div style={{ position: "relative", minWidth: 260 }}>
+          <FaMagnifyingGlass style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontSize: "0.85rem" }} />
+          <input
+            type="text"
+            placeholder="Search notifications, ID, keywords..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "9px 12px 9px 34px",
+              borderRadius: 10,
+              border: `1px solid ${BORDER}`,
+              background: WHITE,
+              fontSize: "0.84rem",
+              color: SLATE,
+              outline: "none",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Notifications List */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: SLATE_L }}>Loading your notifications...</div>
+      ) : notifications.length === 0 ? (
+        <div
+          style={{
+            background: WHITE,
+            borderRadius: 16,
+            border: `1px solid ${BORDER}`,
+            padding: "60px 20px",
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <FaBell style={{ fontSize: "2.8rem", color: "#CBD5E1" }} />
+          <h3 style={{ margin: 0, color: SLATE, fontSize: "1.1rem" }}>No Notifications</h3>
+          <p style={{ margin: 0, color: SLATE_L, fontSize: "0.85rem", maxWidth: 420 }}>
+            {activeTab === "unread" ? "You have read all your notifications." : "Appointment approvals, completed donation certificates, and blood center announcements will be listed here."}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {notifications.map((notif) => {
+            const isUnread = !notif.isRead && !notif.read;
+            const isCritical = notif.priority === "Critical" || notif.notificationType?.includes("Reject");
+            const isSuccess = notif.priority === "High" || notif.notificationType?.includes("Approve") || notif.notificationType?.includes("Completed");
+
+            return (
+              <div
+                key={notif._id || notif.id}
+                style={{
+                  background: WHITE,
+                  borderRadius: 14,
+                  border: isUnread ? `1.5px solid ${RED}60` : `1px solid ${BORDER}`,
+                  padding: "18px 22px",
+                  boxShadow: isUnread ? "0 4px 16px rgba(196,18,48,0.06)" : "0 2px 6px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 16,
+                }}
+              >
+                <div style={{ display: "flex", gap: 16, flex: 1 }}>
+                  <div
+                    style={{
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      background: isCritical ? "#FEE2E2" : isSuccess ? "#DCFCE7" : "#EFF6FF",
+                      color: isCritical ? "#DC2626" : isSuccess ? "#16A34A" : "#2563EB",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "1.1rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isCritical ? <FaTriangleExclamation /> : notif.relatedEntityType === "Donation" ? <FaAward /> : notif.relatedEntityType === "Message" ? <FaCommentDots /> : <FaCalendar />}
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                      <span style={{ fontWeight: 800, fontSize: "0.95rem", color: NAVY }}>{notif.title}</span>
+                      {isUnread && (
+                        <span style={{ background: RED, color: WHITE, fontSize: "0.65rem", fontWeight: 800, padding: "2px 7px", borderRadius: 8, textTransform: "uppercase" }}>
+                          Unread
+                        </span>
+                      )}
+                      {notif.requestId && (
+                        <span style={{ background: SMOKE, border: `1px solid ${BORDER}`, color: SLATE_L, fontSize: "0.68rem", fontWeight: 600, padding: "2px 8px", borderRadius: 6 }}>
+                          ID: {notif.requestId}
+                        </span>
+                      )}
+                    </div>
+
+                    <p style={{ margin: "4px 0 10px 0", color: SLATE, fontSize: "0.88rem", lineHeight: 1.45 }}>{notif.message}</p>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: "0.75rem", color: SLATE_L, flexWrap: "wrap" }}>
+                      <span>🕒 {notif.createdAt ? new Date(notif.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : notif.date || "Today"}</span>
+                      {notif.senderName && (
+                        <span>👤 Center: <strong>{notif.senderName}</strong></span>
+                      )}
+                      {notif.emailStatus && (
+                        <span>✉️ Email Status: <strong style={{ color: notif.emailStatus === "sent" ? "#16A34A" : "#D97706" }}>{notif.emailStatus}</strong></span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  {notif.requestId && (
+                    <button
+                      onClick={() =>
+                        openConversation({
+                          requestId: notif.requestId,
+                          requestNumber: notif.requestId,
+                          recipientRole: "blood_bank_staff",
+                          recipientUserId: "blood_bank_staff_general",
+                          recipientName: "Blood Bank Officer",
+                        })
+                      }
+                      title="Open Message Discussion"
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        background: `${RED}10`,
+                        color: RED,
+                        border: `1px solid ${RED}30`,
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <FaCommentDots />
+                      <span>Chat</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => navigate(notif.actionUrl || "/donor-dashboard")}
+                    title="Open Action"
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      background: SMOKE,
+                      color: SLATE,
+                      border: `1px solid ${BORDER}`,
+                      fontSize: "0.78rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <span>Open</span>
+                    <FaArrowUpRightFromSquare style={{ fontSize: "0.65rem" }} />
+                  </button>
+
+                  {isUnread && (
+                    <button
+                      onClick={() => handleMarkAsRead(notif._id || notif.id)}
+                      title="Mark as Read"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: SMOKE,
+                        border: `1px solid ${BORDER}`,
+                        color: "#16A34A",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <FaCheck />
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => handleDelete(notif._id || notif.id)}
+                    title="Archive Notification"
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      background: SMOKE,
+                      border: `1px solid ${BORDER}`,
+                      color: "#94A3B8",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <FaTrash style={{ fontSize: "0.78rem" }} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Preferences Modal */}
+      <NotificationPreferencesModal isOpen={showPrefsModal} onClose={() => setShowPrefsModal(false)} />
     </div>
   );
 
-  if (loading) {
+  if (isStandalone) {
     return (
-      <div style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        minHeight: "100vh",
-        background: SMOKE,
-        fontFamily: FONT,
-      }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            border: "3px solid #E2E8F0",
-            borderTopColor: RED,
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite",
-            margin: "0 auto 16px",
-          }} />
-          <p style={{ color: SLATE_L, fontSize: "0.9rem" }}>Loading notifications...</p>
-        </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{ display: "flex", minHeight: "100vh", fontFamily: FONT, background: SMOKE }}>
+        {/* Sidebar */}
+        <aside
+          style={{
+            width: w,
+            minHeight: "100vh",
+            background: SIDEBAR_COL,
+            position: "fixed",
+            top: 0,
+            left: 0,
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+            transition: "width 0.3s ease",
+            overflowX: "hidden",
+            color: WHITE
+          }}
+        >
+          <div
+            style={{
+              height: 64,
+              borderBottom: "1px solid rgba(255,255,255,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: sidebarCollapsed ? "0 16px" : "0 24px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                color: WHITE,
+                fontWeight: 700,
+                fontSize: "1.1rem",
+              }}
+            >
+              <FaDroplet style={{ color: RED, fontSize: "1.4rem" }} />
+              {!sidebarCollapsed && <span>Donor Portal</span>}
+            </div>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              style={{
+                background: "none",
+                border: "none",
+                color: WHITE,
+                cursor: "pointer",
+                padding: 4,
+                borderRadius: 4,
+              }}
+            >
+              <FaBars />
+            </button>
+          </div>
+
+          <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
+            {donorNav.map((item) => {
+              const isActive = item.key === "notifications";
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => navigate(item.path)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 16px",
+                    borderRadius: 8,
+                    border: "none",
+                    background: isActive ? RED : "transparent",
+                    color: WHITE,
+                    cursor: "pointer",
+                    marginBottom: 4,
+                    fontSize: "0.9rem",
+                    fontWeight: isActive ? 700 : 500,
+                    textAlign: "left"
+                  }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <span style={{ fontSize: "1.1rem", minWidth: 20 }}>{item.icon}</span>
+                  {!sidebarCollapsed && <span>{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          <div style={{ padding: "16px 12px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+            <SignOutButton>
+              <button
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "transparent",
+                  color: WHITE,
+                  cursor: "pointer",
+                  fontSize: "0.9rem"
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              >
+                <span style={{ fontSize: "1.1rem", minWidth: 20 }}><FaRightFromBracket /></span>
+                {!sidebarCollapsed && <span>Logout</span>}
+              </button>
+            </SignOutButton>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main style={{ marginLeft: w, flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", transition: "margin-left 0.3s" }}>
+          {content}
+        </main>
       </div>
     );
   }
 
-  return (
-    <div style={{ minHeight: "100vh", background: SMOKE, fontFamily: FONT, padding: "24px" }}>
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}
-        >
-          <div>
-            <h1 style={{ fontSize: "2rem", fontWeight: 800, color: NAVY2, marginBottom: 8 }}>
-              <FaBell style={{ marginRight: 12, color: RED }} />
-              Notifications
-              {unreadCount > 0 && (
-                <span style={{
-                  marginLeft: 12,
-                  padding: "4px 12px",
-                  background: RED,
-                  color: WHITE,
-                  borderRadius: 20,
-                  fontSize: "0.85rem",
-                  fontWeight: 700,
-                }}>
-                  {unreadCount}
-                </span>
-              )}
-            </h1>
-            <p style={{ fontSize: "1rem", color: SLATE_L }}>
-              Stay updated with your donation activities
-            </p>
-          </div>
-          {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              style={{
-                padding: "12px 20px",
-                background: BLUE,
-                color: WHITE,
-                border: "none",
-                borderRadius: 8,
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <FaCheckDouble />
-              Mark All Read
-            </button>
-          )}
-        </motion.div>
-
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            background: WHITE,
-            borderRadius: 12,
-            border: `1px solid ${BORDER}`,
-            padding: "16px",
-            marginBottom: 24,
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            onClick={() => setFilter("all")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 20,
-              border: "none",
-              background: filter === "all" ? RED : SMOKE,
-              color: filter === "all" ? WHITE : NAVY2,
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter("unread")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 20,
-              border: "none",
-              background: filter === "unread" ? RED : SMOKE,
-              color: filter === "unread" ? WHITE : NAVY2,
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Unread
-          </button>
-          <button
-            onClick={() => setFilter("read")}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 20,
-              border: "none",
-              background: filter === "read" ? RED : SMOKE,
-              color: filter === "read" ? WHITE : NAVY2,
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Read
-          </button>
-          <div style={{ flex: 1 }} />
-          {notifications.length > 0 && (
-            <button
-              onClick={clearAll}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 8,
-                border: `1px solid ${BORDER}`,
-                background: WHITE,
-                color: SLATE,
-                fontSize: "0.9rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <FaTrash />
-              Clear All
-            </button>
-          )}
-        </motion.div>
-
-        {/* Notifications List */}
-        {filteredNotifications.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{
-              background: WHITE,
-              borderRadius: 16,
-              border: `1px solid ${BORDER}`,
-              padding: "60px 20px",
-              textAlign: "center",
-              color: SLATE_L,
-            }}
-          >
-            <FaBell style={{ fontSize: "3rem", marginBottom: 16, opacity: 0.3 }} />
-            <p style={{ fontSize: "1rem" }}>No notifications</p>
-            <p style={{ fontSize: "0.9rem", marginTop: 8 }}>
-              {notifications.length === 0 ? "You're all caught up!" : "Try adjusting your filters"}
-            </p>
-          </motion.div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {filteredNotifications.map((notification, index) => (
-              <motion.div
-                key={notification.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                style={{
-                  background: WHITE,
-                  borderRadius: 12,
-                  border: notification.read ? `1px solid ${BORDER}` : `2px solid ${RED}`,
-                  padding: "20px",
-                  display: "flex",
-                  gap: 16,
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                whileHover={{ transform: "translateX(4px)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                onClick={() => markAsRead(notification.id)}
-              >
-                <NotificationIcon icon={notification.icon} color={notification.color} />
-                
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-                    <h3 style={{ fontSize: "1rem", fontWeight: 700, color: NAVY2, margin: 0 }}>
-                      {notification.title}
-                    </h3>
-                    {!notification.read && (
-                      <div style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: RED,
-                      }} />
-                    )}
-                  </div>
-                  <p style={{ fontSize: "0.95rem", color: SLATE, marginBottom: 8 }}>
-                    {notification.message}
-                  </p>
-                  <div style={{ fontSize: "0.85rem", color: SLATE_L }}>
-                    {notification.time}
-                  </div>
-                </div>
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteNotification(notification.id);
-                  }}
-                  style={{
-                    padding: "8px",
-                    background: "transparent",
-                    border: "none",
-                    color: SLATE_L,
-                    cursor: "pointer",
-                    borderRadius: 6,
-                    transition: "all 0.2s",
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = SMOKE}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                >
-                  <FaXmark />
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Notification Settings */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{
-            marginTop: 32,
-            padding: "24px",
-            background: `${BLUE}10`,
-            borderRadius: 12,
-            border: `1px solid ${BLUE}30`,
-          }}
-        >
-          <h4 style={{ fontSize: "1.1rem", fontWeight: 700, color: NAVY2, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-            <FaFilter style={{ color: BLUE }} />
-            Notification Preferences
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              { label: "Appointment reminders", default: true },
-              { label: "Eligibility updates", default: true },
-              { label: "Emergency blood requests", default: true },
-              { label: "Campaign announcements", default: true },
-              { label: "Reward notifications", default: true },
-              { label: "Newsletter updates", default: false },
-            ].map((pref, index) => (
-              <label key={index} style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  defaultChecked={pref.default}
-                  style={{ width: 18, height: 18 }}
-                />
-                <span style={{ fontSize: "0.95rem", color: NAVY2 }}>{pref.label}</span>
-              </label>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  );
-};
-
-export default Notifications;
+  return content;
+}

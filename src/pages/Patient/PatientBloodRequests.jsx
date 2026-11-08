@@ -27,8 +27,10 @@ import {
   FaCheckDouble,
   FaCircleCheck,
   FaXmark,
+  FaCommentDots,
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
+import { apiFetch } from "../../utils/apiConfig";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -58,7 +60,7 @@ const BG_COLOR = {
 function PatientBloodRequests() {
   const { user } = useUser();
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
+  const { showNotification, openConversation } = useNotification();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ function PatientBloodRequests() {
       const loadRequests = async () => {
         try {
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
+          const response = await apiFetch(`/api/patient/${user.id}?email=${email}`);
           if (response.ok) {
             const data = await response.json();
             setRequests(data.bloodRequests || []);
@@ -221,7 +223,7 @@ function PatientBloodRequests() {
         console.log('Request data:', newRequest);
         
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/blood-requests`, {
+        const response = await apiFetch(`/api/patient/${user.id}/blood-requests`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -251,7 +253,7 @@ function PatientBloodRequests() {
         // Reload blood requests from MongoDB to get updated list
         const userEmail = user?.emailAddresses?.[0]?.emailAddress;
         console.log('Reloading blood requests from MongoDB...');
-        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${userEmail}`);
+        const reloadResponse = await apiFetch(`/api/patient/${user.id}?email=${userEmail}`);
         console.log('Reload response status:', reloadResponse.status);
         if (reloadResponse.ok) {
           const reloadData = await reloadResponse.json();
@@ -324,7 +326,7 @@ function PatientBloodRequests() {
     if (window.confirm('Are you sure you want to delete this blood request?')) {
       // Delete from MongoDB
       try {
-        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/blood-requests/${requestId}`, {
+        const response = await apiFetch(`/api/patient/${user.id}/blood-requests/${requestId}`, {
           method: 'DELETE',
         });
         
@@ -334,7 +336,7 @@ function PatientBloodRequests() {
           
           // Also reload from server to ensure consistency
           const email = user?.emailAddresses?.[0]?.emailAddress;
-          const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
+          const reloadResponse = await apiFetch(`/api/patient/${user.id}?email=${email}`);
           if (reloadResponse.ok) {
             const reloadData = await reloadResponse.json();
             setRequests(reloadData.bloodRequests || []);
@@ -353,7 +355,7 @@ function PatientBloodRequests() {
 
   const handleDownloadReport = async (reportId) => {
     try {
-      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/reports/${reportId}/pdf`);
+      const response = await apiFetch(`/api/reports/${reportId}/pdf`);
       
       if (response.ok) {
         const blob = await response.blob();
@@ -521,7 +523,7 @@ function PatientBloodRequests() {
 
       // Update in MongoDB
       try {
-        const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}/blood-requests/${selectedRequest.id}`, {
+        const response = await apiFetch(`/api/patient/${user.id}/blood-requests/${selectedRequest.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -540,7 +542,7 @@ function PatientBloodRequests() {
         
         // Reload blood requests from MongoDB to get updated list
         const email = user?.emailAddresses?.[0]?.emailAddress;
-        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/patient/${user.id}?email=${email}`);
+        const reloadResponse = await apiFetch(`/api/patient/${user.id}?email=${email}`);
         if (reloadResponse.ok) {
           const reloadData = await reloadResponse.json();
           setRequests(reloadData.bloodRequests || []);
@@ -1072,8 +1074,25 @@ function PatientBloodRequests() {
                               style={{ width:32, height:32, borderRadius:6, border:`1px solid ${BORDER}`, background:WHITE, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:SLATE_L, transition:"all 0.2s" }} 
                               onMouseEnter={e => { e.currentTarget.style.background = SMOKE; e.currentTarget.style.color = NAVY2; }} 
                               onMouseLeave={e => { e.currentTarget.style.background = WHITE; e.currentTarget.style.color = SLATE_L; }}
+                              title="View Request Details"
                             >
                               <FaEye />
+                            </button>
+                            <button
+                              onClick={() => openConversation({
+                                requestId: request._id || request.id,
+                                requestNumber: request.requestNumber || request.id,
+                                bloodGroup: request.bloodGroup,
+                                units: request.units,
+                                patientName: user?.fullName || "Patient",
+                                recipientRole: "hospital_staff"
+                              })}
+                              style={{ width:32, height:32, borderRadius:6, border:`1px solid ${BORDER}`, background:WHITE, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:SLATE_L, transition:"all 0.2s" }}
+                              onMouseEnter={e => { e.currentTarget.style.background = "#EFF6FF"; e.currentTarget.style.color = "#2563EB"; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = WHITE; e.currentTarget.style.color = SLATE_L; }}
+                              title="Message Hospital Staff regarding this request"
+                            >
+                              <FaCommentDots />
                             </button>
                             {(request.status === "Pending" || (request.status === "Blood Ready" && request.paymentStatus !== "Paid")) && (
                               <button 

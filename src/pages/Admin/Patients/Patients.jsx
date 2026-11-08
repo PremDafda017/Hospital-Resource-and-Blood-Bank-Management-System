@@ -52,14 +52,57 @@ function Patients() {
   const [patients, setPatients] = useState([]);
 
   useEffect(() => {
-    // Load patients from localStorage first, then merge with database
-    const storedPatients = localStorage.getItem('patients');
-    const localPatients = storedPatients ? JSON.parse(storedPatients) : [];
-    
-    // Combine local patients with database patients
-    const allPatients = [...localPatients];
-    setPatients(allPatients);
-  }, []);
+    const fetchPatients = async () => {
+      try {
+        const res = await fetch("http://127.0.0.1:5000/api/admin/patients-list");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.patients && data.patients.length > 0) {
+            const mapped = data.patients.map(p => ({
+              id: p._id,
+              _id: p._id,
+              clerkId: p.clerkId,
+              name: p.fullName || p.name || "Patient",
+              bloodType: p.bloodGroup || p.bloodType || "A+",
+              condition: p.condition || "Stable",
+              phone: p.phone || "+91 98765 43210",
+              email: p.email || "patient@hemocare.org",
+              admissionDate: p.createdAt ? p.createdAt.split("T")[0] : "2026-01-15",
+              status: p.status || "Active",
+              hospitalId: p.hospitalId || 6,
+              hospitalName: p.hospitalName || "AIIMS New Delhi",
+              age: p.age || 32,
+              city: p.city || "New Delhi",
+              state: p.state || "Delhi",
+              bloodRequests: p.bloodRequests || [],
+              appointments: p.appointments || []
+            }));
+
+            // Merge with local storage
+            const stored = localStorage.getItem("patients");
+            const local = stored ? JSON.parse(stored) : [];
+            const combined = [...mapped];
+            local.forEach(lp => {
+              if (!combined.some(c => String(c.id) === String(lp.id))) {
+                combined.push(lp);
+              }
+            });
+            setPatients(combined);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Backend patient fetch error:", e);
+      }
+
+      // Fallback to local storage or mock
+      const storedPatients = localStorage.getItem('patients');
+      const localPatients = storedPatients ? JSON.parse(storedPatients) : [];
+      setPatients(localPatients.length > 0 ? localPatients : mockPatients);
+    };
+
+    fetchPatients();
+  }, [mockPatients]);
 
   // Mock patients with hospital integration
   const mockPatients = useMemo(() => [
@@ -73,22 +116,24 @@ function Patients() {
   const filteredPatients = useMemo(() => {
     return patients.filter(patient => {
       const hospital = bloodBankDatabase.find(h => h.id === patient.hospitalId);
-      const hospitalName = hospital ? hospital.name : '';
-      const hospitalState = hospital ? hospital.state : '';
+      const hospitalName = patient.hospitalName || (hospital ? hospital.name : '');
+      const hospitalState = patient.state || (hospital ? hospital.state : '');
+      const patName = patient.name || patient.fullName || '';
+      const patEmail = patient.email || '';
       
-      const matchesSearch = patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = patName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           patEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            hospitalName.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterStatus === 'all' || patient.status === filterStatus;
       const matchesState = filterState === 'All States' || hospitalState === filterState;
-      const matchesHospital = filterHospital === 'All' || patient.hospitalId === parseInt(filterHospital);
+      const matchesHospital = filterHospital === 'All' || patient.hospitalId === parseInt(filterHospital) || patient.hospitalName === filterHospital;
       
       return matchesSearch && matchesStatus && matchesState && matchesHospital;
     });
   }, [searchTerm, filterStatus, filterState, filterHospital, patients]);
 
   const getConditionColor = (condition) => {
-    switch (condition.toLowerCase()) {
+    switch ((condition || 'stable').toLowerCase()) {
       case 'critical': return RED;
       case 'stable': return '#16A34A';
       case 'recovering': return '#F59E0B';
@@ -198,11 +243,13 @@ function Patients() {
         {filteredPatients.length > 0 ? (
           filteredPatients.map(patient => {
             const hospital = bloodBankDatabase.find(h => h.id === patient.hospitalId);
-            const hospitalName = hospital ? hospital.name : 'Unknown Hospital';
-            const hospitalCity = hospital ? hospital.city : '';
+            const hospitalName = patient.hospitalName || (hospital ? hospital.name : 'Unknown Hospital');
+            const hospitalCity = patient.city || (hospital ? hospital.city : '');
+            const displayName = patient.name || patient.fullName || 'Patient';
+            const initials = displayName.split(' ').filter(Boolean).map(n => n[0]).join('') || 'P';
             
             return (
-              <div key={patient.id} style={{
+              <div key={patient.id || patient._id} style={{
                 background:WHITE, borderRadius:20, border:`1px solid ${BORDER}`,
                 padding:"24px", boxShadow:"0 4px 20px rgba(0,0,0,0.06)",
                 transition:"all 0.3s", cursor:"pointer"
@@ -215,7 +262,7 @@ function Patients() {
                   {patient.profileImage ? (
                     <img 
                       src={patient.profileImage} 
-                      alt={patient.name}
+                      alt={displayName}
                       style={{ 
                         width:52, height:52, borderRadius:14, 
                         objectFit:'cover', flexShrink:0
@@ -228,15 +275,15 @@ function Patients() {
                       display:"flex", alignItems:"center", justifyContent:"center", 
                       color:WHITE, fontWeight:800, fontSize:"1.2rem" 
                     }}>
-                      {patient.name.split(' ').map(n => n[0]).join('')}
+                      {initials}
                     </div>
                   )}
                   <div style={{ flex:1 }}>
-                    <h3 style={{ fontFamily:FONT, fontWeight:800, fontSize:"1.05rem", color:SLATE, marginBottom:6 }}>{patient.name}</h3>
+                    <h3 style={{ fontFamily:FONT, fontWeight:800, fontSize:"1.05rem", color:SLATE, marginBottom:6 }}>{displayName}</h3>
                     <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
                       <StatusPill status={patient.status} />
                       <span style={{ color:getConditionColor(patient.condition), fontWeight:700, fontSize:"0.72rem", padding:"4px 10px", borderRadius:12, background:`rgba(${parseInt(getConditionColor(patient.condition).slice(1,3),16)},${parseInt(getConditionColor(patient.condition).slice(3,5),16)},${parseInt(getConditionColor(patient.condition).slice(5,7),16)},0.12)` }}>
-                        {patient.condition}
+                        {patient.condition || 'Stable'}
                       </span>
                     </div>
                   </div>

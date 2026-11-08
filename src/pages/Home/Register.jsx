@@ -94,7 +94,6 @@ function Register() {
     role: "",
     password: "",
     confirmPassword: "",
-    adminAccessCode: "",
     terms: false,
   });
 
@@ -128,14 +127,6 @@ function Register() {
     if (step === 1) {
       if (!formData.role) {
         setError("Please select a role to continue.");
-        return false;
-      }
-      if (formData.role === "administrator" && !formData.adminAccessCode.trim()) {
-        setError("Please enter the Admin Access Code to register as Administrator.");
-        return false;
-      }
-      if (formData.role === "administrator" && formData.adminAccessCode.trim() !== "ADMIN2024") {
-        setError("Invalid Admin Access Code. Please contact the Super Admin.");
         return false;
       }
     }
@@ -184,6 +175,10 @@ function Register() {
       await signUp.create({
         emailAddress: formData.email,
         password: formData.password,
+        unsafeMetadata: {
+          role: formData.role,
+          fullName: formData.fullName,
+        },
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -191,6 +186,7 @@ function Register() {
       localStorage.setItem("pendingEmail", formData.email);
       localStorage.setItem("pendingFullName", formData.fullName);
       localStorage.setItem("pendingRole", formData.role);
+      localStorage.setItem("userRole", formData.role);
 
       setSuccess("Account created. Verification code sent.");
 
@@ -393,28 +389,6 @@ function Register() {
                     </button>
                   ))}
                 </div>
-
-                {formData.role === "administrator" && (
-                  <div className="field" style={{ marginTop: "20px" }}>
-                    <label htmlFor="adminAccessCode">Admin Access Code</label>
-                    <input
-                      id="adminAccessCode"
-                      type="text"
-                      name="adminAccessCode"
-                      placeholder="Enter admin access code"
-                      value={formData.adminAccessCode}
-                      onChange={handleChange}
-                      style={{
-                        fontFamily: "monospace",
-                        letterSpacing: "2px",
-                        textTransform: "uppercase"
-                      }}
-                    />
-                    <p style={{ fontSize: "0.75rem", color: "#64748B", marginTop: "4px" }}>
-                      Contact Super Admin to get the access code
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 

@@ -20,11 +20,13 @@ import {
   FaMagnifyingGlass,
   FaCheck,
   FaXmark,
-  FaRotateRight
+  FaRotateRight,
+  FaCommentDots
 } from "react-icons/fa6";
 import { indianStates, urgencyLevels } from "../../data/indianBloodBankData";
 import { useBloodBank } from "../../contexts/BloodBankContext";
 import { useNotification } from "../../contexts/NotificationContext";
+import { apiFetch } from "../../utils/apiConfig";
 import { breakpoints, animationVariants, useResponsive } from "../../utils/responsiveDesign";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
@@ -55,7 +57,7 @@ const BG_COLOR = {
 function BloodBankRequests() {
   const { user } = useUser();
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
+  const { showNotification, openConversation } = useNotification();
   const screenSize = useResponsive();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -100,8 +102,8 @@ function BloodBankRequests() {
 
   const loadBloodRequests = useCallback(async () => {
     try {
-      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
-      if (response.ok) {
+      const response = await apiFetch(`/api/blood-requests/status/Forwarded`);
+      if (response && response.ok) {
         const data = await response.json();
         setBloodRequests(data);
         setLastRefresh(new Date());
@@ -214,7 +216,7 @@ function BloodBankRequests() {
         return;
       }
 
-      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/blood-ready`, {
+      const response = await apiFetch(`/api/blood-requests/${requestId}/status/blood-ready`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -224,7 +226,7 @@ function BloodBankRequests() {
         })
       });
 
-      if (response.ok) {
+      if (response && response.ok) {
         // Add stock history entry for blood issuance
         const request = bloodRequests.find(r => r._id === requestId);
         if (request) {
@@ -259,14 +261,14 @@ function BloodBankRequests() {
         triggerRefresh();
 
         // Reload blood requests
-        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
-        if (reloadResponse.ok) {
+        const reloadResponse = await apiFetch(`/api/blood-requests/status/Forwarded`);
+        if (reloadResponse && reloadResponse.ok) {
           const data = await reloadResponse.json();
           setBloodRequests(data);
           setLastRefresh(new Date());
         }
       } else {
-        const errorData = await response.json();
+        const errorData = response ? await response.json() : {};
         console.error('Server error:', errorData);
         const errorMsg = errorData.message || 'Failed to approve request';
         const details = errorData.available !== undefined ?
@@ -294,17 +296,19 @@ function BloodBankRequests() {
 
   const handleReject = async (requestId) => {
     try {
-      const response = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/${requestId}/status/rejected`, {
+      const promptReason = window.prompt("Enter rejection reason for Hospital Staff:", "Insufficient verified units in stock for this blood group") || "Insufficient stock or quarantine criteria not met";
+
+      const response = await apiFetch(`/api/blood-requests/${requestId}/status/rejected`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rejectedBy: user?.id || "",
           rejectedByName: user?.fullName || "Blood Bank Staff",
-          rejectionReason: "Insufficient inventory or other reason"
+          rejectionReason: promptReason
         })
       });
 
-      if (response.ok) {
+      if (response && response.ok) {
         const request = bloodRequests.find(r => r._id === requestId);
         showNotification({
           type: 'warning',
@@ -315,8 +319,8 @@ function BloodBankRequests() {
         });
 
         // Reload blood requests
-        const reloadResponse = await fetch(`https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests/status/Forwarded`);
-        if (reloadResponse.ok) {
+        const reloadResponse = await apiFetch(`/api/blood-requests/status/Forwarded`);
+        if (reloadResponse && reloadResponse.ok) {
           const data = await reloadResponse.json();
           setBloodRequests(data);
           setLastRefresh(new Date());
@@ -776,7 +780,37 @@ function BloodBankRequests() {
                         </td>
                         <td style={{ padding:isMobile ? "12px" : "16px", fontSize:isMobile ? "0.85rem" : "0.9rem", color:SLATE_L }}>{new Date(req.createdAt).toLocaleDateString()}</td>
                         <td style={{ padding:isMobile ? "12px" : "16px" }}>
-                          <div style={{ display:"flex", gap:8, flexWrap:isMobile ? "wrap" : "nowrap" }}>
+                          <div style={{ display:"flex", gap:8, flexWrap:isMobile ? "wrap" : "nowrap", alignItems:"center" }}>
+                            <button
+                              onClick={() =>
+                                openConversation({
+                                  requestId: req._id,
+                                  requestNumber: req.requestNumber || req._id,
+                                  bloodGroup: req.bloodGroup,
+                                  units: req.units,
+                                  patientName: req.patientName,
+                                  recipientRole: "hospital_staff",
+                                  recipientUserId: req.forwardedBy || "hospital_staff_general",
+                                  recipientName: req.forwardedByName || "Hospital Staff",
+                                })
+                              }
+                              style={{
+                                background: "#EFF6FF",
+                                border: "1px solid #BFDBFE",
+                                padding: isMobile ? "6px 12px" : "8px 16px",
+                                borderRadius: 6,
+                                cursor: "pointer",
+                                color: "#2563EB",
+                                fontSize: isMobile ? "0.75rem" : "0.85rem",
+                                fontWeight: 700,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                              title="Discuss requisition with Hospital Staff"
+                            >
+                              <FaCommentDots /> {!isMobile && <span>Discuss</span>}
+                            </button>
                             {req.status === "Forwarded" && (
                               <>
                                 <button

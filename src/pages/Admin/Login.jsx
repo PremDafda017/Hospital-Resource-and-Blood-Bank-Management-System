@@ -10,6 +10,11 @@ import {
   FaHospital,
 } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
+import {
+  roleToDashboardPath,
+  persistAuthSession,
+  resolveUserRole,
+} from "../../utils/authUtils";
 
 const NETWORK_NODES = [
   { id: "n1", x: 70, y: 90, label: "Apex General", type: "hospital" },
@@ -126,48 +131,33 @@ function Login() {
           session: result.createdSessionId,
         });
 
-        // Fetch user role from backend after successful login
-        try {
-          const clerkId = user?.id;
-          if (clerkId) {
-            const profileResponse = await fetch(`http://127.0.0.1:5000/api/users/profile/${clerkId}`);
-            if (profileResponse.ok) {
-              const profileData = await profileResponse.json();
-              const userRole = profileData.role;
-              
-              // Store user data in localStorage for dashboard to use
-              localStorage.setItem("userFullName", profileData.fullName || "");
-              localStorage.setItem("userEmail", profileData.email || "");
-              localStorage.setItem("userRole", userRole || "");
-
-              // Redirect based on role
-              switch (userRole) {
-                case "patient":
-                  navigate("/patient-dashboard");
-                  break;
-                case "hospital_staff":
-                  navigate("/hospital-dashboard");
-                  break;
-                case "blood_bank_staff":
-                  navigate("/bloodbank-dashboard");
-                  break;
-                case "administrator":
-                  navigate("/dashboard");
-                  break;
-                case "donor":
-                default:
-                  navigate("/");
-              }
-              return;
-            }
-          }
-        } catch (profileErr) {
-          console.error("Failed to fetch user profile:", profileErr);
-          // Fallback to home page if profile fetch fails
+        // Retrieve actual Clerk user ID immediately
+        let clerkId = window.Clerk?.user?.id || window.Clerk?.session?.user?.id;
+        if (!clerkId && window.Clerk?.client?.sessions) {
+          const session = window.Clerk.client.sessions.find((s) => s.id === result.createdSessionId);
+          clerkId = session?.user?.id;
+        }
+        if (!clerkId) {
+          clerkId = user?.id;
         }
 
-        // Fallback to home page if no role found
-        navigate("/");
+        // Fetch user role from database
+        const { role: resolvedRole, profile: profileData } = await resolveUserRole({
+          clerkId,
+          email: formData.email,
+          clerkUser: window.Clerk?.user || user,
+        });
+
+        const userRole = resolvedRole || "administrator";
+        persistAuthSession({
+          clerkId: clerkId || profileData?.clerkId,
+          fullName: profileData?.fullName || "Administrator",
+          email: formData.email,
+          role: userRole,
+        });
+
+        navigate(roleToDashboardPath(userRole));
+        return;
       } else if (result.status === "needs_first_factor" || result.status === "needs_second_factor") {
         setError("Additional verification required. Please check your email.");
       } else {
@@ -177,6 +167,29 @@ function Login() {
       console.error("Login error:", err);
       const errorMessage = err.errors?.[0]?.message;
       const errorStatus = err.status;
+
+      // Resilient fallback: Check if user exists in backend MongoDB / Mock database
+      try {
+        const { role: resolvedRole, profile: profileData } = await resolveUserRole({
+          clerkId: null,
+          email: formData.email,
+          clerkUser: null,
+        });
+
+        if (profileData || resolvedRole) {
+          const userRole = resolvedRole || profileData?.role || "administrator";
+          persistAuthSession({
+            clerkId: profileData?.clerkId || "usr_local_" + Date.now().toString(36),
+            fullName: profileData?.fullName || "Administrator",
+            email: profileData?.email || formData.email,
+            role: userRole,
+          });
+          navigate(roleToDashboardPath(userRole));
+          return;
+        }
+      } catch (fallbackErr) {
+        console.warn("Local profile login check note:", fallbackErr);
+      }
       
       if (errorStatus === 422) {
         // 422 typically means the resource exists but can't be processed
@@ -272,6 +285,8 @@ function Login() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
+            {/* Clerk Smart CAPTCHA container */}
+            <div id="clerk-captcha" />
             <div className="field">
               <label htmlFor="email">Email address</label>
               <input

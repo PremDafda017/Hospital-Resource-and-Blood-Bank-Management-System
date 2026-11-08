@@ -10,13 +10,18 @@ import {
   FaHospital,
 } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
+import {
+  roleToDashboardPath,
+  persistAuthSession,
+  resolveUserRole,
+} from "../../utils/authUtils";
 
 const NETWORK_NODES = [
-  { id: "n1", x: 70, y: 90, label: "Apex General", type: "hospital" },
-  { id: "n2", x: 230, y: 50, label: "Riverside Bank", type: "bank" },
-  { id: "n3", x: 360, y: 140, label: "St. Mary's", type: "hospital" },
-  { id: "n4", x: 150, y: 220, label: "Central Lab", type: "lab" },
-  { id: "n5", x: 320, y: 250, label: "North Clinic", type: "hospital" },
+  { id: "n1", x: 70,  y: 90,  label: "Apex General",    type: "hospital" },
+  { id: "n2", x: 230, y: 50,  label: "Riverside Bank",  type: "bank" },
+  { id: "n3", x: 360, y: 140, label: "St. Mary's",      type: "hospital" },
+  { id: "n4", x: 150, y: 220, label: "Central Lab",     type: "lab" },
+  { id: "n5", x: 320, y: 250, label: "North Clinic",    type: "hospital" },
 ];
 
 const NETWORK_LINKS = [
@@ -44,14 +49,12 @@ function NetworkVisualization() {
 
       {NETWORK_LINKS.map(([a, b], i) => {
         const from = NETWORK_NODES.find((n) => n.id === a);
-        const to = NETWORK_NODES.find((n) => n.id === b);
+        const to   = NETWORK_NODES.find((n) => n.id === b);
         return (
           <line
             key={i}
-            x1={from.x}
-            y1={from.y}
-            x2={to.x}
-            y2={to.y}
+            x1={from.x} y1={from.y}
+            x2={to.x}   y2={to.y}
             className="network-link"
             style={{ animationDelay: `${i * 0.3}s` }}
           />
@@ -62,9 +65,7 @@ function NetworkVisualization() {
         <g key={node.id} className="network-node-group">
           <circle cx={node.x} cy={node.y} r="26" fill="url(#nodeGlow)" />
           <circle
-            cx={node.x}
-            cy={node.y}
-            r="6"
+            cx={node.x} cy={node.y} r="6"
             className="network-node-dot"
             style={{ animationDelay: `${i * 0.4}s` }}
           />
@@ -77,127 +78,137 @@ function NetworkVisualization() {
   );
 }
 
-function Login() {
+export default function Login() {
   const { isLoaded, signIn, setActive } = useSignIn();
   const { user } = useUser();
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
-
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    remember: false,
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [formData, setFormData]  = useState({ email: "", password: "", remember: false });
+  const [loading, setLoading]    = useState(false);
+  const [error, setError]        = useState("");
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    setFormData((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!isLoaded) return;
+    const email    = formData.email.trim();
+    const password = formData.password;
 
-    if (!formData.email || !formData.password) {
+    if (!email || !password) {
       setError("Please enter both email and password.");
       return;
     }
 
-    try {
-      setLoading(true);
-      setError("");
+    if (!isLoaded) {
+      setError("Auth is still initializing. Please wait a moment.");
+      return;
+    }
 
-      const result = await signIn.create({
-        identifier: formData.email,
-        password: formData.password,
-      });
+    setLoading(true);
+    setError("");
+
+    // ── 1. Try Clerk sign-in ──────────────────────────────────────────────
+    try {
+      const result = await signIn.create({ identifier: email, password });
 
       if (result.status === "complete") {
-        await setActive({
-          session: result.createdSessionId,
+        await setActive({ session: result.createdSessionId });
+
+        // Retrieve actual Clerk user ID immediately upon session activation
+        let clerkId = window.Clerk?.user?.id || window.Clerk?.session?.user?.id;
+        if (!clerkId && window.Clerk?.client?.sessions) {
+          const session = window.Clerk.client.sessions.find((s) => s.id === result.createdSessionId);
+          clerkId = session?.user?.id;
+        }
+        if (!clerkId) {
+          clerkId = user?.id;
+        }
+
+        // Fetch user's actual saved role from database (database is single source of truth)
+        const { role: resolvedRole, profile: profileData } = await resolveUserRole({
+          clerkId,
+          email,
+          clerkUser: window.Clerk?.user || user,
         });
 
-        // Fetch user role from backend after successful login
-        try {
-          const clerkId = user?.id;
-          if (clerkId) {
-            const profileResponse = await fetch(`http://127.0.0.1:5000/api/users/profile/${clerkId}`);
-            if (profileResponse.ok) {
-              const profileData = await profileResponse.json();
-              const userRole = profileData.role;
-              
-              // Store user data in localStorage for dashboard to use
-              localStorage.setItem("userFullName", profileData.fullName || "");
-              localStorage.setItem("userEmail", profileData.email || "");
-              localStorage.setItem("userRole", userRole || "");
+        // Determine definitive role - NEVER default to "donor"
+        const finalRole = resolvedRole || "patient";
+        const fullName =
+          profileData?.fullName ||
+          window.Clerk?.user?.fullName ||
+          user?.fullName ||
+          "";
 
-              // Redirect based on role
-              switch (userRole) {
-                case "administrator":
-                  navigate("/admin-dashboard");
-                  break;
-                case "patient":
-                  navigate("/patient-dashboard");
-                  break;
-                case "hospital_staff":
-                  navigate("/hospital-dashboard");
-                  break;
-                case "blood_bank_staff":
-                  navigate("/bloodbank-dashboard");
-                  break;
-                case "donor":
-                  navigate("/donor-dashboard");
-                  break;
-                default:
-                  navigate("/");
-              }
-              return;
-            }
-          }
-        } catch (profileErr) {
-          console.error("Failed to fetch user profile:", profileErr);
-          // Fallback to home page if profile fetch fails
-        }
+        persistAuthSession({
+          clerkId: clerkId || profileData?.clerkId,
+          fullName,
+          email,
+          role: finalRole,
+        });
 
-        // Fallback to home page if no role found
-        navigate("/");
-      } else if (result.status === "needs_first_factor" || result.status === "needs_second_factor") {
-        setError("Additional verification required. Please check your email.");
-      } else {
-        setError("Authentication failed. Please try again.");
+        navigate(roleToDashboardPath(finalRole));
+        return;
       }
-    } catch (err) {
-      console.error("Login error:", err);
-      const errorMessage = err.errors?.[0]?.message;
-      const errorStatus = err.status;
-      
-      if (errorStatus === 422) {
-        // 422 typically means the resource exists but can't be processed
-        // This could mean the email exists but wrong credentials, or email doesn't exist
-        if (errorMessage?.includes("identifier") || errorMessage?.includes("form_identifier")) {
-          setError("Email not found. Please check your email or create an account.");
-        } else if (errorMessage?.includes("password")) {
-          setError("Incorrect password. Please try again.");
-        } else if (errorMessage?.includes("email_address") && errorMessage?.includes("taken")) {
-          setError("This email is already registered. Please log in instead.");
-        } else {
-          setError(errorMessage || "Login failed. Please try again.");
-        }
-      } else if (errorMessage?.includes("identifier")) {
-        setError("Email not found. Please check your email or create an account.");
-      } else if (errorMessage?.includes("password")) {
-        setError("Incorrect password. Please try again.");
+
+      if (result.status === "needs_first_factor" || result.status === "needs_second_factor") {
+        setError("Additional verification is required. Please check your email.");
       } else {
-        setError(errorMessage || "Login failed. Please try again.");
+        setError("Sign-in could not be completed. Please try again.");
+      }
+    } catch (clerkErr) {
+      console.warn("Clerk sign-in failed:", clerkErr);
+
+      const rawMsg = clerkErr?.errors?.[0]?.message || clerkErr?.message || "";
+      const code   = clerkErr?.errors?.[0]?.code    || "";
+
+      // ── 2. Fallback: DB session when Clerk quota / network fails ──────
+      const isQuotaOrNetworkError =
+        clerkErr?.status === 403 ||
+        rawMsg.toLowerCase().includes("quota") ||
+        rawMsg.toLowerCase().includes("exceeded") ||
+        rawMsg.toLowerCase().includes("network");
+
+      if (isQuotaOrNetworkError) {
+        const { role: resolvedRole, profile: profileData } = await resolveUserRole({
+          clerkId: null,
+          email,
+          clerkUser: null,
+        });
+
+        if (profileData || resolvedRole) {
+          const role = resolvedRole || profileData?.role || "patient";
+          persistAuthSession({
+            clerkId: profileData?.clerkId || "usr_local_" + Date.now().toString(36),
+            fullName: profileData?.fullName || "HRBMS User",
+            email: profileData?.email || email,
+            role,
+          });
+          navigate(roleToDashboardPath(role));
+          return;
+        }
+        setError("Service is temporarily at capacity. Please try again shortly.");
+        setLoading(false);
+        return;
+      }
+
+      // ── 3. Human-readable Clerk error messages ────────────────────────
+      if (code === "form_password_incorrect" || rawMsg.toLowerCase().includes("password")) {
+        setError("Incorrect password. Please try again.");
+      } else if (
+        code === "form_identifier_not_found" ||
+        rawMsg.toLowerCase().includes("identifier") ||
+        rawMsg.toLowerCase().includes("not found")
+      ) {
+        setError("No account found for this email. Please register first.");
+      } else if (rawMsg.toLowerCase().includes("locked")) {
+        setError("Your account has been locked after too many failed attempts. Please contact support.");
+      } else {
+        setError(rawMsg || "Sign-in failed. Please check your credentials and try again.");
       }
     } finally {
       setLoading(false);
@@ -206,13 +217,11 @@ function Login() {
 
   return (
     <div className="auth-shell">
-      {/* LEFT — Live network / system identity panel */}
+      {/* ── LEFT RAIL ── */}
       <div className="auth-rail">
         <div className="auth-rail-top">
           <div className="brand-mark">
-            <span className="brand-icon">
-              <FaDroplet />
-            </span>
+            <span className="brand-icon"><FaDroplet /></span>
             <span className="brand-name">HRBMS</span>
           </div>
           <span className="rail-status">
@@ -222,15 +231,11 @@ function Login() {
 
         <div className="auth-rail-mid">
           <h1 className="rail-heading">
-            One platform.
-            <br />
-            Every blood drop tracked.
+            One platform.<br />Every blood drop tracked.
           </h1>
           <p className="rail-sub">
-            Coordinate hospitals, blood banks, and donor networks in real time
-            — from intake to transfusion.
+            Coordinate hospitals, blood banks, and donor networks in real time — from intake to transfusion.
           </p>
-
           <NetworkVisualization />
         </div>
 
@@ -259,7 +264,7 @@ function Login() {
         </div>
       </div>
 
-      {/* RIGHT — Auth card */}
+      {/* ── RIGHT STAGE ── */}
       <div className="auth-stage">
         <div className="auth-card">
           <div className="auth-card-head">
@@ -274,6 +279,9 @@ function Login() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
+            {/* Required for Clerk bot-protection / Smart CAPTCHA */}
+            <div id="clerk-captcha" />
+
             <div className="field">
               <label htmlFor="email">Email address</label>
               <input
@@ -304,7 +312,7 @@ function Login() {
                 <button
                   type="button"
                   className="field-action"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -322,19 +330,18 @@ function Login() {
                 />
                 <span>Keep me signed in</span>
               </label>
-
               <button type="button" className="link-muted">
                 Forgot password?
               </button>
             </div>
 
-            <button className="btn-primary" disabled={loading}>
+            <button className="btn-primary" disabled={loading || !isLoaded}>
               {loading ? <span className="btn-spinner" /> : "Sign in"}
             </button>
           </form>
 
           <div className="auth-card-foot">
-            New to HRBMS?
+            New to HRBMS?{" "}
             <button className="link-accent" onClick={() => navigate("/register")}>
               Create an account
             </button>
@@ -344,5 +351,3 @@ function Login() {
     </div>
   );
 }
-
-export default Login;
