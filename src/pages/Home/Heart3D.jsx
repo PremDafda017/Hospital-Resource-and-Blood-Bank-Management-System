@@ -7,7 +7,7 @@ export default function Heart3D({
   glow = "#FF4D6D",
   bpm = 62,
   interactive = true,
-  imageSrc = "/images/Heart/ezgif-frame-001.jpg",
+  imageSrc = "/images/Heart/ezgif-frame-001.png",
   style = {},
 }) {
   const mountRef = useRef(null);
