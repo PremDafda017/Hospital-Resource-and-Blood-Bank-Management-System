@@ -2,6 +2,11 @@
   "name": "hospital-bloodbank-system",
   "version": "0.1.0",
   "private": true,
+  "allowScripts": {
+    "@clerk/shared": true,
+    "core-js": true,
+    "core-js-pure": true
+  },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.8",
     "@clerk/react": "^6.9.1",

@@ -1,6 +1,7 @@
 const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-dns.setDefaultResultOrder("ipv4first");
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch (_) {}
 
 const express = require("express");
 const cors = require("cors");
@@ -49,24 +50,44 @@ app.use(notificationRoutes);
 app.use(messageRoutes.router);
 
 
-// MongoDB connection
-const mongoUri = process.env.MONGODB_URI;
-console.log("Connecting to MongoDB URI:", mongoUri);
+// MongoDB connection with resilient fallback
+const DIRECT_REPLICA_SET_URI =
+  "mongodb://msigf4_db_user:IOuqnBijzN92q0fC@ac-gwhesol-shard-00-00.0xnylcb.mongodb.net:27017,ac-gwhesol-shard-00-01.0xnylcb.mongodb.net:27017,ac-gwhesol-shard-00-02.0xnylcb.mongodb.net:27017/Hospital_Management?ssl=true&replicaSet=atlas-dec9r7-shard-0&authSource=admin";
 
-// Configure Mongoose to fail fast instead of buffering when disconnected
+const primaryUri = process.env.MONGODB_URI || DIRECT_REPLICA_SET_URI;
+const maskedUri = primaryUri.replace(/:([^@]+)@/, ":****@");
+console.log("Connecting to MongoDB URI:", maskedUri);
+
+// Configure Mongoose
 mongoose.set("bufferCommands", false);
 
+const mongoOptions = {
+  serverSelectionTimeoutMS: 10000, // 10s timeout to allow TLS handshake on slower networks
+  connectTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+};
+
 mongoose
-  .connect(mongoUri, {
-    serverSelectionTimeoutMS: 3000, // Timeout after 3 seconds instead of 10+
-  })
+  .connect(primaryUri, mongoOptions)
   .then(() => {
     console.log("MongoDB connected successfully.");
     console.log("Database name:", mongoose.connection.name);
     console.log("Collections:", Object.keys(mongoose.connection.collections));
   })
-  .catch((err) => {
-    console.error("MongoDB connection error:", err.message);
+  .catch(async (err) => {
+    console.warn("Primary MongoDB connection attempt failed:", err.message);
+    if (primaryUri !== DIRECT_REPLICA_SET_URI) {
+      console.log("Attempting direct replica set connection fallback...");
+      try {
+        await mongoose.connect(DIRECT_REPLICA_SET_URI, mongoOptions);
+        console.log("MongoDB connected successfully via direct replica set fallback.");
+        console.log("Database name:", mongoose.connection.name);
+        console.log("Collections:", Object.keys(mongoose.connection.collections));
+        return;
+      } catch (fallbackErr) {
+        console.error("Direct fallback MongoDB connection error:", fallbackErr.message);
+      }
+    }
     console.warn("Continuing server execution with Mock JSON Database fallback.");
   });
 
