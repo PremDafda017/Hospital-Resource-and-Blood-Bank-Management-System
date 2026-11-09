@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaHeartPulse,
   FaFileMedical,
@@ -355,7 +356,8 @@ function HospitalPatients() {
                 Manage all registered patients
               </p>
             </div>
-            <div style={{ display: "flex", gap: 12, width: isMobile ? "100%" : "auto" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center", width: isMobile ? "100%" : "auto" }}>
+              <NotificationBell />
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}

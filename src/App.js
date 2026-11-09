@@ -179,6 +179,7 @@ function App() {
     <BloodBankProvider>
       <NotificationProvider>
         <Router>
+          <NotificationPopup />
           <Routes>
         {/* Default Route - Home Page (Public) */}
         <Route path="/" element={<HomePage />} />
@@ -564,7 +565,6 @@ function App() {
 
       </Routes>
     </Router>
-    <NotificationPopup />
     </NotificationProvider>
     </BloodBankProvider>
   );

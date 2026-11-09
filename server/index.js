@@ -46,6 +46,7 @@ messageRoutes.setSocketIo(io);
 const emailService = require("./services/emailService");
 
 const notificationRoutes = require("./routes/notificationRoutes");
+notificationRoutes.setSocketIo(io);
 app.use(notificationRoutes);
 app.use(messageRoutes.router);
 
@@ -6609,6 +6610,27 @@ const checkExpiredBloodBatches = async () => {
               });
               await bloodBankStaff.save();
             }
+
+            // Real-time dispatch to Blood Bank Staff and Admin consoles
+            notificationService.createAndSendNotification({
+              recipientUserId: "blood_bank_staff_role",
+              recipientRole: "blood_bank_staff",
+              title: "Critical Blood Stock Expiry",
+              message: `${batch.units} units of ${inventory.bloodGroup} blood (Batch: ${batch.batchId}) expired on ${batch.expiryDate}. Stock has been automatically reduced.`,
+              notificationType: "Inventory Expiry",
+              priority: "Critical",
+              actionUrl: "/bloodbank-inventory",
+            }).catch(() => {});
+
+            notificationService.createAndSendNotification({
+              recipientUserId: "admin_role_alert",
+              recipientRole: "administrator",
+              title: "Critical Alert: Blood Units Expired",
+              message: `${batch.units} unit(s) of ${inventory.bloodGroup} expired at ${inventory.hospital || "Blood Bank"} and require review.`,
+              notificationType: "Inventory Alert",
+              priority: "Critical",
+              actionUrl: "/admin",
+            }).catch(() => {});
             
             // Add to stock history if StockHistory model exists
             try {

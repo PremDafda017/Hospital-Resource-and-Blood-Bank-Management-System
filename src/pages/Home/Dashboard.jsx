@@ -11,6 +11,7 @@ import {
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { clearAuthSession, resolveUserRole } from "../../utils/authUtils";
+import NotificationBell from "../../components/NotificationBell";
 
 /* ─────────────────────────────────────────────────
    DESIGN TOKENS
@@ -320,39 +321,8 @@ function Topbar({ displayName, displayRole, user, profile, theme, toggleTheme, s
           {theme === "dark" ? <FaSun/> : <FaMoon/>}
         </button>
 
-        {/* Notifications */}
-        <div style={{ position:"relative" }}>
-          <button onClick={() => { setNotifOpen(o => !o); setDropdown(false); }}
-            style={{ width:38, height:38, borderRadius:10, border:`1px solid ${BORDER}`, background:SMOKE, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:SLATE_L, position:"relative" }}
-          >
-            <FaBell/>
-            <span style={{ position:"absolute", top:6, right:6, width:8, height:8, borderRadius:"50%", background:RED, border:`2px solid ${WHITE}` }}/>
-          </button>
-          {notifOpen && (
-            <div style={{ position:"absolute", right:0, top:48, width:340, background:WHITE, border:`1px solid ${BORDER}`, borderRadius:16, boxShadow:"0 16px 48px rgba(0,0,0,0.12)", zIndex:300, overflow:"hidden" }}>
-              <div style={{ padding:"16px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <span style={{ fontWeight:800, color:NAVY2 }}>Notifications</span>
-                <span style={{ background:RED, color:WHITE, fontSize:"0.7rem", fontWeight:800, padding:"2px 7px", borderRadius:12 }}>4</span>
-              </div>
-              {notifications.map((n,i) => (
-                <div key={i} style={{ padding:"12px 20px", borderBottom:`1px solid ${BORDER}`, display:"flex", gap:12, cursor:"pointer", background:n.urgent?"#FFF5F5":WHITE,
-                  transition:"background 0.15s" }}
-                  onMouseEnter={e => e.currentTarget.style.background = SMOKE}
-                  onMouseLeave={e => e.currentTarget.style.background = n.urgent?"#FFF5F5":WHITE}
-                >
-                  <span style={{ fontSize:"1.2rem", flexShrink:0 }}>{n.icon}</span>
-                  <div>
-                    <p style={{ fontSize:"0.83rem", color:NAVY2, fontWeight:n.urgent?700:500, lineHeight:1.5 }}>{n.text}</p>
-                    <span style={{ fontSize:"0.75rem", color:SLATE_L }}>{n.time}</span>
-                  </div>
-                </div>
-              ))}
-              <div style={{ padding:"12px 20px", textAlign:"center" }}>
-                <button style={{ color:RED, fontWeight:700, fontSize:"0.83rem", textDecoration:"none", background:"none", border:"none", cursor:"pointer" }}>View all notifications</button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Real-Time Connected Notifications */}
+        <NotificationBell />
 
         {/* Avatar */}
         <div style={{ position:"relative" }}>

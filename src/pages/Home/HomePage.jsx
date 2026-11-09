@@ -16,6 +16,7 @@ import {
 } from "react-icons/fa6";
 import Heart3D from "./Heart3D";
 import { roleToDashboardPath, clearAuthSession, resolveUserRole } from "../../utils/authUtils";
+import NotificationBell from "../../components/NotificationBell";
 
 /* ─────────────────────────────────────────────
    INLINE STYLES (no external CSS required)
@@ -953,14 +954,8 @@ export default function HomePage() {
                 {theme === "dark" ? <FaSun/> : <FaMoon/>}
             </button>
 
-            {/* Notification - desktop only */}
-            <button className="desktop-actions" style={{ width:42, height:42, borderRadius:12, border:`1px solid ${navIsDark ? "rgba(255,255,255,0.14)" : BORDER}`, background: navIsDark ? "rgba(255,255,255,0.08)" : SMOKE, cursor:"pointer", alignItems:"center", justifyContent:"center", color: navIsDark ? WHITE : SLATE_MD, fontSize:"1rem", position:"relative", transition:"all 0.25s" }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = RED}
-                onMouseLeave={e => e.currentTarget.style.borderColor = navIsDark ? "rgba(255,255,255,0.14)" : BORDER}
-            >
-                <FaBell/>
-                <span style={{ position:"absolute", top:-2, right:-2, background:RED, color:WHITE, fontSize:"0.65rem", fontWeight:800, minWidth:18, height:18, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center" }}>3</span>
-            </button>
+            {/* Real-time Notifications - desktop only */}
+            {isSignedIn && <NotificationBell />}
 
             {/* Auth Buttons or Profile - desktop only */}
             <div className="desktop-actions" style={{ alignItems:"center", gap:12 }}>

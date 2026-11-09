@@ -29,6 +29,7 @@ import {
   FaSyringe,
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -426,6 +427,7 @@ function DonorProfile() {
                 Manage your donor information
               </p>
             </div>
+            <NotificationBell />
           </div>
 
           {/* Content */}

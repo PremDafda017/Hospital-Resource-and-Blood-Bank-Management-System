@@ -48,6 +48,7 @@ import {
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 import "./Dashboard.css";
 
 /* ─────────────────────────────────────────────────────────────
@@ -1014,98 +1015,8 @@ export default function SuperAdminDashboard() {
           {dark ? <FaSun /> : <FaMoon />}
         </button>
 
-        {/* Notifications Dropdown */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => { setNotifDropdown(!notifDropdown); setProfileDropdown(false); }}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              border: `1px solid ${dark ? BORDER_DARK : BORDER_LIGHT}`,
-              background: dark ? "#0F172A" : SMOKE_LIGHT,
-              color: dark ? WHITE : SLATE,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative"
-            }}
-          >
-            <FaBell />
-            <span style={{
-              position: "absolute",
-              top: -3,
-              right: -3,
-              width: 18,
-              height: 18,
-              borderRadius: "50%",
-              background: RED,
-              color: WHITE,
-              fontSize: "0.68rem",
-              fontWeight: 800,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}>
-              {lowStockAlerts.length || 3}
-            </span>
-          </button>
-
-          {notifDropdown && (
-            <div style={{
-              position: "absolute",
-              right: 0,
-              top: 48,
-              width: 350,
-              background: dark ? NAVY2 : WHITE,
-              border: `1px solid ${dark ? BORDER_DARK : BORDER_LIGHT}`,
-              borderRadius: 16,
-              boxShadow: "0 16px 48px rgba(0,0,0,0.18)",
-              zIndex: 300,
-              overflow: "hidden"
-            }}>
-              <div style={{ padding: "14px 18px", borderBottom: `1px solid ${dark ? BORDER_DARK : BORDER_LIGHT}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 800, color: dark ? WHITE : NAVY }}>System Notifications</span>
-                <span style={{ background: RED, color: WHITE, fontSize: "0.68rem", fontWeight: 800, padding: "2px 8px", borderRadius: 10 }}>
-                  Active Alerts
-                </span>
-              </div>
-              <div style={{ maxHeight: 300, overflowY: "auto" }}>
-                {lowStockAlerts.map((alert, i) => (
-                  <div
-                    key={i}
-                    onClick={() => { switchTab("blood-inventory"); setNotifDropdown(false); }}
-                    style={{
-                      padding: "12px 18px",
-                      borderBottom: `1px solid ${dark ? "#334155" : "#F1F5F9"}`,
-                      display: "flex",
-                      gap: 12,
-                      cursor: "pointer",
-                      background: dark ? "#1E293B" : "#FFF8F8"
-                    }}
-                  >
-                    <span style={{ fontSize: "1.1rem" }}>🚨</span>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: "0.82rem", color: dark ? WHITE : NAVY }}>
-                        Critical Stock: {alert.group} below {alert.threshold} units
-                      </div>
-                      <div style={{ fontSize: "0.74rem", color: SLATE_L, marginTop: 2 }}>Only {alert.units} units remaining in central blood reserve.</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ padding: "10px", textAlign: "center", background: dark ? "#0F172A" : SMOKE_LIGHT }}>
-                <button
-                  onClick={() => { switchTab("notifications"); setNotifDropdown(false); }}
-                  style={{ color: RED, fontWeight: 700, fontSize: "0.8rem", background: "none", border: "none", cursor: "pointer" }}
-                >
-                  Manage All Notifications →
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Notifications Bell & Dropdown */}
+        <NotificationBell onNavigateToAll={() => switchTab("notifications")} />
 
         {/* Super Admin Profile Pill & Menu */}
         <div style={{ position: "relative" }}>

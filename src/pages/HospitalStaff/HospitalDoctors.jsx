@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaHeartPulse,
   FaFileMedical,
@@ -951,7 +952,8 @@ Generated on: ${new Date().toLocaleDateString()}
                 Manage hospital doctors and staff
               </p>
             </div>
-            <div style={{ display:"flex", gap:12 }}>
+            <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+              <NotificationBell />
               <div style={{
                 background:WHITE,
                 border:`1px solid ${BORDER}`,

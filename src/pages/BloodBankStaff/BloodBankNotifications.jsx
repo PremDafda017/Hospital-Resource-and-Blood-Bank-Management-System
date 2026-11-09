@@ -11,6 +11,7 @@ import {
 import { apiFetch } from "../../utils/apiConfig";
 import { useNotification } from "../../contexts/NotificationContext";
 import NotificationPreferencesModal from "../../components/NotificationPreferencesModal";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -299,6 +300,7 @@ export default function BloodBankNotifications() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <NotificationBell />
             <button
               onClick={() => setShowPrefsModal(true)}
               style={{

@@ -29,6 +29,7 @@ import {
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
 import { breakpoints, animationVariants, useResponsive } from "../../utils/responsiveDesign";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -457,7 +458,7 @@ function DonationRequests() {
             <h1 style={{ fontSize:"1.1rem", fontWeight:700, color:NAVY2, margin:0 }}>
               Donation Requests
             </h1>
-            <div style={{ width:32 }} />
+            <NotificationBell />
           </motion.header>
         )}
 
@@ -484,6 +485,7 @@ function DonationRequests() {
                 <p style={{ fontSize:isTablet ? "0.8rem" : "0.85rem", color:SLATE_L, margin:"4px 0 0 0" }}>Manage donor appointment and campaign participation requests</p>
               </div>
             </div>
+            <NotificationBell />
           </motion.header>
         )}
 

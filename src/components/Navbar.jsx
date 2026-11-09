@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/clerk-react';
 import { FaBars, FaBell, FaSun, FaMoon, FaUser, FaRightFromBracket } from 'react-icons/fa6';
+import NotificationBell from './NotificationBell';
 import './styles/Navbar.css';
 
 function Navbar({ onToggleSidebar, theme, onToggleTheme }) {
@@ -38,10 +39,7 @@ function Navbar({ onToggleSidebar, theme, onToggleTheme }) {
           {theme === 'light' ? <FaMoon /> : <FaSun />}
         </button>
 
-        <button className="navbar-action notification-wrapper" aria-label="Notifications">
-          <FaBell />
-          <span className="notification-badge">3</span>
-        </button>
+        <NotificationBell />
 
         <div className="user-avatar-container">
           <button 

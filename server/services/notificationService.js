@@ -246,20 +246,32 @@ async function createAndSendNotification({
           createdAt: new Date(),
         };
 
-        // Specific user room
+        // 1. Specific recipient user room (emit both 'notification' and 'notification:new')
         globalIo.to(`user-${recipientUserId}`).emit("notification", notifPayload);
+        globalIo.to(`user-${recipientUserId}`).emit("notification:new", notifPayload);
 
-        // Canonical role room
-        globalIo.to(`role-${resolvedRole}`).emit("role-notification", notifPayload);
-        globalIo.to(resolvedRole).emit("role-notification", notifPayload);
+        // Also emit to secondary resolved identifiers (e.g. clerkId vs MongoDB _id)
+        if (resolvedEmail && resolvedEmail !== recipientUserId) {
+          globalIo.to(`user-${resolvedEmail}`).emit("notification", notifPayload);
+        }
 
-        // Role-specific broadcast rooms
-        if (resolvedRole === "hospital_staff" || resolvedRole === "hospital") {
+        // 2. Canonical role room
+        const normRole = (resolvedRole || "").toLowerCase().trim();
+        globalIo.to(`role-${normRole}`).emit("role-notification", notifPayload);
+        globalIo.to(`role-${normRole}`).emit("notification:new", notifPayload);
+        globalIo.to(normRole).emit("role-notification", notifPayload);
+
+        // Role-specific alias rooms
+        if (normRole === "hospital_staff" || normRole === "hospital" || normRole === "doctor") {
           globalIo.to("role-hospital_staff").emit("role-notification", notifPayload);
           globalIo.to("hospital-staff").emit("role-notification", notifPayload);
-        } else if (resolvedRole === "blood_bank_staff" || resolvedRole === "blood_bank") {
+        } else if (normRole === "blood_bank_staff" || normRole === "blood_bank" || normRole === "bloodbank") {
           globalIo.to("role-blood_bank_staff").emit("role-notification", notifPayload);
           globalIo.to("blood-bank-staff").emit("staff-notification", notifPayload);
+        } else if (normRole === "admin" || normRole === "administrator" || normRole === "super_admin") {
+          globalIo.to("role-admin").emit("role-notification", notifPayload);
+          globalIo.to("role-administrator").emit("role-notification", notifPayload);
+          globalIo.to("admin").emit("role-notification", notifPayload);
         }
       } catch (socketErr) {
         console.warn("[NotificationEngine] Socket emit warning:", socketErr.message);
@@ -317,6 +329,7 @@ async function createAndSendNotification({
 
 module.exports = {
   setSocketIo,
+  getSocketIo: () => globalIo,
   createAndSendNotification,
   resolveUserDetails,
 };

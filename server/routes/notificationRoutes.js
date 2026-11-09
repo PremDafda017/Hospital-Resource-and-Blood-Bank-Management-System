@@ -11,6 +11,12 @@ const NotificationPreference = require("../models/NotificationPreference");
 const notificationService = require("../services/notificationService");
 const emailService = require("../services/emailService");
 
+let globalIo = null;
+function setSocketIo(io) {
+  globalIo = io;
+}
+router.setSocketIo = setSocketIo;
+
 // Get notifications for a user with comprehensive filtering & tabs
 router.get("/api/notifications/:userId", async (req, res) => {
   try {
@@ -222,6 +228,19 @@ router.put("/api/notifications/:notificationId/read", async (req, res) => {
     notification.readAt = new Date();
     await notification.save();
 
+    if (globalIo && notification.recipientUserId) {
+      globalIo.to(`user-${notification.recipientUserId}`).emit("notification:read", {
+        notificationId: notification._id,
+        id: notification._id,
+      });
+      if (notification.userId && notification.userId !== notification.recipientUserId) {
+        globalIo.to(`user-${notification.userId}`).emit("notification:read", {
+          notificationId: notification._id,
+          id: notification._id,
+        });
+      }
+    }
+
     res.status(200).json({ success: true, message: "Notification marked as read successfully.", notification });
   } catch (err) {
     console.error("[NotificationAPI] Error marking notification as read:", err);
@@ -241,6 +260,10 @@ router.put("/api/notifications/mark-all-read/:userId", async (req, res) => {
       { $or: [{ recipientUserId: userId }, { userId: userId }] },
       { $set: { isRead: true, read: true, readAt: new Date() } }
     );
+
+    if (globalIo) {
+      globalIo.to(`user-${userId}`).emit("notification:all-read", { userId });
+    }
 
     res.status(200).json({ success: true, message: "All notifications marked as read." });
   } catch (err) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaHeartPulse,
   FaFileMedical,
@@ -288,6 +289,18 @@ function HospitalDashboard() {
         </motion.button>
       )}
 
+      {/* Mobile Top Bar */}
+      {isMobile && (
+        <div style={{
+          position: "fixed",
+          top: 16,
+          right: 16,
+          zIndex: 300,
+        }}>
+          <NotificationBell />
+        </div>
+      )}
+
       {/* Mobile Menu Overlay */}
       {isMobile && mobileMenuOpen && (
         <motion.div
@@ -423,13 +436,20 @@ function HospitalDashboard() {
           transition={{ duration: 0.5 }}
           style={{ padding: isMobile ? "80px 16px 24px" : "24px 32px" }}
         >
-          <motion.div style={{ marginBottom: isMobile ? 24 : 32 }} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <h1 style={{ fontSize: isMobile ? "1.4rem" : "1.8rem", fontWeight: 800, color: NAVY2, margin: "0 0 8px 0" }}>
-              Hospital Dashboard
-            </h1>
-            <p style={{ color: SLATE_L, fontSize: isMobile ? "0.9rem" : "1rem", margin: 0 }}>
-              Welcome back! Here's your hospital overview.
-            </p>
+          <motion.div style={{ marginBottom: isMobile ? 24 : 32, display: "flex", justifyContent: "space-between", alignItems: "center" }} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <div>
+              <h1 style={{ fontSize: isMobile ? "1.4rem" : "1.8rem", fontWeight: 800, color: NAVY2, margin: "0 0 8px 0" }}>
+                Hospital Dashboard
+              </h1>
+              <p style={{ color: SLATE_L, fontSize: isMobile ? "0.9rem" : "1rem", margin: 0 }}>
+                Welcome back! Here's your hospital overview.
+              </p>
+            </div>
+            {!isMobile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <NotificationBell />
+              </div>
+            )}
           </motion.div>
 
           {/* Stats Grid */}

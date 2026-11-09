@@ -3,6 +3,7 @@ import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useResponsive } from "../../utils/responsiveDesign";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaAward,
   FaBars,
@@ -402,34 +403,37 @@ function CampaignManagement() {
             <h1 style={{ fontSize:"1.1rem", fontWeight:700, color:NAVY2, margin:0 }}>
               Campaigns
             </h1>
-            <button
-              onClick={() => {
-                setEditingCampaign(null);
-                setFormData({
-                  name: "",
-                  description: "",
-                  startDate: "",
-                  endDate: "",
-                  location: "",
-                  targetDonations: "",
-                  bloodGroups: [],
-                  status: "Active",
-                });
-                setShowModal(true);
-              }}
-              style={{
-                background:RED,
-                border:"none",
-                borderRadius:6,
-                padding:"8px 12px",
-                cursor:"pointer",
-                color:WHITE,
-                fontSize:"0.85rem",
-                fontWeight:600
-              }}
-            >
-              <FaPlus />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <NotificationBell />
+              <button
+                onClick={() => {
+                  setEditingCampaign(null);
+                  setFormData({
+                    name: "",
+                    description: "",
+                    startDate: "",
+                    endDate: "",
+                    location: "",
+                    targetDonations: "",
+                    bloodGroups: [],
+                    status: "Active",
+                  });
+                  setShowModal(true);
+                }}
+                style={{
+                  background:RED,
+                  border:"none",
+                  borderRadius:6,
+                  padding:"8px 12px",
+                  cursor:"pointer",
+                  color:WHITE,
+                  fontSize:"0.85rem",
+                  fontWeight:600
+                }}
+              >
+                <FaPlus />
+              </button>
+            </div>
           </motion.header>
         )}
 
@@ -456,37 +460,40 @@ function CampaignManagement() {
                 <p style={{ fontSize:isTablet ? "0.8rem" : "0.85rem", color:SLATE_L, margin:"4px 0 0 0" }}>Create and manage blood donation campaigns</p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                setEditingCampaign(null);
-                setFormData({
-                  name: "",
-                  description: "",
-                  startDate: "",
-                  endDate: "",
-                  location: "",
-                  targetDonations: "",
-                  bloodGroups: [],
-                  status: "Active",
-                });
-                setShowModal(true);
-              }}
-              style={{
-                padding: isTablet ? "10px 20px" : "12px 24px",
-                background: RED,
-                color: WHITE,
-                border: "none",
-                borderRadius: 8,
-                fontSize: isTablet ? "0.9rem" : "0.95rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <FaPlus /> Create Campaign
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <NotificationBell />
+              <button
+                onClick={() => {
+                  setEditingCampaign(null);
+                  setFormData({
+                    name: "",
+                    description: "",
+                    startDate: "",
+                    endDate: "",
+                    location: "",
+                    targetDonations: "",
+                    bloodGroups: [],
+                    status: "Active",
+                  });
+                  setShowModal(true);
+                }}
+                style={{
+                  padding: isTablet ? "10px 20px" : "12px 24px",
+                  background: RED,
+                  color: WHITE,
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: isTablet ? "0.9rem" : "0.95rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <FaPlus /> Create Campaign
+              </button>
+            </div>
           </motion.header>
         )}
 

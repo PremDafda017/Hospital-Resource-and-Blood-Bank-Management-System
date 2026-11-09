@@ -25,6 +25,7 @@ import {
 } from "react-icons/fa6";
 import { apiFetch } from "../../utils/apiConfig";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -624,6 +625,7 @@ function HospitalBloodRequests() {
               </p>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <NotificationBell />
               <button
                 onClick={handleToggleSoundTest}
                 title="Test or toggle emergency alarm sound"

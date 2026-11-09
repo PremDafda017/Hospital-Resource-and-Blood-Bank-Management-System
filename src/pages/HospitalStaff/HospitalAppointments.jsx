@@ -41,6 +41,7 @@ import {
   FaIndianRupeeSign,
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -466,6 +467,7 @@ function HospitalAppointments() {
               </p>
             </div>
             <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+              <NotificationBell />
               <div style={{
                 background:WHITE,
                 border:`1px solid ${BORDER}`,

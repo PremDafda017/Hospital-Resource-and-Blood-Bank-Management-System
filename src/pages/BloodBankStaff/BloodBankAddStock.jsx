@@ -22,6 +22,7 @@ import {
 import { useBloodBank } from "../../contexts/BloodBankContext";
 import { useNotification } from "../../contexts/NotificationContext";
 import { breakpoints, animationVariants, useResponsive } from "../../utils/responsiveDesign";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -390,7 +391,7 @@ function BloodBankAddStock() {
             <h1 style={{ fontSize:"1.1rem", fontWeight:700, color:NAVY2, margin:0 }}>
               Add Blood Stock
             </h1>
-            <div style={{ width:32 }} />
+            <NotificationBell />
           </motion.header>
         )}
 
@@ -416,6 +417,7 @@ function BloodBankAddStock() {
               <p style={{ fontSize:"0.85rem", color:SLATE_L, margin:"4px 0 0 0" }}>Add new blood units to inventory</p>
             </div>
           </div>
+          <NotificationBell />
         </motion.header>
         )}
 

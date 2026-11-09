@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaHeartPulse,
   FaFileMedical,
@@ -63,14 +65,14 @@ function PatientDashboard() {
   }, []);
 
   const nav = [
-    { key:"patient-dashboard", icon:<FaChartLine/>, label:"Dashboard", path:"/patient-dashboard" },
-    { key:"appointments", icon:<FaCalendarDays/>, label:"Appointments", path:"/appointments" },
-    { key:"blood-requests", icon:<FaHeartPulse/>, label:"My Blood Requests", path:"/blood-requests" },
-    { key:"my-appointments", icon:<FaCalendarDays/>, label:"My Appointments", path:"/my-appointments" },
-    { key:"blood-banks", icon:<FaMapLocationDot/>, label:"Nearby Blood Banks", path:"/nearby-blood-banks" },
-    { key:"notifications", icon:<FaBell/>, label:"Notifications", path:"/notifications" },
-    { key:"my-reports", icon:<FaFileMedical/>, label:"My Reports", path:"/my-reports" },
-    { key:"profile", icon:<FaUser/>, label:"My Profile", path:"/profile" },
+    { key: "patient-dashboard", icon: <FaChartLine />, label: "Dashboard", path: "/patient-dashboard" },
+    { key: "appointments", icon: <FaCalendarDays />, label: "Appointments", path: "/appointments" },
+    { key: "blood-requests", icon: <FaHeartPulse />, label: "My Blood Requests", path: "/blood-requests" },
+    { key: "my-appointments", icon: <FaCalendarDays />, label: "My Appointments", path: "/my-appointments" },
+    { key: "blood-banks", icon: <FaMapLocationDot />, label: "Nearby Blood Banks", path: "/nearby-blood-banks" },
+    { key: "notifications", icon: <FaBell />, label: "Notifications", path: "/notifications" },
+    { key: "my-reports", icon: <FaFileMedical />, label: "My Reports", path: "/my-reports" },
+    { key: "profile", icon: <FaUser />, label: "My Profile", path: "/profile" },
   ];
 
   const active = "patient-dashboard";
@@ -82,10 +84,10 @@ function PatientDashboard() {
   const w = sidebarCollapsed ? 68 : SIDEBAR_W;
 
   // Patient data loaded from backend API
+  const { notifications } = useNotification();
   const [myRequests, setMyRequests] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
   const [myReports, setMyReports] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [missingCount, setMissingCount] = useState(0);
 
@@ -109,7 +111,7 @@ function PatientDashboard() {
         if (!prof) {
           try {
             prof = JSON.parse(localStorage.getItem(`patient_profile_${user.id}`));
-          } catch (e) {}
+          } catch (e) { }
         }
         const requiredKeys = ["fullName", "phone", "dateOfBirth", "gender", "bloodGroup", "address", "city", "state", "pincode", "emergencyContact", "emergencyPhone"];
         const missing = requiredKeys.filter(k => !prof || !prof[k] || !String(prof[k]).trim());
@@ -117,10 +119,10 @@ function PatientDashboard() {
         setMissingCount(missing.length);
 
         // Generate reports from completed blood requests
-        const completedRequests = (data.bloodRequests || []).filter(req => 
+        const completedRequests = (data.bloodRequests || []).filter(req =>
           req.status === 'Completed' || req.status === 'Blood Ready'
         );
-        
+
         const bloodRequestReports = completedRequests.map((req) => ({
           id: `br-${req._id || req.id}`,
           name: `Blood Request Receipt - ${req.bloodGroup}`,
@@ -143,12 +145,6 @@ function PatientDashboard() {
         const appointmentsData = await appointmentsResponse.json();
         setMyAppointments(appointmentsData);
       }
-
-      // For notifications, we'll use placeholder data
-      setNotifications([
-        { id: 1, message: "Welcome to the Patient Portal", time: "Just now", read: false },
-        { id: 2, message: "Your profile has been updated", time: "2 hours ago", read: true },
-      ]);
     } catch (error) {
       console.error('Error loading patient data:', error);
     } finally {
@@ -249,7 +245,7 @@ function PatientDashboard() {
   }
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", fontFamily:FONT }}>
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: FONT }}>
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {isMobile && mobileMenuOpen && (
@@ -274,49 +270,49 @@ function PatientDashboard() {
       {/* Sidebar */}
       <aside style={{
         width: isMobile ? (mobileMenuOpen ? 260 : 0) : w,
-        background:SIDEBAR_COL, color:WHITE,
-        display:"flex", flexDirection:"column", transition:"width 0.3s ease",
-        position: isMobile ? "fixed" : "fixed", height:"100vh", zIndex:1000,
+        background: SIDEBAR_COL, color: WHITE,
+        display: "flex", flexDirection: "column", transition: "width 0.3s ease",
+        position: isMobile ? "fixed" : "fixed", height: "100vh", zIndex: 1000,
         overflowX: "hidden"
       }}>
         <div style={{
           padding: sidebarCollapsed ? "0 16px" : "0 24px",
-          height:64, display:"flex", alignItems:"center", justifyContent:"space-between",
-          borderBottom:"1px solid rgba(255,255,255,0.1)"
+          height: 64, display: "flex", alignItems: "center", justifyContent: "space-between",
+          borderBottom: "1px solid rgba(255,255,255,0.1)"
         }}>
           <div style={{
-            display:"flex", alignItems:"center", gap:12,
-            color:WHITE, fontWeight:700, fontSize:"1.1rem"
+            display: "flex", alignItems: "center", gap: 12,
+            color: WHITE, fontWeight: 700, fontSize: "1.1rem"
           }}>
-            <FaDroplet style={{ color:RED, fontSize:"1.4rem" }} />
+            <FaDroplet style={{ color: RED, fontSize: "1.4rem" }} />
             {!sidebarCollapsed && <span>Patient Portal</span>}
           </div>
           <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{
-            background:"none", border:"none", color:WHITE,
-            cursor:"pointer", padding:4, borderRadius:4
+            background: "none", border: "none", color: WHITE,
+            cursor: "pointer", padding: 4, borderRadius: 4
           }}>
             <FaBars />
           </button>
         </div>
 
-        <nav style={{ flex:1, padding:"16px 12px", overflowY:"auto" }}>
+        <nav style={{ flex: 1, padding: "16px 12px", overflowY: "auto" }}>
           {nav.map((item) => (
             <button
               key={item.key}
               onClick={() => navigate(item.path)}
               style={{
-                width:"100%",
-                display:"flex",
-                alignItems:"center",
-                gap:12,
-                padding:"12px 16px",
-                borderRadius:8,
-                border:"none",
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 16px",
+                borderRadius: 8,
+                border: "none",
                 background: active === item.key ? RED : "transparent",
-                color:WHITE,
-                cursor:"pointer",
-                marginBottom:4,
-                transition:"all 0.2s",
+                color: WHITE,
+                cursor: "pointer",
+                marginBottom: 4,
+                transition: "all 0.2s",
                 fontSize: "0.9rem"
               }}
               onMouseEnter={e => {
@@ -326,32 +322,32 @@ function PatientDashboard() {
                 if (active !== item.key) e.currentTarget.style.background = "transparent";
               }}
             >
-              <span style={{ fontSize:"1.1rem", minWidth:20 }}>{item.icon}</span>
+              <span style={{ fontSize: "1.1rem", minWidth: 20 }}>{item.icon}</span>
               {!sidebarCollapsed && <span>{item.label}</span>}
             </button>
           ))}
         </nav>
 
-        <div style={{ padding:"16px 12px", borderTop:"1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ padding: "16px 12px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
           <SignOutButton>
             <button style={{
-              width:"100%",
-              display:"flex",
-              alignItems:"center",
-              gap:12,
-              padding:"12px 16px",
-              borderRadius:8,
-              border:"none",
-              background:"transparent",
-              color:WHITE,
-              cursor:"pointer",
-              fontSize:"0.9rem",
-              transition:"all 0.2s"
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 16px",
+              borderRadius: 8,
+              border: "none",
+              background: "transparent",
+              color: WHITE,
+              cursor: "pointer",
+              fontSize: "0.9rem",
+              transition: "all 0.2s"
             }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <span style={{ fontSize:"1.1rem" }}><FaRightFromBracket /></span>
+              <span style={{ fontSize: "1.1rem" }}><FaRightFromBracket /></span>
               {!sidebarCollapsed && <span>Logout</span>}
             </button>
           </SignOutButton>
@@ -359,15 +355,15 @@ function PatientDashboard() {
       </aside>
 
       {/* Main Content */}
-      <main style={{ marginLeft: isMobile ? 0 : w, flex:1, minHeight:"100vh", background:SMOKE, overflowX:"hidden" }}>
-        <div style={{ padding: isMobile ? "16px" : "24px 32px", maxWidth:"100%", overflowX:"hidden" }}>
+      <main style={{ marginLeft: isMobile ? 0 : w, flex: 1, minHeight: "100vh", background: SMOKE, overflowX: "hidden" }}>
+        <div style={{ padding: isMobile ? "16px" : "24px 32px", maxWidth: "100%", overflowX: "hidden" }}>
           {/* Mobile Header */}
           {isMobile && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}
             >
               <button
                 onClick={() => setMobileMenuOpen(true)}
@@ -395,6 +391,7 @@ function PatientDashboard() {
                 <FaDroplet style={{ color: RED, fontSize: "1.2rem" }} />
                 <span>HRBMS</span>
               </div>
+              <NotificationBell />
             </motion.div>
           )}
           {/* Header */}
@@ -402,39 +399,42 @@ function PatientDashboard() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            style={{ marginBottom: isMobile ? 24 : 32, display:"flex", justifyContent:"space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 0 }}
+            style={{ marginBottom: isMobile ? 24 : 32, display: "flex", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 16 : 0 }}
           >
             <div>
-              <h1 style={{ fontSize: isMobile ? "1.5rem" : "1.8rem", fontWeight:800, color:NAVY2, margin:"0 0 8px 0" }}>
+              <h1 style={{ fontSize: isMobile ? "1.5rem" : "1.8rem", fontWeight: 800, color: NAVY2, margin: "0 0 8px 0" }}>
                 Patient Dashboard
               </h1>
-              <p style={{ color:SLATE_L, fontSize: isMobile ? "0.9rem" : "1rem", margin:0 }}>
+              <p style={{ color: SLATE_L, fontSize: isMobile ? "0.9rem" : "1rem", margin: 0 }}>
                 Welcome back, {user?.firstName || "Patient"}
               </p>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/book-appointment-wizard")}
-              style={{
-                background: RED,
-                color: WHITE,
-                border: "none",
-                borderRadius: 10,
-                padding: isMobile ? "12px 20px" : "12px 24px",
-                fontSize: isMobile ? "0.85rem" : "0.95rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                width: isMobile ? "100%" : "auto",
-                justifyContent: "center"
-              }}
-            >
-              <FaPlus />
-              Book New Appointment
-            </motion.button>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, width: isMobile ? "100%" : "auto" }}>
+              <NotificationBell />
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/book-appointment-wizard")}
+                style={{
+                  background: RED,
+                  color: WHITE,
+                  border: "none",
+                  borderRadius: 10,
+                  padding: isMobile ? "12px 20px" : "12px 24px",
+                  fontSize: isMobile ? "0.85rem" : "0.95rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: isMobile ? "100%" : "auto",
+                  justifyContent: "center"
+                }}
+              >
+                <FaPlus />
+                Book New Appointment
+              </motion.button>
+            </div>
           </motion.div>
 
           {/* Mandatory Profile Incomplete Alert Banner */}
@@ -521,7 +521,7 @@ function PatientDashboard() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5 }}
-            style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 12 : 20, marginBottom: isMobile ? 24 : 32 }}
+            style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: isMobile ? 12 : 20, marginBottom: isMobile ? 24 : 32 }}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -562,80 +562,80 @@ function PatientDashboard() {
           </motion.div>
 
           {/* Main Content Grid */}
-          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: isMobile ? 16 : 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: isMobile ? 16 : 24 }}>
             {/* Left Column */}
-            <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {/* My Blood Requests */}
               <div style={{
-                background:WHITE,
-                borderRadius:12,
-                border:`1px solid ${BORDER}`,
-                padding:"24px",
+                background: WHITE,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                padding: "24px",
               }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-                  <h2 style={{ fontSize:"1.2rem", fontWeight:700, color:NAVY2, margin:0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: NAVY2, margin: 0 }}>
                     My Blood Requests
                   </h2>
                   <button
                     onClick={() => navigate("/blood-requests")}
                     style={{
-                      background:"transparent",
-                      border:"none",
-                      color:RED,
-                      fontSize:"0.85rem",
-                      fontWeight:600,
-                      cursor:"pointer",
-                      display:"flex",
-                      alignItems:"center",
-                      gap:4,
+                      background: "transparent",
+                      border: "none",
+                      color: RED,
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
                     View All <FaArrowRight />
                   </button>
                 </div>
                 {myRequests.length === 0 ? (
-                  <div style={{ textAlign:"center", padding:"40px 20px", color:SLATE_L }}>
-                    <FaHeartPulse style={{ fontSize:"2.5rem", marginBottom:12, opacity:0.3 }} />
+                  <div style={{ textAlign: "center", padding: "40px 20px", color: SLATE_L }}>
+                    <FaHeartPulse style={{ fontSize: "2.5rem", marginBottom: 12, opacity: 0.3 }} />
                     <p>No blood requests yet</p>
                     <button
                       onClick={() => navigate("/blood-requests")}
                       style={{
-                        marginTop:16,
-                        background:RED,
-                        color:WHITE,
-                        border:"none",
-                        borderRadius:8,
-                        padding:"10px 20px",
-                        fontSize:"0.85rem",
-                        fontWeight:600,
-                        cursor:"pointer",
+                        marginTop: 16,
+                        background: RED,
+                        color: WHITE,
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "10px 20px",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
                       }}
                     >
                       Create Request
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {myRequests.map((request) => (
                       <div
                         key={request._id || request.id}
                         style={{
-                          padding:"16px",
-                          background:SMOKE,
-                          borderRadius:8,
-                          border:`1px solid ${BORDER}`,
-                          display:"flex",
-                          justifyContent:"space-between",
-                          alignItems:"center",
+                          padding: "16px",
+                          background: SMOKE,
+                          borderRadius: 8,
+                          border: `1px solid ${BORDER}`,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
                         }}
                       >
-                        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                           <BloodBadge group={request.bloodGroup} />
                           <div>
-                            <div style={{ fontWeight:600, color:NAVY2, fontSize:"0.9rem" }}>
+                            <div style={{ fontWeight: 600, color: NAVY2, fontSize: "0.9rem" }}>
                               {request.units} unit{request.units > 1 ? "s" : ""}
                             </div>
-                            <div style={{ fontSize:"0.8rem", color:SLATE_L }}>
+                            <div style={{ fontSize: "0.8rem", color: SLATE_L }}>
                               {request.hospitalName || request.hospital} • {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : request.date}
                             </div>
                           </div>
@@ -649,73 +649,73 @@ function PatientDashboard() {
 
               {/* My Appointments */}
               <div style={{
-                background:WHITE,
-                borderRadius:12,
-                border:`1px solid ${BORDER}`,
-                padding:"24px",
+                background: WHITE,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                padding: "24px",
               }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-                  <h2 style={{ fontSize:"1.2rem", fontWeight:700, color:NAVY2, margin:0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: NAVY2, margin: 0 }}>
                     My Appointments
                   </h2>
                   <button
                     onClick={() => navigate("/appointments")}
                     style={{
-                      background:"transparent",
-                      border:"none",
-                      color:RED,
-                      fontSize:"0.85rem",
-                      fontWeight:600,
-                      cursor:"pointer",
-                      display:"flex",
-                      alignItems:"center",
-                      gap:4,
+                      background: "transparent",
+                      border: "none",
+                      color: RED,
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
                     View All <FaArrowRight />
                   </button>
                 </div>
                 {myAppointments.length === 0 ? (
-                  <div style={{ textAlign:"center", padding:"40px 20px", color:SLATE_L }}>
-                    <FaCalendarDays style={{ fontSize:"2.5rem", marginBottom:12, opacity:0.3 }} />
+                  <div style={{ textAlign: "center", padding: "40px 20px", color: SLATE_L }}>
+                    <FaCalendarDays style={{ fontSize: "2.5rem", marginBottom: 12, opacity: 0.3 }} />
                     <p>No upcoming appointments</p>
                   </div>
                 ) : (
-                  <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                     {myAppointments.map((appointment) => (
                       <div
                         key={appointment._id || appointment.id}
                         style={{
-                          padding:"16px",
-                          background:SMOKE,
-                          borderRadius:8,
-                          border:`1px solid ${BORDER}`,
-                          display:"flex",
-                          justifyContent:"space-between",
-                          alignItems:"center",
+                          padding: "16px",
+                          background: SMOKE,
+                          borderRadius: 8,
+                          border: `1px solid ${BORDER}`,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
                         }}
                       >
-                        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                           <div style={{
-                            width:40,
-                            height:40,
-                            borderRadius:8,
-                            background:`${RED}15`,
-                            display:"flex",
-                            alignItems:"center",
-                            justifyContent:"center",
-                            color:RED,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 8,
+                            background: `${RED}15`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: RED,
                           }}>
                             <FaCalendarDays />
                           </div>
                           <div>
-                            <div style={{ fontWeight:600, color:NAVY2, fontSize:"0.9rem" }}>
+                            <div style={{ fontWeight: 600, color: NAVY2, fontSize: "0.9rem" }}>
                               {appointment.department || appointment.type}
                             </div>
-                            <div style={{ fontSize:"0.8rem", color:SLATE_L }}>
+                            <div style={{ fontSize: "0.8rem", color: SLATE_L }}>
                               {appointment.appointmentDate ? new Date(appointment.appointmentDate).toLocaleDateString() : appointment.date} at {appointment.appointmentTime || appointment.time}
                             </div>
-                            <div style={{ fontSize:"0.75rem", color:SLATE_L }}>
+                            <div style={{ fontSize: "0.75rem", color: SLATE_L }}>
                               {appointment.hospitalName || appointment.hospital}
                             </div>
                           </div>
@@ -729,62 +729,78 @@ function PatientDashboard() {
             </div>
 
             {/* Right Column */}
-            <div style={{ display:"flex", flexDirection:"column", gap:24 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {/* Notifications */}
               <div style={{
-                background:WHITE,
-                borderRadius:12,
-                border:`1px solid ${BORDER}`,
-                padding:"24px",
+                background: WHITE,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                padding: "24px",
               }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
-                  <h2 style={{ fontSize:"1.2rem", fontWeight:700, color:NAVY2, margin:0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <h2 style={{ fontSize: "1.2rem", fontWeight: 700, color: NAVY2, margin: 0 }}>
                     Notifications
                   </h2>
                   <button
                     onClick={() => navigate("/notifications")}
                     style={{
-                      background:"transparent",
-                      border:"none",
-                      color:RED,
-                      fontSize:"0.85rem",
-                      fontWeight:600,
-                      cursor:"pointer",
+                      background: "transparent",
+                      border: "none",
+                      color: RED,
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
                     }}
                   >
                     View All
                   </button>
                 </div>
-                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      style={{
-                        padding:"12px",
-                        background: notification.read ? SMOKE : `${RED}08`,
-                        borderRadius:8,
-                        border: notification.read ? `1px solid ${BORDER}` : `1px solid ${RED}30`,
-                        display:"flex",
-                        gap:12,
-                        alignItems:"flex-start",
-                      }}
-                    >
-                      <div style={{
-                        width:8,
-                        height:8,
-                        borderRadius:"50%",
-                        background: notification.read ? SLATE_L : RED,
-                        flexShrink:0,
-                        marginTop:6,
-                      }} />
-                      <div style={{ flex:1 }}>
-                        <p style={{ fontSize:"0.85rem", color:NAVY2, fontWeight:500, margin:0, lineHeight:1.4 }}>
-                          {notification.message}
-                        </p>
-                        <span style={{ fontSize:"0.75rem", color:SLATE_L }}>{notification.time}</span>
-                      </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {notifications && notifications.length > 0 ? (
+                    notifications.slice(0, 5).map((notification) => {
+                      const isUnread = !notification.isRead && !notification.read;
+                      return (
+                        <div
+                          key={notification._id || notification.id}
+                          onClick={() => navigate("/notifications")}
+                          style={{
+                            padding: "12px",
+                            background: isUnread ? `${RED}08` : SMOKE,
+                            borderRadius: 8,
+                            border: isUnread ? `1px solid ${RED}30` : `1px solid ${BORDER}`,
+                            display: "flex",
+                            gap: 12,
+                            alignItems: "flex-start",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: "50%",
+                            background: isUnread ? RED : SLATE_L,
+                            flexShrink: 0,
+                            marginTop: 6,
+                          }} />
+                          <div style={{ flex: 1 }}>
+                            <p style={{ fontSize: "0.85rem", color: NAVY2, fontWeight: 600, margin: "0 0 2px 0" }}>
+                              {notification.title}
+                            </p>
+                            <p style={{ fontSize: "0.82rem", color: SLATE, margin: "0 0 4px 0", lineHeight: 1.4 }}>
+                              {notification.message}
+                            </p>
+                            <span style={{ fontSize: "0.72rem", color: SLATE_L }}>
+                              {notification.createdAt ? new Date(notification.createdAt).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : (notification.time || "Recently")}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ padding: "24px 0", textAlign: "center", color: SLATE_L, fontSize: "0.85rem" }}>
+                      No notifications right now
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>

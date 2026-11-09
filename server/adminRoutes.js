@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
+const notificationService = require("./services/notificationService");
 
 // Helper to generate custom 7-char alphanumeric ID
 const generateCustomId = () => Math.random().toString(36).substring(2, 9);
@@ -2778,6 +2779,26 @@ router.post("/api/admin/notifications/broadcast", async (req, res) => {
 
     list.unshift(newNotif);
     fs.writeFileSync(notifFile, JSON.stringify(list, null, 2), "utf8");
+
+    // Real-time notification dispatch via NotificationEngine
+    const rolesToNotify = targetRole === "all"
+      ? ["patient", "donor", "hospital_staff", "blood_bank_staff", "administrator"]
+      : [targetRole];
+
+    for (const r of rolesToNotify) {
+      notificationService.createAndSendNotification({
+        recipientUserId: `${r}_role_broadcast`,
+        recipientRole: r,
+        senderUserId: "super_admin",
+        senderRole: "admin",
+        senderName: "Hospital Administration",
+        title,
+        message,
+        notificationType: "System Broadcast",
+        priority: type === "critical" ? "Critical" : type === "warning" ? "High" : "Normal",
+        actionUrl: "/notifications",
+      }).catch(err => console.warn("[AdminBroadcast] Error dispatching to role:", r, err.message));
+    }
 
     await logAudit(req, "NOTIFICATION_BROADCAST", "Notifications", `Broadcast '${title}' to target: ${targetRole}`, newNotif._id, title, null, newNotif);
 

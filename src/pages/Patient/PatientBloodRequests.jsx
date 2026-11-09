@@ -30,6 +30,7 @@ import {
   FaCommentDots,
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 import { apiFetch } from "../../utils/apiConfig";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
@@ -802,16 +803,19 @@ function PatientBloodRequests() {
               >
                 <FaBars style={{ fontSize: "1.2rem", color: NAVY2 }} />
               </button>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: NAVY2,
-                fontWeight: 700,
-                fontSize: "1rem"
-              }}>
-                <FaDroplet style={{ color: RED, fontSize: "1.2rem" }} />
-                <span>HRBMS</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <NotificationBell />
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  color: NAVY2,
+                  fontWeight: 700,
+                  fontSize: "1rem"
+                }}>
+                  <FaDroplet style={{ color: RED, fontSize: "1.2rem" }} />
+                  <span>HRBMS</span>
+                </div>
               </div>
             </div>
           )}
@@ -826,26 +830,29 @@ function PatientBloodRequests() {
                 Manage your blood requests
               </p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              style={{
-                background:RED,
-                color:WHITE,
-                border:"none",
-                padding: isMobile ? "12px 20px" : "12px 24px",
-                borderRadius:8,
-                fontSize: isMobile ? "0.9rem" : "0.95rem",
-                fontWeight:600,
-                cursor:"pointer",
-                display:"flex",
-                alignItems:"center",
-                gap:8,
-                width: isMobile ? "100%" : "auto",
-                justifyContent: "center"
-              }}
-            >
-              <FaPlus /> Create Request
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, width: isMobile ? "100%" : "auto", justifyContent: isMobile ? "space-between" : "flex-end" }}>
+              {!isMobile && <NotificationBell />}
+              <button
+                onClick={() => setShowCreateModal(true)}
+                style={{
+                  background:RED,
+                  color:WHITE,
+                  border:"none",
+                  padding: isMobile ? "12px 20px" : "12px 24px",
+                  borderRadius:8,
+                  fontSize: isMobile ? "0.9rem" : "0.95rem",
+                  fontWeight:600,
+                  cursor:"pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  gap:8,
+                  width: isMobile ? "100%" : "auto",
+                  justifyContent: "center"
+                }}
+              >
+                <FaPlus /> Create Request
+              </button>
+            </div>
           </div>
 
           {/* Content */}

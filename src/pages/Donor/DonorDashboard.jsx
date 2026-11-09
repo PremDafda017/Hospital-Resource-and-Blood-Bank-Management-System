@@ -34,6 +34,7 @@ import AppointmentManagement from "./AppointmentManagement";
 import DonationHistory from "./DonationHistory";
 import CertificateGenerator from "./CertificateGenerator";
 import Notifications from "./Notifications";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -505,16 +506,19 @@ function DonorDashboard() {
               >
                 <FaBars style={{ fontSize: "1.2rem", color: NAVY2 }} />
               </button>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: NAVY2,
-                fontWeight: 700,
-                fontSize: "1rem"
-              }}>
-                <FaDroplet style={{ color: RED, fontSize: "1.2rem" }} />
-                <span>HRBMS</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <NotificationBell onNavigateToAll={() => setActiveView("notifications")} />
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  color: NAVY2,
+                  fontWeight: 700,
+                  fontSize: "1rem"
+                }}>
+                  <FaDroplet style={{ color: RED, fontSize: "1.2rem" }} />
+                  <span>HRBMS</span>
+                </div>
               </div>
             </motion.div>
           )}
@@ -524,43 +528,49 @@ function DonorDashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            style={{ marginBottom: isMobile ? 24 : 32 }}
+            style={{ marginBottom: isMobile ? 24 : 32, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}
           >
-            <h1 style={{ fontSize: isMobile ? "1.75rem" : "2.25rem", fontWeight: 800, color: NAVY2, marginBottom: 8 }}>
-              Welcome, {user?.firstName || "Donor"}
-            </h1>
-            <p style={{ fontSize: isMobile ? "0.95rem" : "1rem", color: SLATE_L, marginBottom: 16 }}>
-              {donorApplication?.status === "Pending Verification" 
-                ? "Your application is under review. We'll notify you once verified."
-                : donorApplication?.status === "Rejected"
-                ? `Your application was rejected. Reason: ${donorApplication.rejectionReason}`
-                : "Thank you for your contribution to saving lives."
-              }
-            </p>
-            {donorApplication?.status === "Verified" && (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate("/donor-profile")}
-                style={{
-                  background: RED,
-                  color: WHITE,
-                  border: "none",
-                  borderRadius: 10,
-                  padding: isMobile ? "12px 20px" : "12px 24px",
-                  fontSize: isMobile ? "0.85rem" : "0.95rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8
-                }}
-              >
-                <FaCircleCheck />
-                Update Profile
-              </motion.button>
+            <div>
+              <h1 style={{ fontSize: isMobile ? "1.75rem" : "2.25rem", fontWeight: 800, color: NAVY2, marginBottom: 8 }}>
+                Welcome, {user?.firstName || "Donor"}
+              </h1>
+              <p style={{ fontSize: isMobile ? "0.95rem" : "1rem", color: SLATE_L, marginBottom: 16 }}>
+                {donorApplication?.status === "Pending Verification" 
+                  ? "Your application is under review. We'll notify you once verified."
+                  : donorApplication?.status === "Rejected"
+                  ? `Your application was rejected. Reason: ${donorApplication.rejectionReason}`
+                  : "Thank you for your contribution to saving lives."
+                }
+              </p>
+              {donorApplication?.status === "Verified" && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate("/donor-profile")}
+                  style={{
+                    background: RED,
+                    color: WHITE,
+                    border: "none",
+                    borderRadius: 10,
+                    padding: isMobile ? "12px 20px" : "12px 24px",
+                    fontSize: isMobile ? "0.85rem" : "0.95rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8
+                  }}
+                >
+                  <FaCircleCheck />
+                  Update Profile
+                </motion.button>
+              )}
+            </div>
+            {!isMobile && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <NotificationBell onNavigateToAll={() => setActiveView("notifications")} />
+              </div>
             )}
-               
           </motion.div>
 
           {/* Application Status Banner */}

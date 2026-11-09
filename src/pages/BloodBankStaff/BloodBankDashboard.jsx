@@ -30,6 +30,7 @@ import {
 } from "../../data/indianBloodBankData";
 import { useBloodBank } from "../../contexts/BloodBankContext";
 import { breakpoints, animationVariants, useResponsive } from "../../utils/responsiveDesign";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -316,39 +317,7 @@ function BloodBankDashboard() {
             <h1 style={{ fontSize:"1.1rem", fontWeight:700, color:NAVY2, margin:0 }}>
               Dashboard
             </h1>
-            <button
-              onClick={() => navigate("/bloodbank-notifications")}
-              style={{
-                background:"none",
-                border:"none",
-                fontSize:"1.2rem",
-                cursor:"pointer",
-                color:SLATE,
-                padding:8,
-                position:"relative"
-              }}
-            >
-              <FaBell />
-              {notifications.length > 0 && (
-                <span style={{
-                  position:"absolute",
-                  top:0,
-                  right:0,
-                  width:18,
-                  height:18,
-                  background:RED,
-                  borderRadius:"50%",
-                  color:WHITE,
-                  fontSize:"0.65rem",
-                  fontWeight:700,
-                  display:"flex",
-                  alignItems:"center",
-                  justifyContent:"center"
-                }}>
-                  {notifications.length > 9 ? '9+' : notifications.length}
-                </span>
-              )}
-            </button>
+            <NotificationBell onNavigateToAll={() => navigate("/bloodbank-notifications")} />
           </motion.header>
         )}
 
@@ -380,39 +349,7 @@ function BloodBankDashboard() {
               </div>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-              <button
-                onClick={() => navigate("/bloodbank-notifications")}
-                style={{
-                  background:"none",
-                  border:"none",
-                  fontSize:"1.2rem",
-                  cursor:"pointer",
-                  color:SLATE,
-                  padding:8,
-                  position:"relative"
-                }}
-              >
-                <FaBell />
-                {notifications.length > 0 && (
-                  <span style={{
-                    position:"absolute",
-                    top:0,
-                    right:0,
-                    width:18,
-                    height:18,
-                    background:RED,
-                    borderRadius:"50%",
-                    color:WHITE,
-                    fontSize:"0.65rem",
-                    fontWeight:700,
-                    display:"flex",
-                    alignItems:"center",
-                    justifyContent:"center"
-                  }}>
-                    {notifications.length > 9 ? '9+' : notifications.length}
-                  </span>
-                )}
-              </button>
+              <NotificationBell onNavigateToAll={() => navigate("/bloodbank-notifications")} />
               <div style={{
                 width:40,
                 height:40,

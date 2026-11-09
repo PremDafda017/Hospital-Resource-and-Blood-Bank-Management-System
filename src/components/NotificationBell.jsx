@@ -1,5 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FaBell, FaCheckDouble, FaDroplet, FaCalendarDays, FaCommentDots, FaTriangleExclamation, FaCircleInfo, FaArrowRight } from "react-icons/fa6";
+import {
+  FaBell,
+  FaCheckDouble,
+  FaDroplet,
+  FaCalendarDays,
+  FaCommentDots,
+  FaTriangleExclamation,
+  FaCircleInfo,
+  FaArrowRight,
+  FaVolumeHigh,
+  FaVolumeXmark
+} from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 import { useNotification } from "../contexts/NotificationContext";
 import { useUser } from "@clerk/clerk-react";
@@ -39,12 +50,21 @@ function getNotificationIcon(type, priority) {
   return <FaCircleInfo style={{ color: "#0284C7" }} />;
 }
 
-export default function NotificationBell({ onNavigateToAll }) {
+export default function NotificationBell({ onNavigateToAll, className = "" }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { user } = useUser();
-  const { notifications, unreadCount, markAsRead, markAllAsRead, openConversation } = useNotification();
+  const {
+    notifications,
+    unreadCount,
+    isRinging,
+    soundEnabled,
+    toggleSound,
+    markAsRead,
+    markAllAsRead,
+    openConversation
+  } = useNotification();
 
   const userRole = (user?.unsafeMetadata?.role || localStorage.getItem("userRole") || "patient").toLowerCase().trim();
 
@@ -73,7 +93,7 @@ export default function NotificationBell({ onNavigateToAll }) {
       navigate("/notifications");
     } else if (userRole === "hospital_staff" || userRole === "hospital" || userRole === "doctor") {
       navigate("/hospital-notifications");
-    } else if (userRole === "blood_bank_staff" || userRole === "blood_bank") {
+    } else if (userRole === "blood_bank_staff" || userRole === "blood_bank" || userRole === "bloodbank") {
       navigate("/bloodbank-notifications");
     } else if (userRole === "donor") {
       navigate("/donor-notifications");
@@ -87,30 +107,56 @@ export default function NotificationBell({ onNavigateToAll }) {
     if (id) {
       markAsRead(id);
     }
+
     if (notif.requestId && notif.relatedEntityType === "Message") {
       setIsOpen(false);
       openConversation({
         requestId: notif.requestId,
         requestNumber: notif.requestId,
+        recipientRole: notif.senderRole || "",
+        recipientUserId: notif.senderUserId || "",
+        recipientName: notif.senderName || "",
       });
       return;
     }
+
     if (notif.actionUrl) {
       setIsOpen(false);
       navigate(notif.actionUrl);
+      return;
+    }
+
+    // Role-aware intelligent fallback routing
+    setIsOpen(false);
+    if (notif.relatedEntityType === "BloodRequest" || notif.requestId) {
+      if (userRole === "patient") navigate("/blood-requests");
+      else if (userRole.includes("hospital")) navigate("/hospital-blood-requests");
+      else if (userRole.includes("blood_bank") || userRole.includes("bloodbank")) navigate("/bloodbank-requests");
+      else navigate("/admin");
+    } else if (notif.relatedEntityType === "Appointment") {
+      if (userRole === "patient") navigate("/my-appointments");
+      else if (userRole === "donor") navigate("/donor/appointments");
+      else if (userRole.includes("hospital")) navigate("/hospital-appointments");
+      else if (userRole.includes("blood_bank") || userRole.includes("bloodbank")) navigate("/appointment-management");
+      else navigate("/admin");
+    } else if (notif.relatedEntityType === "Report") {
+      if (userRole === "patient") navigate("/my-reports");
+      else if (userRole.includes("hospital")) navigate("/hospital-reports");
+      else navigate("/admin");
     }
   };
 
   return (
-    <div className="notification-bell-container" ref={dropdownRef}>
+    <div className={`notification-bell-container ${className}`} ref={dropdownRef}>
       <button
-        className="notification-bell"
+        className={`notification-bell ${isRinging ? "ringing" : ""}`}
         onClick={() => setIsOpen((prev) => !prev)}
-        aria-label={`Notifications (${unreadCount})`}
+        aria-label={`Notifications (${unreadCount} unread)`}
+        title={unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : "Notifications"}
       >
         <FaBell />
         {unreadCount > 0 && (
-          <span className="notification-badge">
+          <span className="notification-badge" aria-live="polite">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -125,7 +171,7 @@ export default function NotificationBell({ onNavigateToAll }) {
                 <span
                   style={{
                     fontSize: "0.72rem",
-                    fontWeight: 700,
+                    fontWeight: 800,
                     background: `${RED}15`,
                     color: RED,
                     padding: "2px 8px",
@@ -136,22 +182,49 @@ export default function NotificationBell({ onNavigateToAll }) {
                 </span>
               )}
             </div>
-            {unreadCount > 0 && (
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {/* Quick Sound Toggle */}
               <button
-                className="mark-read-btn"
-                onClick={markAllAsRead}
-                title="Mark all as read"
-                style={{ display: "flex", alignItems: "center", gap: 4 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSound();
+                }}
+                title={soundEnabled ? "Notification sound is ON (click to mute)" : "Notification sound is MUTED (click to enable)"}
+                style={{
+                  background: soundEnabled ? "#F1F5F9" : "#FEE2E2",
+                  border: "none",
+                  color: soundEnabled ? "#475569" : RED,
+                  cursor: "pointer",
+                  padding: "6px 8px",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.85rem",
+                  transition: "all 0.15s ease",
+                }}
               >
-                <FaCheckDouble style={{ fontSize: "0.7rem" }} />
-                <span>Mark all read</span>
+                {soundEnabled ? <FaVolumeHigh /> : <FaVolumeXmark />}
               </button>
-            )}
+
+              {unreadCount > 0 && (
+                <button
+                  className="mark-read-btn"
+                  onClick={markAllAsRead}
+                  title="Mark all as read"
+                  style={{ display: "flex", alignItems: "center", gap: 4 }}
+                >
+                  <FaCheckDouble style={{ fontSize: "0.7rem" }} />
+                  <span>Mark all read</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="notification-list">
             {notifications && notifications.length > 0 ? (
-              notifications.slice(0, 6).map((item, idx) => {
+              notifications.slice(0, 8).map((item, idx) => {
                 const isUnread = !item.isRead && !item.read;
                 return (
                   <div
@@ -174,6 +247,11 @@ export default function NotificationBell({ onNavigateToAll }) {
                             Ref: {item.requestId}
                           </span>
                         )}
+                        {item.senderName && (
+                          <span style={{ fontSize: "0.65rem", color: "#64748B" }}>
+                            • {item.senderName}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {isUnread && <div className="notification-indicator" />}
@@ -182,7 +260,8 @@ export default function NotificationBell({ onNavigateToAll }) {
               })
             ) : (
               <div className="notification-empty">
-                <p>No notifications right now</p>
+                <FaBell style={{ fontSize: "1.8rem", color: "#CBD5E1", marginBottom: 8 }} />
+                <p style={{ margin: 0 }}>No notifications right now</p>
               </div>
             )}
           </div>

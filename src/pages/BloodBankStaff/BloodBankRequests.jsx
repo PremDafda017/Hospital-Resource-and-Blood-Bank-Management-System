@@ -28,6 +28,7 @@ import { useBloodBank } from "../../contexts/BloodBankContext";
 import { useNotification } from "../../contexts/NotificationContext";
 import { apiFetch } from "../../utils/apiConfig";
 import { breakpoints, animationVariants, useResponsive } from "../../utils/responsiveDesign";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -499,7 +500,7 @@ function BloodBankRequests() {
             <h1 style={{ fontSize:isMobile ? "1.1rem" : "1.4rem", fontWeight:700, color:NAVY2, margin:0 }}>
               Blood Requests
             </h1>
-            <div style={{ width:32 }} />
+            <NotificationBell />
           </motion.header>
         )}
 
@@ -527,6 +528,7 @@ function BloodBankRequests() {
               </div>
             </div>
             <div style={{ display:"flex", gap:12, alignItems:"center", flexWrap:isTablet ? "wrap" : "nowrap" }}>
+              <NotificationBell />
               <button
                 onClick={handleManualRefresh}
                 style={{

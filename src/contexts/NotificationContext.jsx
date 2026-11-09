@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { io } from 'socket.io-client';
 import { API_BASE_URL, apiFetch } from '../utils/apiConfig';
@@ -20,9 +20,71 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeConversation, setActiveConversation] = useState(null);
+  const [isRinging, setIsRinging] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try {
+      return localStorage.getItem('hemocare_sound_enabled') !== 'false';
+    } catch (_) {
+      return true;
+    }
+  });
+
+  const lastSoundTimeRef = useRef(0);
+  const ringTimeoutRef = useRef(null);
+  const broadcastChannelRef = useRef(null);
 
   const userId = user?.id || localStorage.getItem("clerkId") || "";
   const userRole = (user?.unsafeMetadata?.role || localStorage.getItem("userRole") || "patient").toLowerCase().trim();
+
+  // Multi-tab synchronization via BroadcastChannel
+  useEffect(() => {
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      const channel = new BroadcastChannel("hemocare_notifications");
+      broadcastChannelRef.current = channel;
+
+      channel.onmessage = (event) => {
+        const { type, payload } = event.data || {};
+        if (type === "MARK_READ" && payload?.id) {
+          setNotifications(prev => prev.map(n => ((n._id === payload.id || n.id === payload.id) ? { ...n, isRead: true, read: true } : n)));
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        } else if (type === "MARK_ALL_READ") {
+          setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
+          setUnreadCount(0);
+        } else if (type === "SOUND_TOGGLE" && typeof payload?.enabled === "boolean") {
+          setSoundEnabled(payload.enabled);
+        } else if (type === "NEW_NOTIFICATION" && payload) {
+          triggerBellRing();
+        }
+      };
+
+      return () => {
+        channel.close();
+      };
+    }
+  }, []);
+
+  // Sound preference toggle
+  const toggleSound = useCallback(() => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('hemocare_sound_enabled', String(next));
+      } catch (_) {}
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.postMessage({ type: "SOUND_TOGGLE", payload: { enabled: next } });
+      }
+      return next;
+    });
+  }, []);
+
+  // Subtle ringing bell animation trigger
+  const triggerBellRing = useCallback(() => {
+    setIsRinging(true);
+    if (ringTimeoutRef.current) clearTimeout(ringTimeoutRef.current);
+    ringTimeoutRef.current = setTimeout(() => {
+      setIsRinging(false);
+    }, 1400);
+  }, []);
 
   // Auto-unlock Web Audio context on the first user interaction
   useEffect(() => {
@@ -38,17 +100,20 @@ export const NotificationProvider = ({ children }) => {
       } catch (_) {}
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
     };
     window.addEventListener('click', unlockAudio, { once: true });
     window.addEventListener('keydown', unlockAudio, { once: true });
+    window.addEventListener('touchstart', unlockAudio, { once: true });
     return () => {
       window.removeEventListener('click', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
     };
   }, []);
 
   // Harmonic medical chime fallback via Web Audio API (zero file dependencies, 100% reliable)
-  const playChimeFallback = useCallback(() => {
+  const playChimeFallback = useCallback((isCritical = false) => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
@@ -59,7 +124,33 @@ export const NotificationProvider = ({ children }) => {
 
       const now = ctx.currentTime;
 
-      // Note 1: E5 (659.25 Hz)
+      if (isCritical) {
+        // High alert double pulse (A5: 880Hz, C6: 1046.5Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(880, now);
+        gain1.gain.setValueAtTime(0.4, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.18);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(1046.5, now + 0.12);
+        gain2.gain.setValueAtTime(0.45, now + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.35);
+        return;
+      }
+
+      // Standard harmonic clinical chime: Note 1: E5 (659.25 Hz)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
@@ -87,47 +178,72 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // Primary sound player with instant fallback
-  const playNotificationSound = useCallback(() => {
+  // Primary sound player with instant fallback & overlapping prevention
+  const playNotificationSound = useCallback((priority = "Normal") => {
+    if (!soundEnabled) return;
+
+    // Prevent overlapping sounds within 750ms
+    const now = Date.now();
+    if (now - lastSoundTimeRef.current < 750) {
+      return;
+    }
+    lastSoundTimeRef.current = now;
+
+    const isCritical = priority === "Critical" || priority === "critical";
+
     try {
-      const audio = new Audio('/Notify%20Sound.mp3');
-      audio.volume = 0.85;
+      const soundFile = isCritical ? '/CriticalAlarm.mp3' : '/Notify%20Sound.mp3';
+      const audio = new Audio(soundFile);
+      audio.volume = isCritical ? 0.95 : 0.85;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          playChimeFallback();
+          playChimeFallback(isCritical);
         });
       }
-    } catch (err) {
-      playChimeFallback();
+    } catch (_) {
+      playChimeFallback(isCritical);
     }
-  }, [playChimeFallback]);
+  }, [soundEnabled, playChimeFallback]);
 
   // Display toast notification popup & store in persistent notification state & DB
   const showNotification = useCallback((notification) => {
     const id = Date.now() + Math.random();
+    const isCritical = notification.priority === "Critical" || notification.type === "critical" || notification.type === "error";
+    const isHigh = notification.priority === "High" || notification.type === "warning" || notification.type === "alert";
+
     const newToast = {
       id,
-      type: notification.type || 'info',
+      type: isCritical ? 'critical' : isHigh ? 'warning' : (notification.type || 'info'),
+      priority: notification.priority || (isCritical ? 'Critical' : isHigh ? 'High' : 'Normal'),
       title: notification.title || 'Notification',
       message: notification.message || '',
-      duration: notification.duration || 5000,
+      senderName: notification.senderName || notification.senderRole || '',
+      senderRole: notification.senderRole || '',
+      requestId: notification.requestId || '',
+      actionUrl: notification.actionUrl || '',
+      relatedEntityType: notification.relatedEntityType || 'System',
+      duration: notification.duration || (isCritical ? 10000 : isHigh ? 8000 : 6000),
       playSound: notification.playSound !== false,
       date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
       ...notification
     };
 
     // 1. Show onscreen toast popup
     setToasts(prev => [newToast, ...prev]);
 
-    // 2. Play sound
+    // 2. Play sound only if allowed and enabled
     if (newToast.playSound) {
-      playNotificationSound();
+      playNotificationSound(newToast.priority);
     }
 
-    // 3. Store permanently in notifications state for the notification page & bell
+    // 3. Trigger visual bell ring animation
+    triggerBellRing();
+
+    // 4. Store in persistent notification state for the notification page & bell
+    const notifId = notification._id || notification.id || `notif_${id}`;
     setNotifications(prev => {
-      const notifId = notification._id || notification.id || `notif_${id}`;
       if (prev.some(n => (n._id && n._id === notifId) || (n.id && n.id === notifId))) {
         return prev;
       }
@@ -137,15 +253,19 @@ export const NotificationProvider = ({ children }) => {
           id: notifId,
           title: newToast.title,
           message: newToast.message,
-          notificationType: newToast.type === 'error' || newToast.type === 'critical' ? 'Alert' : 'General',
+          notificationType: newToast.notificationType || (isCritical ? 'Alert' : 'General'),
           type: newToast.type,
-          priority: newToast.type === 'critical' ? 'Critical' : 'Normal',
-          createdAt: new Date().toISOString(),
-          date: new Date().toISOString().split('T')[0],
+          priority: newToast.priority,
+          createdAt: newToast.createdAt,
+          date: newToast.date,
           isRead: false,
           read: false,
           recipientUserId: userId,
+          senderName: newToast.senderName,
+          senderRole: newToast.senderRole,
+          requestId: newToast.requestId,
           actionUrl: newToast.actionUrl || "",
+          relatedEntityType: newToast.relatedEntityType,
           ...notification,
         },
         ...prev
@@ -153,7 +273,12 @@ export const NotificationProvider = ({ children }) => {
     });
     setUnreadCount(prev => prev + 1);
 
-    // 4. Save to backend database so it persists across page reloads & visits
+    // Broadcast to other open tabs
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.postMessage({ type: "NEW_NOTIFICATION", payload: newToast });
+    }
+
+    // 5. Save to backend database if this was a purely client-triggered notification
     if (userId && !notification.skipPersist && !notification._id) {
       apiFetch('/api/notifications', {
         method: 'POST',
@@ -163,20 +288,22 @@ export const NotificationProvider = ({ children }) => {
           recipientRole: userRole,
           title: newToast.title,
           message: newToast.message,
-          notificationType: newToast.category || newToast.type || 'System',
-          priority: newToast.type === 'critical' ? 'Critical' : 'Normal',
+          notificationType: newToast.notificationType || newToast.type || 'System',
+          priority: newToast.priority,
           actionUrl: newToast.actionUrl || "",
+          requestId: newToast.requestId || "",
+          relatedEntityType: newToast.relatedEntityType || "System",
         })
       }).catch(() => {});
     }
 
-    // 5. Auto dismiss ONLY the onscreen toast popup (persistent notification stays intact)
+    // 6. Auto dismiss ONLY the onscreen toast popup (persistent notification stays in DB & bell)
     if (newToast.duration > 0) {
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
       }, newToast.duration);
     }
-  }, [userId, userRole, playNotificationSound]);
+  }, [userId, userRole, playNotificationSound, triggerBellRing]);
 
   const dismissNotification = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -186,7 +313,7 @@ export const NotificationProvider = ({ children }) => {
     setToasts([]);
   }, []);
 
-  // Fetch real notifications from backend database
+  // Fetch real notifications and unread count from backend database
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     try {
@@ -206,8 +333,13 @@ export const NotificationProvider = ({ children }) => {
 
   // Mark single notification as read
   const markAsRead = useCallback(async (id) => {
-    setNotifications(prev => prev.map(n => (n._id === id || n.id === id ? { ...n, isRead: true, read: true } : n)));
+    setNotifications(prev => prev.map(n => ((n._id === id || n.id === id) ? { ...n, isRead: true, read: true } : n)));
     setUnreadCount(prev => Math.max(0, prev - 1));
+
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.postMessage({ type: "MARK_READ", payload: { id } });
+    }
+
     try {
       await apiFetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: "PUT" });
     } catch (_) {}
@@ -217,6 +349,11 @@ export const NotificationProvider = ({ children }) => {
   const markAllAsRead = useCallback(async () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
     setUnreadCount(0);
+
+    if (broadcastChannelRef.current) {
+      broadcastChannelRef.current.postMessage({ type: "MARK_ALL_READ" });
+    }
+
     if (userId) {
       try {
         await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}`, { method: "PUT" });
@@ -234,23 +371,64 @@ export const NotificationProvider = ({ children }) => {
     try {
       socket = io(API_BASE_URL, {
         transports: ["websocket", "polling"],
-        reconnectionAttempts: 5,
+        reconnectionAttempts: 10,
         reconnectionDelay: 1500,
       });
 
-      socket.on("connect", () => {
-        socket.emit("join-user-room", userId);
+      const joinAllRooms = () => {
+        // Join all possible IDs for this user
+        const idsToJoin = new Set([userId]);
+        try {
+          const clerkId = localStorage.getItem("clerkId");
+          const localUid = localStorage.getItem("userId");
+          const patientId = localStorage.getItem("patientId");
+          const donorId = localStorage.getItem("donorId");
+          const staffId = localStorage.getItem("hospitalStaffId");
+          const bbStaffId = localStorage.getItem("bloodBankStaffId");
+          const adminId = localStorage.getItem("adminId");
+
+          if (clerkId) idsToJoin.add(clerkId);
+          if (localUid) idsToJoin.add(localUid);
+          if (patientId) idsToJoin.add(patientId);
+          if (donorId) idsToJoin.add(donorId);
+          if (staffId) idsToJoin.add(staffId);
+          if (bbStaffId) idsToJoin.add(bbStaffId);
+          if (adminId) idsToJoin.add(adminId);
+        } catch (_) {}
+
+        idsToJoin.forEach((id) => {
+          if (id) socket.emit("join-user-room", id);
+        });
+
         if (userRole) {
           socket.emit("join-role-room", userRole);
+          if (userRole === "hospital_staff" || userRole === "hospital") {
+            socket.emit("join-role-room", "hospital_staff");
+          } else if (userRole === "blood_bank_staff" || userRole === "blood_bank") {
+            socket.emit("join-role-room", "blood_bank_staff");
+            socket.emit("join-staff-room");
+          } else if (userRole === "administrator" || userRole === "admin" || userRole === "super_admin") {
+            socket.emit("join-role-room", "administrator");
+            socket.emit("join-role-room", "admin");
+          }
         }
-      });
+      };
+
+      socket.on("connect", joinAllRooms);
+      socket.on("reconnect", joinAllRooms);
 
       // Listen for direct personal notifications
       socket.on("notification", (incomingNotif) => {
         showNotification({
           ...incomingNotif,
           skipPersist: true,
-          type: incomingNotif.priority === "Critical" ? "critical" : incomingNotif.priority === "High" ? "warning" : "info",
+        });
+      });
+
+      socket.on("notification:new", (incomingNotif) => {
+        showNotification({
+          ...incomingNotif,
+          skipPersist: true,
         });
       });
 
@@ -260,22 +438,49 @@ export const NotificationProvider = ({ children }) => {
           showNotification({
             ...incomingNotif,
             skipPersist: true,
-            type: incomingNotif.priority === "Critical" ? "critical" : "info",
           });
+        }
+      });
+
+      // Listen for notification read status from another tab or action
+      socket.on("notification:read", ({ notificationId, id }) => {
+        const targetId = notificationId || id;
+        if (targetId) {
+          setNotifications(prev => prev.map(n => ((n._id === targetId || n.id === targetId) ? { ...n, isRead: true, read: true } : n)));
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+      });
+
+      socket.on("notification:all-read", () => {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
+        setUnreadCount(0);
+      });
+
+      socket.on("notification:count", ({ count }) => {
+        if (typeof count === "number") {
+          setUnreadCount(count);
         }
       });
 
       // Listen for new messages
       socket.on("new-message", (incomingMsg) => {
         if (incomingMsg.senderUserId !== userId) {
-          playNotificationSound();
+          showNotification({
+            title: `New Message from ${incomingMsg.senderName || incomingMsg.senderRole || "Colleague"}`,
+            message: incomingMsg.text || incomingMsg.message || "You have received a new message.",
+            type: "info",
+            priority: "Normal",
+            relatedEntityType: "Message",
+            requestId: incomingMsg.requestId || "",
+            skipPersist: true,
+          });
         }
       });
     } catch (err) {
       console.warn("Socket.io connection warning in NotificationContext:", err.message);
     }
 
-    // Polling fallback every 20 seconds to guarantee fresh notifications across tabs
+    // Polling fallback every 20 seconds to guarantee fresh synchronization across tabs
     const interval = setInterval(() => {
       fetchNotifications();
     }, 20000);
@@ -286,7 +491,7 @@ export const NotificationProvider = ({ children }) => {
         socket.disconnect();
       }
     };
-  }, [userId, userRole, fetchNotifications, showNotification, playNotificationSound]);
+  }, [userId, userRole, fetchNotifications, showNotification]);
 
   // Request Conversation Modal controls
   const openConversation = useCallback((details) => {
@@ -301,6 +506,9 @@ export const NotificationProvider = ({ children }) => {
     toasts,
     notifications,
     unreadCount,
+    isRinging,
+    soundEnabled,
+    toggleSound,
     showNotification,
     playNotificationSound,
     dismissNotification,

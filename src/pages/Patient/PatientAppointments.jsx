@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import PatientAppointmentDashboard from "../../components/patient/PatientAppointmentDashboard";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaCalendarDays,
   FaPlus,
@@ -140,7 +141,8 @@ function PatientAppointments() {
           </div>
 
           {/* Right */}
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <NotificationBell />
             <button
               onClick={() => navigate("/book-appointment-wizard")}
               style={{

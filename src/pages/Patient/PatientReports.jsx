@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaFileMedical,
   FaDownload,
@@ -262,6 +263,7 @@ function PatientReports() {
                 View your medical reports
               </p>
             </div>
+            <NotificationBell />
           </div>
 
           {/* Content */}

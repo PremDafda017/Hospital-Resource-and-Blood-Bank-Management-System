@@ -30,6 +30,7 @@ import {
   FaXmark
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 import { patientProfileService } from "../../services/patientProfileService";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
@@ -520,16 +521,18 @@ function PatientProfile() {
               </p>
             </div>
 
-            {/* Profile Completeness Pill in Header */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              background: isProfileComplete ? "#DCFCE7" : "#FEE2E2",
-              border: `1px solid ${isProfileComplete ? "#86EFAC" : "#FCA5A5"}`,
-              padding: "8px 16px",
-              borderRadius: 20
-            }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <NotificationBell />
+              {/* Profile Completeness Pill in Header */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: isProfileComplete ? "#DCFCE7" : "#FEE2E2",
+                border: `1px solid ${isProfileComplete ? "#86EFAC" : "#FCA5A5"}`,
+                padding: "8px 16px",
+                borderRadius: 20
+              }}>
               {isProfileComplete ? (
                 <FaCircleCheck style={{ color: "#16A34A", fontSize: "1.1rem" }} />
               ) : (
@@ -544,6 +547,7 @@ function PatientProfile() {
               </span>
             </div>
           </div>
+        </div>
 
           {/* ══════════════════════════════════════════════════════════
               HIGH PRIORITY MANDATORY COMPLETION ALERT BANNER

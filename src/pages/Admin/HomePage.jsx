@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { roleToDashboardPath, clearAuthSession, resolveUserRole } from "../../utils/authUtils";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaRightFromBracket,
   FaDroplet,
@@ -887,17 +888,7 @@ export default function HomePage() {
             </button>
 
             {/* Notification Bell (Desktop) */}
-            <button className="desktop-actions" style={{
-              width: 44, height: 44, borderRadius: 14,
-              border: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.2)" : BORDER}`,
-              background: theme === "dark" ? "rgba(255,255,255,0.1)" : "#F1F5F9",
-              cursor: "pointer", alignItems: "center", justifyContent: "center",
-              color: theme === "dark" ? WHITE : SLATE,
-              fontSize: "1rem", position: "relative", transition: "all 0.25s ease"
-            }}>
-              <FaBell />
-              <span style={{ position: "absolute", top: -2, right: -2, background: RED, color: WHITE, fontSize: "0.68rem", fontWeight: 800, minWidth: 18, height: 18, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>3</span>
-            </button>
+            {isSignedIn && <NotificationBell />}
 
             {/* User Profile / Auth Action Buttons */}
             <div className="desktop-actions" style={{ alignItems: "center", gap: 12 }}>

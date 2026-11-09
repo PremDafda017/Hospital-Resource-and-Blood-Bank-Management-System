@@ -23,6 +23,7 @@ import {
   FaTriangleExclamation,
 } from "react-icons/fa6";
 import { useNotification } from "../../contexts/NotificationContext";
+import NotificationBell from "../../components/NotificationBell";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -284,24 +285,27 @@ function MyAppointments() {
                 View and manage your appointment history
               </p>
             </div>
-            <button
-              onClick={() => navigate('/appointments')}
-              style={{
-                background:RED,
-                color:WHITE,
-                border:"none",
-                padding:"12px 24px",
-                borderRadius:8,
-                fontSize:"0.95rem",
-                fontWeight:600,
-                cursor:"pointer",
-                display:"flex",
-                alignItems:"center",
-                gap:8
-              }}
-            >
-              <FaCalendarDays /> Book New Appointment
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <NotificationBell />
+              <button
+                onClick={() => navigate('/appointments')}
+                style={{
+                  background:RED,
+                  color:WHITE,
+                  border:"none",
+                  padding:"12px 24px",
+                  borderRadius:8,
+                  fontSize:"0.95rem",
+                  fontWeight:600,
+                  cursor:"pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  gap:8
+                }}
+              >
+                <FaCalendarDays /> Book New Appointment
+              </button>
+            </div>
           </div>
 
           {/* Filters */}

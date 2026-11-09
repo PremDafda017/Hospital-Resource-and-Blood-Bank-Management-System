@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import NotificationBell from "../../components/NotificationBell";
 import {
   FaMapLocationDot,
   FaMagnifyingGlass,
@@ -317,6 +318,7 @@ function PatientBloodBanks() {
                 Find blood banks near you
               </p>
             </div>
+            <NotificationBell />
           </div>
 
           {/* Content */}
