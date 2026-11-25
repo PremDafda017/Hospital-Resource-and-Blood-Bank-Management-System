@@ -40,6 +40,7 @@ export default function RequestMessageModal({
     if (currentRole === "patient") return "hospital_staff";
     if (currentRole.includes("hospital") && patientName) return "patient";
     if (currentRole.includes("hospital")) return "blood_bank_staff";
+    if (currentRole.includes("admin")) return "patient";
     return "hospital_staff";
   });
 
@@ -316,6 +317,65 @@ export default function RequestMessageModal({
                   }}
                 >
                   🏦 To Blood Bank Staff
+                </button>
+              </div>
+            )}
+
+            {/* Role Recipient Switcher for Administrator */}
+            {currentRole.includes("admin") && (
+              <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                {patientName && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole("patient")}
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 6,
+                      border: "none",
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      background: selectedRole === "patient" ? "#C41230" : "rgba(255,255,255,0.18)",
+                      color: "#FFFFFF",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    💬 Patient ({patientName})
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("hospital_staff")}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: selectedRole === "hospital_staff" ? "#C41230" : "rgba(255,255,255,0.18)",
+                    color: "#FFFFFF",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  🏥 Hospital Staff
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("blood_bank_staff")}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: selectedRole === "blood_bank_staff" ? "#C41230" : "rgba(255,255,255,0.18)",
+                    color: "#FFFFFF",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  🏦 Blood Bank Staff
                 </button>
               </div>
             )}

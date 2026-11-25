@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHeartPulse, FaPlus, FaCalendar, FaUser, FaEye, FaTrash, FaCheck, FaXmark, FaMagnifyingGlass, FaHospital, FaFilter } from 'react-icons/fa6';
 import DashboardLayout from '../../../components/DashboardLayout';
+import { useNotification } from '../../../contexts/NotificationContext';
 import { bloodBankDatabase, states, citiesByState, getHospitalsByState } from '../../../data/hospitalData';
 
 /* Design Tokens matching Dashboard */
@@ -18,6 +19,7 @@ const BORDER = "#E2E8F0";
 
 function BloodRequests() {
   const navigate = useNavigate();
+  const { openConversation } = useNotification();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -299,6 +301,27 @@ function BloodRequests() {
                         onMouseLeave={e => { e.currentTarget.style.background = WHITE; e.currentTarget.style.borderColor = BORDER; }}
                       >
                         <FaEye /> View
+                      </button>
+                      <button 
+                        onClick={() => openConversation({
+                          requestId: String(req.id || req._id),
+                          requestNumber: String(req.requestNumber || req.id || req._id),
+                          bloodGroup: req.bloodType || req.bloodGroup,
+                          units: req.units,
+                          patientName: req.patient,
+                          recipientRole: "patient",
+                          recipientUserId: req.patientId,
+                          recipientName: req.patient,
+                        })}
+                        style={{ 
+                          padding:'10px 14px', borderRadius:10, border:`1px solid #2563EB`,
+                          background:`#EFF6FF`, color:'#2563EB', fontFamily:FONT, fontSize:'0.85rem',
+                          fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center',
+                          justifyContent:'center', gap:4, transition:'all 0.2s'
+                        }}
+                        title="Discuss Requisition"
+                      >
+                        💬 Discuss
                       </button>
                       {req.status?.toLowerCase() === 'pending' && (
                         <>

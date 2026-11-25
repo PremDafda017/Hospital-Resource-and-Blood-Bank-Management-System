@@ -360,7 +360,7 @@ export default function SuperAdminDashboard() {
   const [profileDropdown, setProfileDropdown] = useState(false);
 
   // Rich Notification system with audio telemetry (identical to PatientProfile.jsx)
-  const { showNotification, playNotificationSound } = useNotification();
+  const { showNotification, playNotificationSound, openConversation } = useNotification();
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = "success", customTitle) => {
@@ -2505,6 +2505,34 @@ export default function SuperAdminDashboard() {
                           style={{ border: "none", background: "#FEE2E2", color: RED, padding: "4px 8px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: "0.72rem" }}
                         >
                           Reject
+                        </button>
+                        <button
+                          onClick={() => openConversation({
+                            requestId: req._id,
+                            requestNumber: req.requestNumber || req.requestId || req._id,
+                            bloodGroup: req.bloodGroup,
+                            units: req.units,
+                            patientName: req.patientName,
+                            recipientRole: "patient",
+                            recipientUserId: req.patientClerkId || req.patientId,
+                            recipientName: req.patientName,
+                          })}
+                          style={{
+                            border: "none",
+                            background: "#EFF6FF",
+                            color: "#2563EB",
+                            padding: "4px 8px",
+                            borderRadius: 8,
+                            cursor: "pointer",
+                            fontWeight: 700,
+                            fontSize: "0.72rem",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4
+                          }}
+                          title="Open Request Discussion"
+                        >
+                          💬 Discuss
                         </button>
                       </div>
                     </td>

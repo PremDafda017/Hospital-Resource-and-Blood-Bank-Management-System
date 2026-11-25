@@ -42,7 +42,7 @@ function Notifications() {
     { id: 8, title: 'System Maintenance', message: 'Scheduled system maintenance tonight at 2:00 AM IST - Expected downtime: 30 minutes', time: '6 hours ago', read: true, type: 'info', category: 'system' },
   ]);
 
-  const { showNotification } = useNotification();
+  const { showNotification, openConversation } = useNotification();
 
   // Load any backend admin alerts
   useEffect(() => {
@@ -57,7 +57,9 @@ function Notifications() {
             time: new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             read: n.isRead,
             type: n.priority === 'urgent' ? 'critical' : (n.notificationType === 'blood_stock_alert' ? 'warning' : 'info'),
-            category: n.relatedEntityType === 'blood_request' ? 'request' : 'system'
+            category: n.relatedEntityType === 'blood_request' ? 'request' : 'system',
+            requestId: n.requestId || (n.relatedEntityType === 'Message' || n.relatedEntityType === 'BloodRequest' ? n.relatedEntityId : ''),
+            patientName: n.recipientRole === 'patient' ? n.recipientName : '',
           }));
           setNotificationsList(prev => [...mapped, ...prev]);
         }
@@ -351,6 +353,25 @@ function Notifications() {
 
                   {/* Actions */}
                   <div style={{ display:'flex', gap:8 }}>
+                    {(notification.requestId || notification.category === 'request') && (
+                      <button
+                        onClick={() => openConversation({
+                          requestId: String(notification.requestId || notification.id),
+                          requestNumber: String(notification.requestId || notification.id),
+                          patientName: notification.patientName || "Patient",
+                          recipientRole: "patient",
+                        })}
+                        style={{
+                          padding:'8px 12px', borderRadius:8, border:`1px solid #2563EB`,
+                          background:'#EFF6FF', color:'#2563EB', cursor:'pointer',
+                          display:'flex', alignItems:'center', gap:6, transition:'all 0.2s',
+                          fontSize:'0.8rem', fontWeight:600
+                        }}
+                        title="Open Discussion Thread"
+                      >
+                        💬 Discuss
+                      </button>
+                    )}
                     {!notification.read && (
                       <button 
                         onClick={() => markAsRead(notification.id)}

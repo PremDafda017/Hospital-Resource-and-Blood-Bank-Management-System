@@ -159,6 +159,10 @@ router.post("/api/messages", async (req, res) => {
             globalIo.to("role-patient").emit("new-message", payload);
           } else if (normRole === "donor") {
             globalIo.to("role-donor").emit("new-message", payload);
+          } else if (normRole === "admin" || normRole === "administrator") {
+            globalIo.to("role-admin").emit("new-message", payload);
+            globalIo.to("role-administrator").emit("new-message", payload);
+            globalIo.to("admin").emit("new-message", payload);
           }
         }
 
@@ -190,7 +194,7 @@ router.post("/api/messages", async (req, res) => {
     } else if (effectiveRecipientRole === "donor") {
       actionUrl = "/donor-dashboard";
     } else if (effectiveRecipientRole === "admin" || effectiveRecipientRole === "administrator") {
-      actionUrl = "/admin";
+      actionUrl = "/admin-dashboard?tab=blood-requests";
     }
 
     await notificationService.createAndSendNotification({

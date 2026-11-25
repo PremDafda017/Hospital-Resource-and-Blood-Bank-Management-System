@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaHeartPulse, FaUser, FaCalendar, FaClock, FaCheck, FaXmark, FaHospital, FaLocationDot } from 'react-icons/fa6';
 import DashboardLayout from '../../../components/DashboardLayout.jsx';
+import { useNotification } from '../../../contexts/NotificationContext';
 import { bloodBankDatabase } from '../../../data/hospitalData.js';
 import './BloodRequests.css';
 
 function RequestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openConversation } = useNotification();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -157,16 +159,34 @@ function RequestDetails() {
             </div>
           </div>
 
-          {request.status?.toLowerCase() === 'pending' && (
-            <div className="detail-card actions-card" style={{ display: 'flex', gap: '12px' }}>
-              <button className="btn-primary" style={{ background: '#10B981', borderColor: '#10B981', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleUpdateStatus('Approved')}>
-                <FaCheck /> Approve Request
-              </button>
-              <button className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleUpdateStatus('Rejected')}>
-                <FaXmark /> Reject Request
-              </button>
-            </div>
-          )}
+          <div className="detail-card actions-card" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              className="btn-outline"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2563EB', borderColor: '#2563EB', background: '#EFF6FF', fontWeight: 700 }}
+              onClick={() => openConversation({
+                requestId: String(request.id),
+                requestNumber: String(request.id),
+                bloodGroup: request.bloodType,
+                units: request.units,
+                patientName: request.patient,
+                recipientRole: "patient",
+                recipientUserId: request.patientId,
+                recipientName: request.patient,
+              })}
+            >
+              💬 Request Discussion Thread
+            </button>
+            {request.status?.toLowerCase() === 'pending' && (
+              <>
+                <button className="btn-primary" style={{ background: '#10B981', borderColor: '#10B981', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleUpdateStatus('Approved')}>
+                  <FaCheck /> Approve Request
+                </button>
+                <button className="btn-danger" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={() => handleUpdateStatus('Rejected')}>
+                  <FaXmark /> Reject Request
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>
