@@ -132,6 +132,20 @@ function HospitalAppointments() {
       setLoading(false);
     };
     loadAppointments();
+
+    const handleRefresh = () => {
+      loadAppointments();
+    };
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+
+    const poll = setInterval(loadAppointments, 15000);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+    };
   }, [user]);
 
   // Calculate statistics
@@ -197,7 +211,8 @@ function HospitalAppointments() {
             title: 'Appointment Approved',
             message: appointment ? `Appointment for ${appointment.patientName} has been approved` : 'Appointment approved successfully',
             duration: 5000,
-            playSound: true
+            playSound: true,
+            isToastOnly: true
           });
         } else if (newStatus === 'Rejected') {
           showNotification({
@@ -205,7 +220,8 @@ function HospitalAppointments() {
             title: 'Appointment Rejected',
             message: appointment ? `Appointment for ${appointment.patientName} has been rejected` : 'Appointment rejected successfully',
             duration: 4000,
-            playSound: true
+            playSound: true,
+            isToastOnly: true
           });
         } else if (newStatus === 'Completed') {
           showNotification({
@@ -213,7 +229,8 @@ function HospitalAppointments() {
             title: 'Appointment Completed',
             message: appointment ? `Appointment for ${appointment.patientName} marked as completed` : 'Appointment completed successfully',
             duration: 4000,
-            playSound: true
+            playSound: true,
+            isToastOnly: true
           });
         }
 

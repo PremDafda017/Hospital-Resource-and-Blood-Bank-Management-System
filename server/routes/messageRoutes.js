@@ -43,12 +43,56 @@ router.post("/api/messages", async (req, res) => {
       });
     }
 
-    const effectiveSenderId = senderUserId || (senderRole ? `${senderRole}_user` : "guest_user");
-    const effectiveRecipientId = recipientUserId || (recipientRole ? `${recipientRole}_general` : "general_recipient");
-    const effectiveSenderName = senderName || "HemoCare User";
-    const effectiveRecipientName = recipientName || "Staff Member";
-
     const isDbConnected = mongoose.connection.readyState === 1;
+
+    let effectiveRecipientId = recipientUserId;
+    let effectiveRecipientRole = (recipientRole || "patient").toLowerCase().trim();
+    let effectiveRecipientName = recipientName || "Staff Member";
+    let effectiveRecipientEmail = recipientEmail || "";
+
+    // Automatically resolve patient or staff details from database if target is generic or not supplied
+    if (isDbConnected && requestId) {
+      try {
+        const BloodRequest = mongoose.models.BloodRequest;
+        if (BloodRequest) {
+          const br = await BloodRequest.findById(requestId).lean();
+          if (br) {
+            if (effectiveRecipientRole === "patient" || (!recipientRole && senderRole !== "patient")) {
+              effectiveRecipientId = br.patientClerkId || br.patientId || effectiveRecipientId;
+              effectiveRecipientName = br.patientName || effectiveRecipientName;
+              effectiveRecipientRole = "patient";
+              effectiveRecipientEmail = br.patientEmail || effectiveRecipientEmail;
+            } else if (effectiveRecipientRole.includes("hospital") || effectiveRecipientRole.includes("staff")) {
+              effectiveRecipientId = br.hospitalId || br.verifiedBy || effectiveRecipientId;
+              effectiveRecipientName = br.hospitalName || br.verifiedByName || "Hospital Staff";
+            }
+          }
+        }
+
+        const PatientAppointment = mongoose.models.PatientAppointment;
+        if (PatientAppointment && (!effectiveRecipientId || effectiveRecipientId.includes("_general"))) {
+          const apt = await PatientAppointment.findById(requestId).lean();
+          if (apt) {
+            if (effectiveRecipientRole === "patient" || (!recipientRole && senderRole !== "patient")) {
+              effectiveRecipientId = apt.patientId || effectiveRecipientId;
+              effectiveRecipientName = apt.patientName || effectiveRecipientName;
+              effectiveRecipientRole = "patient";
+              effectiveRecipientEmail = apt.patientEmail || effectiveRecipientEmail;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[MessageAPI] Error resolving request participants:", err.message);
+      }
+    }
+
+    if (!effectiveRecipientId) {
+      effectiveRecipientId = effectiveRecipientRole ? `${effectiveRecipientRole}_general` : "general_recipient";
+    }
+
+    const effectiveSenderId = senderUserId || (senderRole ? `${senderRole}_user` : "guest_user");
+    const effectiveSenderName = senderName || "HemoCare User";
+
     let savedMessage = null;
 
     if (isDbConnected) {
@@ -60,9 +104,9 @@ router.post("/api/messages", async (req, res) => {
         senderName: effectiveSenderName,
         senderEmail,
         recipientUserId: effectiveRecipientId,
-        recipientRole: recipientRole || "patient",
+        recipientRole: effectiveRecipientRole,
         recipientName: effectiveRecipientName,
-        recipientEmail,
+        recipientEmail: effectiveRecipientEmail,
         subject,
         message: message.trim(),
         attachments: Array.isArray(attachments) ? attachments : [],
@@ -79,7 +123,7 @@ router.post("/api/messages", async (req, res) => {
         senderRole,
         senderName: effectiveSenderName,
         recipientUserId: effectiveRecipientId,
-        recipientRole,
+        recipientRole: effectiveRecipientRole,
         recipientName: effectiveRecipientName,
         message: message.trim(),
         attachments: [],
@@ -88,18 +132,44 @@ router.post("/api/messages", async (req, res) => {
       };
     }
 
-    // Real-time Socket.IO emission to conversation room and recipient
+    // Real-time Socket.IO emission to conversation thread, recipient user rooms & role rooms
     if (globalIo) {
       try {
         const payload = savedMessage.toObject ? savedMessage.toObject() : savedMessage;
+        
+        // 1. Deliver to conversation thread room
         globalIo.to(`conversation-${requestId}`).emit("new-message", payload);
+
+        // 2. Deliver to direct recipient room
         globalIo.to(`user-${effectiveRecipientId}`).emit("new-message", payload);
+
+        // 3. Deliver to canonical role rooms so active users on any page get the notification
+        const normRole = (effectiveRecipientRole || "").toLowerCase().trim();
+        if (normRole) {
+          globalIo.to(`role-${normRole}`).emit("new-message", payload);
+          globalIo.to(normRole).emit("new-message", payload);
+
+          if (normRole === "hospital_staff" || normRole === "hospital" || normRole === "doctor") {
+            globalIo.to("role-hospital_staff").emit("new-message", payload);
+            globalIo.to("hospital-staff").emit("new-message", payload);
+          } else if (normRole === "blood_bank_staff" || normRole === "blood_bank" || normRole === "bloodbank") {
+            globalIo.to("role-blood_bank_staff").emit("new-message", payload);
+            globalIo.to("blood-bank-staff").emit("new-message", payload);
+          } else if (normRole === "patient") {
+            globalIo.to("role-patient").emit("new-message", payload);
+          } else if (normRole === "donor") {
+            globalIo.to("role-donor").emit("new-message", payload);
+          }
+        }
+
+        // 4. Trigger auto-refresh across dashboards
+        globalIo.emit("data:refresh", { entity: "messages", requestId });
       } catch (e) {
         console.warn("[MessageAPI] Socket emit warning:", e.message);
       }
     }
 
-    // Automatically trigger In-App Notification and SMTP Email to recipient
+    // Automatically trigger In-App Real-Time Notification & Email
     const emailPayload = emailService.EmailTemplates.newMessage({
       recipientName: effectiveRecipientName,
       senderName: effectiveSenderName,
@@ -113,23 +183,25 @@ router.post("/api/messages", async (req, res) => {
 
     // Determine target link based on recipient role
     let actionUrl = "/blood-requests";
-    if (recipientRole === "hospital_staff" || recipientRole === "hospital" || recipientRole === "doctor") {
+    if (effectiveRecipientRole === "hospital_staff" || effectiveRecipientRole === "hospital" || effectiveRecipientRole === "doctor") {
       actionUrl = "/hospital-blood-requests";
-    } else if (recipientRole === "blood_bank_staff" || recipientRole === "blood_bank") {
+    } else if (effectiveRecipientRole === "blood_bank_staff" || effectiveRecipientRole === "blood_bank") {
       actionUrl = "/bloodbank-requests";
-    } else if (recipientRole === "donor") {
+    } else if (effectiveRecipientRole === "donor") {
       actionUrl = "/donor-dashboard";
+    } else if (effectiveRecipientRole === "admin" || effectiveRecipientRole === "administrator") {
+      actionUrl = "/admin";
     }
 
     await notificationService.createAndSendNotification({
       recipientUserId: effectiveRecipientId,
-      recipientRole,
-      recipientEmail,
+      recipientRole: effectiveRecipientRole,
+      recipientEmail: effectiveRecipientEmail,
       recipientName: effectiveRecipientName,
       senderUserId: effectiveSenderId,
       senderRole,
       senderName: effectiveSenderName,
-      title: `New Message: Requisition ${requestNumber || requestId}`,
+      title: `New Message from ${effectiveSenderName}`,
       message: `${effectiveSenderName}: "${truncated}"`,
       notificationType: "New Message",
       relatedEntityType: "Message",

@@ -84,7 +84,7 @@ function PatientDashboard() {
   const w = sidebarCollapsed ? 68 : SIDEBAR_W;
 
   // Patient data loaded from backend API
-  const { notifications } = useNotification();
+  const { notifications, refreshTrigger } = useNotification();
   const [myRequests, setMyRequests] = useState([]);
   const [myAppointments, setMyAppointments] = useState([]);
   const [myReports, setMyReports] = useState([]);
@@ -95,6 +95,29 @@ function PatientDashboard() {
     if (user?.id) {
       loadPatientData();
     }
+  }, [user, refreshTrigger]);
+
+  // Real-time automatic status update & auto-refresh
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (user?.id) {
+        loadPatientData();
+      }
+    };
+
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+
+    // Safeguard background polling every 15s
+    const pollInterval = setInterval(() => {
+      if (user?.id) loadPatientData();
+    }, 15000);
+
+    return () => {
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+      clearInterval(pollInterval);
+    };
   }, [user]);
 
   const loadPatientData = async () => {

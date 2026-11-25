@@ -536,6 +536,21 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     fetchAllData();
+
+    const handleRefresh = () => {
+      fetchAllData();
+    };
+
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+
+    const poll = setInterval(fetchAllData, 20000);
+
+    return () => {
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+      clearInterval(poll);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, customFrom, customTo]);
 

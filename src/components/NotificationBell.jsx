@@ -63,7 +63,8 @@ export default function NotificationBell({ onNavigateToAll, className = "" }) {
     toggleSound,
     markAsRead,
     markAllAsRead,
-    openConversation
+    openConversation,
+    showNotification
   } = useNotification();
 
   const userRole = (user?.unsafeMetadata?.role || localStorage.getItem("userRole") || "patient").toLowerCase().trim();
@@ -184,6 +185,38 @@ export default function NotificationBell({ onNavigateToAll, className = "" }) {
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {/* Quick Test Alert Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showNotification({
+                    type: "success",
+                    priority: "Normal",
+                    title: "Sound & Popup Test",
+                    message: "Real-time popup, audio chime, and red bell counter are working perfectly!",
+                    duration: 6000,
+                    playSound: true,
+                    addToBell: true,
+                  });
+                }}
+                title="Test notification popup & sound chime"
+                style={{
+                  background: "#EFF6FF",
+                  border: "1px solid #BFDBFE",
+                  color: "#2563EB",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Test Alert
+              </button>
+
               {/* Quick Sound Toggle */}
               <button
                 onClick={(e) => {
@@ -208,10 +241,13 @@ export default function NotificationBell({ onNavigateToAll, className = "" }) {
                 {soundEnabled ? <FaVolumeHigh /> : <FaVolumeXmark />}
               </button>
 
-              {unreadCount > 0 && (
+              {(unreadCount > 0 || (notifications && notifications.some(n => !n.isRead && !n.read))) && (
                 <button
                   className="mark-read-btn"
-                  onClick={markAllAsRead}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAllAsRead();
+                  }}
                   title="Mark all as read"
                   style={{ display: "flex", alignItems: "center", gap: 4 }}
                 >

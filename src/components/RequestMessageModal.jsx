@@ -35,6 +35,20 @@ export default function RequestMessageModal({
   const currentName = user?.fullName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '') || localStorage.getItem("userFullName") || "User";
   const currentEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail") || "";
 
+  const [selectedRole, setSelectedRole] = useState(() => {
+    if (recipientRole) return recipientRole;
+    if (currentRole === "patient") return "hospital_staff";
+    if (currentRole.includes("hospital") && patientName) return "patient";
+    if (currentRole.includes("hospital")) return "blood_bank_staff";
+    return "hospital_staff";
+  });
+
+  useEffect(() => {
+    if (recipientRole) {
+      setSelectedRole(recipientRole);
+    }
+  }, [recipientRole]);
+
   // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,7 +59,11 @@ export default function RequestMessageModal({
 
     let socket;
     try {
-      socket = io(API_BASE_URL, { transports: ["websocket", "polling"] });
+      socket = io(API_BASE_URL, {
+        transports: ["polling", "websocket"],
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      });
       socket.emit("join-conversation", requestId);
 
       socket.on("new-message", (incomingMsg) => {
@@ -63,6 +81,21 @@ export default function RequestMessageModal({
     } catch (e) {
       console.warn("Socket connection error in MessageModal:", e);
     }
+
+    // Window event listener from global NotificationContext socket
+    const handleWindowMessage = (e) => {
+      const incomingMsg = e.detail;
+      if (incomingMsg && incomingMsg.requestId === requestId) {
+        setMessages((prev) => {
+          if (prev.some((m) => (m._id && m._id === incomingMsg._id) || (m.messageId && m.messageId === incomingMsg.messageId))) {
+            return prev;
+          }
+          return [...prev, incomingMsg];
+        });
+        setTimeout(scrollToBottom, 100);
+      }
+    };
+    window.addEventListener("hemocare:new-message", handleWindowMessage);
 
     // Load initial conversation history
     const loadMessages = async () => {
@@ -84,6 +117,7 @@ export default function RequestMessageModal({
     loadMessages();
 
     return () => {
+      window.removeEventListener("hemocare:new-message", handleWindowMessage);
       if (socket) {
         socket.emit("leave-conversation", requestId);
         socket.disconnect();
@@ -98,29 +132,27 @@ export default function RequestMessageModal({
     const messageText = newText.trim();
     setSending(true);
 
-    // Resolve target recipient details if not explicitly passed
-    let targetRole = recipientRole;
-    let targetUserId = recipientUserId;
-    let targetName = recipientName;
+    // Resolve target recipient details dynamically based on selected role
+    let targetRole = selectedRole || recipientRole;
+    let targetUserId = (selectedRole === recipientRole && recipientUserId) ? recipientUserId : "";
+    let targetName = (selectedRole === recipientRole && recipientName) ? recipientName : "";
 
-    if (!targetUserId) {
-      if (currentRole === "patient") {
-        targetRole = "hospital_staff";
-        targetUserId = "hospital_staff_general";
-        targetName = "Hospital Staff";
-      } else if (currentRole === "hospital_staff" || currentRole === "hospital" || currentRole === "doctor") {
-        targetRole = "blood_bank_staff";
-        targetUserId = "blood_bank_staff_general";
-        targetName = "Blood Bank Officer";
-      } else if (currentRole === "blood_bank_staff" || currentRole === "blood_bank") {
-        targetRole = "hospital_staff";
-        targetUserId = "hospital_staff_general";
-        targetName = "Hospital Staff";
-      } else {
-        targetRole = "hospital_staff";
-        targetUserId = "hospital_staff_general";
-        targetName = "Staff";
-      }
+    if (targetRole === "patient") {
+      targetName = patientName || targetName || "Patient";
+      targetUserId = targetUserId || recipientUserId || "";
+    } else if (targetRole === "blood_bank_staff" || targetRole === "blood_bank") {
+      targetName = "Blood Bank Officer";
+      targetUserId = targetUserId || "blood_bank_staff_general";
+    } else if (targetRole === "hospital_staff" || targetRole === "hospital") {
+      targetName = "Hospital Staff";
+      targetUserId = targetUserId || "hospital_staff_general";
+    } else if (targetRole === "donor") {
+      targetName = recipientName || "Donor";
+      targetUserId = targetUserId || recipientUserId || "";
+    } else {
+      targetRole = "hospital_staff";
+      targetName = "Staff";
+      targetUserId = targetUserId || "hospital_staff_general";
     }
 
     try {
@@ -247,6 +279,46 @@ export default function RequestMessageModal({
               {bloodGroup && <span style={{ color: "#F87171", fontWeight: 700, marginRight: 8 }}>{bloodGroup} ({units || 1} Units)</span>}
               {patientName && <span>Patient: {patientName}</span>}
             </div>
+
+            {/* Role Recipient Switcher for Hospital Staff */}
+            {currentRole.includes("hospital") && patientName && (
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("patient")}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: selectedRole === "patient" ? "#C41230" : "rgba(255,255,255,0.18)",
+                    color: "#FFFFFF",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  💬 To Patient ({patientName})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("blood_bank_staff")}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    border: "none",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    background: selectedRole === "blood_bank_staff" ? "#C41230" : "rgba(255,255,255,0.18)",
+                    color: "#FFFFFF",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  🏦 To Blood Bank Staff
+                </button>
+              </div>
+            )}
           </div>
           <button
             onClick={onClose}

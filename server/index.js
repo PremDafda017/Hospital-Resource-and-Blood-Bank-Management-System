@@ -662,6 +662,23 @@ const bloodInventorySchema = new mongoose.Schema(
 
 const BloodInventory = mongoose.model("BloodInventory", bloodInventorySchema, "Blood_Bank");
 
+// Stock History Schema for Blood Bank audit log
+const stockHistorySchema = new mongoose.Schema(
+  {
+    bloodGroup: { type: String, required: true },
+    units: { type: Number, required: true },
+    type: { type: String, default: "Inflow" },
+    reason: { type: String, default: "Stock Update" },
+    performedBy: { type: String, default: "Blood Bank Staff" },
+    notes: { type: String, default: "" },
+    bloodBankId: { type: String, default: "" },
+    bloodBankName: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
+
+const StockHistory = mongoose.models.StockHistory || mongoose.model("StockHistory", stockHistorySchema);
+
 // Doctors Schema for MongoDB
 const doctorsSchema = new mongoose.Schema(
   {
@@ -1705,6 +1722,24 @@ app.put("/api/hospital/blood-requests/:requestId/status", async (req, res) => {
       patient.notifications.unshift(notification);
       
       await patient.save();
+
+      // Dispatch real-time popup, red bell & sound alert to patient
+      notificationService.createAndSendNotification({
+        recipientUserId: clerkId,
+        recipientRole: "patient",
+        recipientName: patient.profile?.fullName || "Patient",
+        title: status === "Approved" ? "Blood Request Approved" : "Blood Request Rejected",
+        message: status === "Approved"
+          ? `Your blood request for ${patient.bloodRequests[requestIndex].bloodGroup} has been approved.`
+          : `Your blood request for ${patient.bloodRequests[requestIndex].bloodGroup} has been rejected.`,
+        notificationType: status === "Approved" ? "Blood Request Approved" : "Blood Request Rejected",
+        relatedEntityType: "BloodRequest",
+        relatedEntityId: patient.bloodRequests[requestIndex]._id || patient.bloodRequests[requestIndex].id,
+        requestId: patient.bloodRequests[requestIndex]._id || patient.bloodRequests[requestIndex].id,
+        priority: "High",
+        actionUrl: "/blood-requests",
+      }).catch(err => console.error("Error sending real-time notification:", err));
+
       res.status(200).json({ message: `Blood request ${status.toLowerCase()} successfully.`, patient });
     } catch (err) {
       console.error("Update blood request status error:", err);
@@ -1858,6 +1893,24 @@ app.put("/api/hospital/appointments/:appointmentId/status", async (req, res) => 
       patient.notifications.unshift(notification);
       
       await patient.save();
+
+      // Dispatch real-time popup, red bell & sound alert to patient
+      notificationService.createAndSendNotification({
+        recipientUserId: clerkId,
+        recipientRole: "patient",
+        recipientName: patient.profile?.fullName || "Patient",
+        title: status === "Approved" ? "Appointment Approved" : "Appointment Rejected",
+        message: status === "Approved" 
+          ? `Your appointment for ${patient.appointments[appointmentIndex].type} on ${patient.appointments[appointmentIndex].date} has been approved.`
+          : `Your appointment for ${patient.appointments[appointmentIndex].type} on ${patient.appointments[appointmentIndex].date} has been rejected.`,
+        notificationType: status === "Approved" ? "Appointment Approved" : "Appointment Rejected",
+        relatedEntityType: "Appointment",
+        relatedEntityId: patient.appointments[appointmentIndex]._id || patient.appointments[appointmentIndex].id,
+        requestId: patient.appointments[appointmentIndex]._id || patient.appointments[appointmentIndex].id,
+        priority: "High",
+        actionUrl: "/my-appointments",
+      }).catch(err => console.error("Error sending appointment notification:", err));
+
       res.status(200).json({ message: `Appointment ${status.toLowerCase()} successfully.`, patient });
     } catch (err) {
       console.error("Update appointment status error:", err);
@@ -3996,6 +4049,39 @@ app.delete("/api/blood-inventory/:id", async (req, res) => {
   }
 });
 
+// ==================== STOCK HISTORY API ENDPOINTS ====================
+app.get("/api/stock-history", async (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  if (isDbConnected) {
+    try {
+      const history = await StockHistory.find({}).sort({ createdAt: -1 }).limit(100);
+      res.status(200).json(history);
+    } catch (err) {
+      res.status(200).json([]);
+    }
+  } else {
+    res.status(200).json([]);
+  }
+});
+
+app.post("/api/stock-history", async (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
+  if (isDbConnected) {
+    try {
+      const entry = new StockHistory({
+        ...req.body,
+        createdAt: new Date().toISOString(),
+      });
+      await entry.save();
+      res.status(201).json(entry);
+    } catch (err) {
+      res.status(200).json({ _id: Date.now().toString(), ...req.body });
+    }
+  } else {
+    res.status(200).json({ _id: Date.now().toString(), ...req.body });
+  }
+});
+
 // ==================== BLOOD REQUEST WORKFLOW API ENDPOINTS ====================
 
 // Get all blood requests
@@ -4697,49 +4783,7 @@ app.put("/api/blood-requests/:requestId/status/completed", async (req, res) => {
 });
 
 // ==================== NOTIFICATION API ENDPOINTS ====================
-
-// Get notifications for user
-app.get("/api/notifications/:userId", async (req, res) => {
-  const { userId } = req.params;
-  const isDbConnected = mongoose.connection.readyState === 1;
-
-  if (isDbConnected) {
-    try {
-      const notifications = await Notification.find({ userId }).sort({ createdAt: -1 });
-      res.status(200).json(notifications);
-    } catch (err) {
-      console.error("Get notifications error:", err);
-      res.status(500).json({ message: "Server error occurred while fetching notifications." });
-    }
-  } else {
-    res.status(200).json([]);
-  }
-});
-
-// Mark notification as read
-app.put("/api/notifications/:notificationId/read", async (req, res) => {
-  const { notificationId } = req.params;
-  const isDbConnected = mongoose.connection.readyState === 1;
-
-  if (isDbConnected) {
-    try {
-      const notification = await Notification.findById(notificationId);
-      if (!notification) {
-        return res.status(404).json({ message: "Notification not found." });
-      }
-
-      notification.read = true;
-      await notification.save();
-
-      res.status(200).json({ message: "Notification marked as read successfully." });
-    } catch (err) {
-      console.error("Mark notification as read error:", err);
-      res.status(500).json({ message: "Server error occurred while marking notification as read." });
-    }
-  } else {
-    res.status(500).json({ message: "MongoDB offline." });
-  }
-});
+// Delegated entirely to routes/notificationRoutes.js with full multi-role & real-time support.
 
 // ==================== REPORT API ENDPOINTS ====================
 

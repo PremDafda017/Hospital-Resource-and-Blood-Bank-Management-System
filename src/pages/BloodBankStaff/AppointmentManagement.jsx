@@ -94,6 +94,21 @@ function AppointmentManagement() {
 
   useEffect(() => {
     loadAppointments();
+
+    const handleRefresh = () => {
+      loadAppointments();
+    };
+
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+
+    const poll = setInterval(loadAppointments, 15000);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+    };
   }, []);
 
   const loadAppointments = async () => {

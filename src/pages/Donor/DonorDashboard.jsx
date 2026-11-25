@@ -35,6 +35,7 @@ import DonationHistory from "./DonationHistory";
 import CertificateGenerator from "./CertificateGenerator";
 import Notifications from "./Notifications";
 import NotificationBell from "../../components/NotificationBell";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -133,10 +134,28 @@ function DonorDashboard() {
   const [lastDonationDate, setLastDonationDate] = useState("2023-12-01");
   const [nextEligibleDate, setNextEligibleDate] = useState("Eligible Now");
 
+  const { refreshTrigger } = useNotification();
+
   useEffect(() => {
     if (user?.id) {
       loadDonorData();
     }
+  }, [user, refreshTrigger]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (user?.id) loadDonorData();
+    };
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+    const poll = setInterval(() => {
+      if (user?.id) loadDonorData();
+    }, 15000);
+    return () => {
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+      clearInterval(poll);
+    };
   }, [user]);
 
   const loadDonorData = async () => {

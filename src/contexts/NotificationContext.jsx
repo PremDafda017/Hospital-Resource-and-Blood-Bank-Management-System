@@ -19,6 +19,7 @@ export const NotificationProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeConversation, setActiveConversation] = useState(null);
   const [isRinging, setIsRinging] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
@@ -32,9 +33,12 @@ export const NotificationProvider = ({ children }) => {
   const lastSoundTimeRef = useRef(0);
   const ringTimeoutRef = useRef(null);
   const broadcastChannelRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const recentToastsRef = useRef(new Map());
 
   const userId = user?.id || localStorage.getItem("clerkId") || "";
   const userRole = (user?.unsafeMetadata?.role || localStorage.getItem("userRole") || "patient").toLowerCase().trim();
+  const userEmail = user?.primaryEmailAddress?.emailAddress || localStorage.getItem("userEmail") || "";
 
   // Multi-tab synchronization via BroadcastChannel
   useEffect(() => {
@@ -86,41 +90,44 @@ export const NotificationProvider = ({ children }) => {
     }, 1400);
   }, []);
 
-  // Auto-unlock Web Audio context on the first user interaction
-  useEffect(() => {
-    const unlockAudio = () => {
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          const ctx = new AudioCtx();
-          if (ctx.state === 'suspended') {
-            ctx.resume();
-          }
-        }
-      } catch (_) {}
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
-    window.addEventListener('click', unlockAudio, { once: true });
-    window.addEventListener('keydown', unlockAudio, { once: true });
-    window.addEventListener('touchstart', unlockAudio, { once: true });
-    return () => {
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-    };
-  }, []);
-
-  // Harmonic medical chime fallback via Web Audio API (zero file dependencies, 100% reliable)
-  const playChimeFallback = useCallback((isCritical = false) => {
+  // Persistent Web Audio context initializer (resumed on any user gesture to satisfy browser autoplay policies)
+  const getOrCreateAudioContext = useCallback(() => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      if (ctx.state === 'suspended') {
-        ctx.resume();
+      if (!AudioCtx) return null;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioCtx();
       }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      return audioCtxRef.current;
+    } catch (_) {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const unlockHandler = () => {
+      getOrCreateAudioContext();
+    };
+
+    window.addEventListener('click', unlockHandler);
+    window.addEventListener('keydown', unlockHandler);
+    window.addEventListener('touchstart', unlockHandler);
+
+    return () => {
+      window.removeEventListener('click', unlockHandler);
+      window.removeEventListener('keydown', unlockHandler);
+      window.removeEventListener('touchstart', unlockHandler);
+    };
+  }, [getOrCreateAudioContext]);
+
+  // Harmonic medical chime via Web Audio API (zero external dependencies, 100% reliable)
+  const playChimeFallback = useCallback((isCritical = false) => {
+    try {
+      const ctx = getOrCreateAudioContext();
+      if (!ctx) return;
 
       const now = ctx.currentTime;
 
@@ -155,7 +162,7 @@ export const NotificationProvider = ({ children }) => {
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(659.25, now);
-      gain1.gain.setValueAtTime(0.28, now);
+      gain1.gain.setValueAtTime(0.3, now);
       gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
@@ -174,17 +181,17 @@ export const NotificationProvider = ({ children }) => {
       osc2.start(now + 0.08);
       osc2.stop(now + 0.45);
     } catch (err) {
-      console.warn('Web Audio chime synthesis failed:', err);
+      console.warn('Web Audio chime synthesis note:', err.message);
     }
-  }, []);
+  }, [getOrCreateAudioContext]);
 
   // Primary sound player with instant fallback & overlapping prevention
   const playNotificationSound = useCallback((priority = "Normal") => {
     if (!soundEnabled) return;
 
-    // Prevent overlapping sounds within 750ms
+    // Prevent overlapping sounds within 500ms
     const now = Date.now();
-    if (now - lastSoundTimeRef.current < 750) {
+    if (now - lastSoundTimeRef.current < 500) {
       return;
     }
     lastSoundTimeRef.current = now;
@@ -192,12 +199,13 @@ export const NotificationProvider = ({ children }) => {
     const isCritical = priority === "Critical" || priority === "critical";
 
     try {
-      const soundFile = isCritical ? '/CriticalAlarm.mp3' : '/Notify%20Sound.mp3';
+      const soundFile = isCritical ? '/CriticalAlarm.mp3' : '/notify.mp3';
       const audio = new Audio(soundFile);
       audio.volume = isCritical ? 0.95 : 0.85;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
+          // If browser policy blocked MP3 autoplay, synthesize chime via Web Audio
           playChimeFallback(isCritical);
         });
       }
@@ -206,8 +214,27 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [soundEnabled, playChimeFallback]);
 
-  // Display toast notification popup & store in persistent notification state & DB
+  // Display toast notification popup & update notification center
   const showNotification = useCallback((notification) => {
+    const title = notification.title || 'Notification';
+    const message = notification.message || '';
+    const dedupeKey = `${title}_${message}`;
+    const now = Date.now();
+
+    // Prevent identical toasts from popping up twice within 4 seconds
+    const lastSeen = recentToastsRef.current.get(dedupeKey);
+    if (lastSeen && now - lastSeen < 4000) {
+      return;
+    }
+    recentToastsRef.current.set(dedupeKey, now);
+
+    // Garbage-collect old dedupe keys
+    if (recentToastsRef.current.size > 50) {
+      for (const [k, v] of recentToastsRef.current.entries()) {
+        if (now - v > 15000) recentToastsRef.current.delete(k);
+      }
+    }
+
     const id = Date.now() + Math.random();
     const isCritical = notification.priority === "Critical" || notification.type === "critical" || notification.type === "error";
     const isHigh = notification.priority === "High" || notification.type === "warning" || notification.type === "alert";
@@ -216,8 +243,8 @@ export const NotificationProvider = ({ children }) => {
       id,
       type: isCritical ? 'critical' : isHigh ? 'warning' : (notification.type || 'info'),
       priority: notification.priority || (isCritical ? 'Critical' : isHigh ? 'High' : 'Normal'),
-      title: notification.title || 'Notification',
-      message: notification.message || '',
+      title,
+      message,
       senderName: notification.senderName || notification.senderRole || '',
       senderRole: notification.senderRole || '',
       requestId: notification.requestId || '',
@@ -241,45 +268,57 @@ export const NotificationProvider = ({ children }) => {
     // 3. Trigger visual bell ring animation
     triggerBellRing();
 
-    // 4. Store in persistent notification state for the notification page & bell
-    const notifId = notification._id || notification.id || `notif_${id}`;
-    setNotifications(prev => {
-      if (prev.some(n => (n._id && n._id === notifId) || (n.id && n.id === notifId))) {
-        return prev;
-      }
-      return [
-        {
-          _id: notifId,
-          id: notifId,
-          title: newToast.title,
-          message: newToast.message,
-          notificationType: newToast.notificationType || (isCritical ? 'Alert' : 'General'),
-          type: newToast.type,
-          priority: newToast.priority,
-          createdAt: newToast.createdAt,
-          date: newToast.date,
-          isRead: false,
-          read: false,
-          recipientUserId: userId,
-          senderName: newToast.senderName,
-          senderRole: newToast.senderRole,
-          requestId: newToast.requestId,
-          actionUrl: newToast.actionUrl || "",
-          relatedEntityType: newToast.relatedEntityType,
-          ...notification,
-        },
-        ...prev
-      ];
-    });
-    setUnreadCount(prev => prev + 1);
+    // 4. Determine if this should be added to the persistent Notification Bell list
+    // True notifications: from server/socket, have _id, have relatedEntityType (BloodRequest, Appointment, Donation, etc.), or explicitly flagged
+    const isTrueNotification = Boolean(
+      notification._id ||
+      notification.fromServer ||
+      notification.skipPersist ||
+      notification.addToBell ||
+      (notification.relatedEntityType && notification.relatedEntityType !== 'System') ||
+      (notification.notificationType && notification.notificationType !== 'System')
+    );
 
-    // Broadcast to other open tabs
-    if (broadcastChannelRef.current) {
-      broadcastChannelRef.current.postMessage({ type: "NEW_NOTIFICATION", payload: newToast });
+    if (isTrueNotification && notification.isToastOnly !== true) {
+      const notifId = notification._id || notification.id || `notif_${id}`;
+      setNotifications(prev => {
+        if (prev.some(n => (n._id && n._id === notifId) || (n.id && n.id === notifId))) {
+          return prev;
+        }
+        return [
+          {
+            _id: notifId,
+            id: notifId,
+            title: newToast.title,
+            message: newToast.message,
+            notificationType: newToast.notificationType || (isCritical ? 'Alert' : 'General'),
+            type: newToast.type,
+            priority: newToast.priority,
+            createdAt: newToast.createdAt,
+            date: newToast.date,
+            isRead: false,
+            read: false,
+            recipientUserId: userId,
+            senderName: newToast.senderName,
+            senderRole: newToast.senderRole,
+            requestId: newToast.requestId,
+            actionUrl: newToast.actionUrl || "",
+            relatedEntityType: newToast.relatedEntityType,
+            ...notification,
+          },
+          ...prev
+        ];
+      });
+      setUnreadCount(prev => prev + 1);
+
+      // Broadcast to other open tabs
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.postMessage({ type: "NEW_NOTIFICATION", payload: newToast });
+      }
     }
 
-    // 5. Save to backend database if this was a purely client-triggered notification
-    if (userId && !notification.skipPersist && !notification._id) {
+    // 5. Only persist to backend if explicitly requested by a feature (NEVER auto-persist generic UI toasts)
+    if (notification.persistToBackend === true && userId) {
       apiFetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -297,7 +336,7 @@ export const NotificationProvider = ({ children }) => {
       }).catch(() => {});
     }
 
-    // 6. Auto dismiss ONLY the onscreen toast popup (persistent notification stays in DB & bell)
+    // 6. Auto dismiss the onscreen toast popup after duration
     if (newToast.duration > 0) {
       setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
@@ -313,7 +352,7 @@ export const NotificationProvider = ({ children }) => {
     setToasts([]);
   }, []);
 
-  // Fetch real notifications and unread count from backend database
+  // Fetch real notifications and unread count from backend database with deduplication
   const fetchNotifications = useCallback(async () => {
     if (!userId) return;
     try {
@@ -321,9 +360,22 @@ export const NotificationProvider = ({ children }) => {
       const res = await apiFetch(`/api/notifications/${encodeURIComponent(userId)}?limit=100${roleParam}`);
       if (res && res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : data.notifications || [];
-        const count = typeof data.unreadCount === "number" ? data.unreadCount : list.filter(n => !n.isRead && !n.read).length;
-        setNotifications(list);
+        const rawList = Array.isArray(data) ? data : data.notifications || [];
+
+        // Deduplicate notifications by title, message and time bucket
+        const seen = new Set();
+        const cleanList = [];
+        for (const item of rawList) {
+          const timeBucket = item.createdAt ? Math.floor(new Date(item.createdAt).getTime() / 60000) : 0;
+          const key = `${item.title}_${item.message}_${timeBucket}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            cleanList.push(item);
+          }
+        }
+
+        const count = typeof data.unreadCount === "number" ? data.unreadCount : cleanList.filter(n => !n.isRead && !n.read).length;
+        setNotifications(cleanList);
         setUnreadCount(count);
       }
     } catch (err) {
@@ -333,6 +385,7 @@ export const NotificationProvider = ({ children }) => {
 
   // Mark single notification as read
   const markAsRead = useCallback(async (id) => {
+    if (!id) return;
     setNotifications(prev => prev.map(n => ((n._id === id || n.id === id) ? { ...n, isRead: true, read: true } : n)));
     setUnreadCount(prev => Math.max(0, prev - 1));
 
@@ -347,19 +400,27 @@ export const NotificationProvider = ({ children }) => {
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
+    // 1. Optimistic UI update immediately
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
     setUnreadCount(0);
 
+    // 2. Broadcast to other tabs
     if (broadcastChannelRef.current) {
       broadcastChannelRef.current.postMessage({ type: "MARK_ALL_READ" });
     }
 
+    // 3. Sync with backend
     if (userId) {
       try {
-        await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}`, { method: "PUT" });
-      } catch (_) {}
+        const roleParam = userRole ? `?role=${encodeURIComponent(userRole)}` : "";
+        await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}${roleParam}`, {
+          method: "PUT",
+        });
+      } catch (err) {
+        console.warn("Server mark-all-read note:", err.message);
+      }
     }
-  }, [userId]);
+  }, [userId, userRole]);
 
   // Socket.IO Real-time Connection for notifications & messages
   useEffect(() => {
@@ -378,6 +439,8 @@ export const NotificationProvider = ({ children }) => {
       const joinAllRooms = () => {
         // Join all possible IDs for this user
         const idsToJoin = new Set([userId]);
+        if (userEmail) idsToJoin.add(userEmail);
+
         try {
           const clerkId = localStorage.getItem("clerkId");
           const localUid = localStorage.getItem("userId");
@@ -421,6 +484,7 @@ export const NotificationProvider = ({ children }) => {
       socket.on("notification", (incomingNotif) => {
         showNotification({
           ...incomingNotif,
+          fromServer: true,
           skipPersist: true,
         });
       });
@@ -428,6 +492,7 @@ export const NotificationProvider = ({ children }) => {
       socket.on("notification:new", (incomingNotif) => {
         showNotification({
           ...incomingNotif,
+          fromServer: true,
           skipPersist: true,
         });
       });
@@ -437,6 +502,7 @@ export const NotificationProvider = ({ children }) => {
         if (incomingNotif.recipientUserId !== userId) {
           showNotification({
             ...incomingNotif,
+            fromServer: true,
             skipPersist: true,
           });
         }
@@ -462,18 +528,42 @@ export const NotificationProvider = ({ children }) => {
         }
       });
 
-      // Listen for new messages
+      // Real-time Status Update and Auto-Refresh Event Listeners
+      const handleStatusRefresh = (payload) => {
+        setRefreshTrigger((prev) => prev + 1);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("hemocare:refresh-data", { detail: payload }));
+          window.dispatchEvent(new CustomEvent("hemocare:status-updated", { detail: payload }));
+        }
+        fetchNotifications();
+      };
+
+      socket.on("request:statusUpdated", handleStatusRefresh);
+      socket.on("appointment:statusUpdated", handleStatusRefresh);
+      socket.on("donation:statusUpdated", handleStatusRefresh);
+      socket.on("data:refresh", handleStatusRefresh);
+      socket.on("blood-request-updated", handleStatusRefresh);
+
+      // Listen for incoming real-time chat messages
       socket.on("new-message", (incomingMsg) => {
         if (incomingMsg.senderUserId !== userId) {
           showNotification({
             title: `New Message from ${incomingMsg.senderName || incomingMsg.senderRole || "Colleague"}`,
             message: incomingMsg.text || incomingMsg.message || "You have received a new message.",
             type: "info",
-            priority: "Normal",
+            priority: "High",
             relatedEntityType: "Message",
             requestId: incomingMsg.requestId || "",
+            senderName: incomingMsg.senderName || incomingMsg.senderRole || "",
+            senderRole: incomingMsg.senderRole || "",
+            senderUserId: incomingMsg.senderUserId || "",
+            fromServer: true,
             skipPersist: true,
+            playSound: true,
           });
+        }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("hemocare:refresh-data", { detail: { entity: "messages", ...incomingMsg } }));
         }
       });
     } catch (err) {
@@ -491,7 +581,7 @@ export const NotificationProvider = ({ children }) => {
         socket.disconnect();
       }
     };
-  }, [userId, userRole, fetchNotifications, showNotification]);
+  }, [userId, userRole, userEmail, fetchNotifications, showNotification]);
 
   // Request Conversation Modal controls
   const openConversation = useCallback((details) => {
@@ -506,6 +596,7 @@ export const NotificationProvider = ({ children }) => {
     toasts,
     notifications,
     unreadCount,
+    refreshTrigger,
     isRinging,
     soundEnabled,
     toggleSound,

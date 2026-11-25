@@ -164,21 +164,34 @@ const NotificationPopup = () => {
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 20,
-        right: 20,
-        zIndex: 999999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        maxWidth: 440,
-        width: 'calc(100% - 40px)',
-        pointerEvents: 'none',
-        fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-      }}
-    >
+    <>
+      <style>{`
+        @keyframes slideInRight {
+          0% {
+            transform: translateX(120%);
+            opacity: 0;
+          }
+          100% {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
+      <div
+        style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          zIndex: 999999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          maxWidth: 440,
+          width: 'calc(100% - 40px)',
+          pointerEvents: 'none',
+          fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+        }}
+      >
       {displayItems.map((notification) => {
         const design = getDesign(notification.type, notification.priority);
         const icon = getIcon(notification.type, notification.priority, notification.relatedEntityType);
@@ -388,7 +401,8 @@ const NotificationPopup = () => {
           }
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 };
 

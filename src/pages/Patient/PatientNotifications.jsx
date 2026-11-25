@@ -97,7 +97,7 @@ export default function PatientNotifications() {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true, read: true })));
     setUnreadCount(0);
     try {
-      await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}`, { method: "PUT" });
+      await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}?role=patient`, { method: "PUT" });
     } catch (e) {}
   };
 

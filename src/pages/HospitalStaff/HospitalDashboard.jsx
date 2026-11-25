@@ -3,6 +3,7 @@ import { useUser, SignOutButton } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import NotificationBell from "../../components/NotificationBell";
+import { useNotification } from "../../contexts/NotificationContext";
 import {
   FaHeartPulse,
   FaFileMedical,
@@ -97,6 +98,8 @@ function HospitalDashboard() {
   const [bloodInventory, setBloodInventory] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
 
+  const { refreshTrigger } = useNotification();
+
   useEffect(() => {
     if (user?.id) {
       // Load hospital data from MongoDB
@@ -162,10 +165,26 @@ function HospitalDashboard() {
         setLoading(false);
       };
       loadHospitalData();
+
+      // Real-time automatic auto-refresh listener
+      const handleAutoRefresh = () => {
+        loadHospitalData();
+      };
+      window.addEventListener("hemocare:refresh-data", handleAutoRefresh);
+      window.addEventListener("hemocare:status-updated", handleAutoRefresh);
+
+      // Safeguard 15s polling
+      const poll = setInterval(loadHospitalData, 15000);
+
+      return () => {
+        clearInterval(poll);
+        window.removeEventListener("hemocare:refresh-data", handleAutoRefresh);
+        window.removeEventListener("hemocare:status-updated", handleAutoRefresh);
+      };
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const StatCard = ({ icon, value, label, color, delay = 0 }) => (
     <motion.div

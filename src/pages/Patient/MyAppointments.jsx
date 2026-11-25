@@ -41,7 +41,7 @@ const SIDEBAR_COL = NAVY;
 function MyAppointments() {
   const { user } = useUser();
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
+  const { showNotification, refreshTrigger } = useNotification();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState([]);
@@ -82,10 +82,26 @@ function MyAppointments() {
         setLoading(false);
       };
       loadAppointments();
+
+      // Real-time auto-refresh event listener
+      const handleAutoRefresh = () => {
+        loadAppointments();
+      };
+      window.addEventListener("hemocare:refresh-data", handleAutoRefresh);
+      window.addEventListener("hemocare:status-updated", handleAutoRefresh);
+
+      // 15s background polling safeguard
+      const poll = setInterval(loadAppointments, 15000);
+
+      return () => {
+        clearInterval(poll);
+        window.removeEventListener("hemocare:refresh-data", handleAutoRefresh);
+        window.removeEventListener("hemocare:status-updated", handleAutoRefresh);
+      };
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const handleCancelClick = (appointment) => {
     setSelectedAppointment(appointment);

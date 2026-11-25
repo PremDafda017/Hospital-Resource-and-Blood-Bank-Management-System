@@ -61,7 +61,7 @@ const BG_COLOR = {
 function PatientBloodRequests() {
   const { user } = useUser();
   const navigate = useNavigate();
-  const { showNotification, openConversation } = useNotification();
+  const { showNotification, openConversation, refreshTrigger } = useNotification();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -140,13 +140,24 @@ function PatientBloodRequests() {
       };
       loadRequests();
 
-      // Auto-refresh every 30 seconds to get status updates
-      const interval = setInterval(loadRequests, 30000);
-      return () => clearInterval(interval);
+      // Real-time auto-refresh event listener
+      const handleAutoRefresh = () => {
+        loadRequests();
+      };
+      window.addEventListener("hemocare:refresh-data", handleAutoRefresh);
+      window.addEventListener("hemocare:status-updated", handleAutoRefresh);
+
+      // Auto-refresh polling every 15 seconds to ensure status updates
+      const interval = setInterval(loadRequests, 15000);
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener("hemocare:refresh-data", handleAutoRefresh);
+        window.removeEventListener("hemocare:status-updated", handleAutoRefresh);
+      };
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   // Check for blood ready status changes and show notification
   useEffect(() => {

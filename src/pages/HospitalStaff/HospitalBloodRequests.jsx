@@ -219,9 +219,18 @@ function HospitalBloodRequests() {
     setLoading(false);
   }, []);
 
-  // Initial load
+  // Initial load & real-time auto-refresh on status update
   useEffect(function () {
     loadBloodRequests();
+    const handleRefresh = function () {
+      loadBloodRequests();
+    };
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+    return function () {
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+    };
   }, [loadBloodRequests]);
 
   // Auto-refresh every 10 seconds with countdown
@@ -972,9 +981,9 @@ function HospitalBloodRequests() {
                                     bloodGroup: req.bloodGroup,
                                     units: req.units,
                                     patientName: req.patientName,
-                                    recipientRole: "blood_bank_staff",
-                                    recipientUserId: "blood_bank_staff_general",
-                                    recipientName: "Blood Bank Officer",
+                                    recipientRole: "patient",
+                                    recipientUserId: req.patientClerkId || req.patientId || "",
+                                    recipientName: req.patientName || "Patient",
                                   });
                                 }}
                                 style={{

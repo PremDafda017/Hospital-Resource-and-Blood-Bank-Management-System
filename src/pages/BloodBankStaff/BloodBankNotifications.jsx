@@ -102,7 +102,7 @@ export default function BloodBankNotifications() {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, read: true })));
     setUnreadCount(0);
     try {
-      await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}`, { method: "PUT" });
+      await apiFetch(`/api/notifications/mark-all-read/${encodeURIComponent(userId)}?role=blood_bank_staff`, { method: "PUT" });
     } catch (e) {}
   };
 

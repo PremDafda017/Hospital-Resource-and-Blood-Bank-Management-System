@@ -102,8 +102,24 @@ function DonationRequests() {
 
   const w = sidebarCollapsed ? 68 : SIDEBAR_W;
 
+  // Initial load & real-time auto-refresh on status update
   useEffect(() => {
     loadRequests();
+
+    const handleRefresh = () => {
+      loadRequests();
+    };
+
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+
+    const poll = setInterval(loadRequests, 15000);
+
+    return () => {
+      clearInterval(poll);
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+    };
   }, []);
 
   const loadRequests = async () => {

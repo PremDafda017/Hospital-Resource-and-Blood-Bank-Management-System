@@ -115,9 +115,21 @@ function BloodBankRequests() {
     setLoading(false);
   }, []);
 
-  // Initial load
+  // Initial load & real-time auto-refresh on status update
   useEffect(() => {
     loadBloodRequests();
+
+    const handleRefresh = () => {
+      loadBloodRequests();
+    };
+
+    window.addEventListener("hemocare:refresh-data", handleRefresh);
+    window.addEventListener("hemocare:status-updated", handleRefresh);
+
+    return () => {
+      window.removeEventListener("hemocare:refresh-data", handleRefresh);
+      window.removeEventListener("hemocare:status-updated", handleRefresh);
+    };
   }, []);
 
   // Auto-refresh every 10 seconds with countdown

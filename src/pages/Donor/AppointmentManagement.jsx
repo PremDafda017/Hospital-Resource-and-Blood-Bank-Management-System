@@ -48,6 +48,21 @@ const AppointmentManagement = () => {
   useEffect(() => {
     if (user?.id) {
       loadData();
+
+      const handleRefresh = () => {
+        loadData();
+      };
+
+      window.addEventListener("hemocare:refresh-data", handleRefresh);
+      window.addEventListener("hemocare:status-updated", handleRefresh);
+
+      const poll = setInterval(loadData, 15000);
+
+      return () => {
+        clearInterval(poll);
+        window.removeEventListener("hemocare:refresh-data", handleRefresh);
+        window.removeEventListener("hemocare:status-updated", handleRefresh);
+      };
     }
   }, [user]);
 

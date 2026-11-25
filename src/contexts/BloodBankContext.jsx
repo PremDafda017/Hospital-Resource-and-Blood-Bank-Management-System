@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiFetch } from '../utils/apiConfig';
 
 const BloodBankContext = createContext();
 
@@ -26,7 +27,7 @@ export const BloodBankProvider = ({ children }) => {
     setLoading(true);
     try {
       // Fetch inventory
-      const inventoryResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/blood-inventory');
+      const inventoryResponse = await apiFetch('/api/blood-inventory');
       if (inventoryResponse.ok) {
         const inventoryData = await inventoryResponse.json();
         setInventory(inventoryData);
@@ -34,7 +35,7 @@ export const BloodBankProvider = ({ children }) => {
 
       // Fetch stock history (if API exists)
       try {
-        const historyResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/stock-history');
+        const historyResponse = await apiFetch('/api/stock-history');
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
           setStockHistory(historyData);
@@ -60,10 +61,10 @@ export const BloodBankProvider = ({ children }) => {
 
       // Fetch notifications (if API exists)
       try {
-        const notificationsResponse = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/notifications');
+        const notificationsResponse = await apiFetch('/api/notifications');
         if (notificationsResponse.ok) {
           const notificationsData = await notificationsResponse.json();
-          setNotifications(notificationsData);
+          setNotifications(Array.isArray(notificationsData) ? notificationsData : notificationsData.notifications || []);
         } else if (notificationsResponse.status === 404) {
           // Endpoint doesn't exist, use empty array silently
           setNotifications([]);
@@ -87,7 +88,7 @@ export const BloodBankProvider = ({ children }) => {
   // Add stock history entry
   const addStockHistoryEntry = async (entry) => {
     try {
-      const response = await fetch('https://hospital-resource-and-blood-bank.onrender.com/api/stock-history', {
+      const response = await apiFetch('/api/stock-history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)
@@ -133,9 +134,24 @@ export const BloodBankProvider = ({ children }) => {
     }
   };
 
-  // Fetch data on mount and when refreshTrigger changes
+  // Fetch data on mount, when refreshTrigger changes, or on real-time auto-refresh event
   useEffect(() => {
     fetchAllData();
+
+    const handleRefresh = () => {
+      fetchAllData();
+    };
+
+    window.addEventListener('hemocare:refresh-data', handleRefresh);
+    window.addEventListener('hemocare:status-updated', handleRefresh);
+
+    const poll = setInterval(fetchAllData, 15000);
+
+    return () => {
+      window.removeEventListener('hemocare:refresh-data', handleRefresh);
+      window.removeEventListener('hemocare:status-updated', handleRefresh);
+      clearInterval(poll);
+    };
   }, [refreshTrigger]);
 
   const value = {
