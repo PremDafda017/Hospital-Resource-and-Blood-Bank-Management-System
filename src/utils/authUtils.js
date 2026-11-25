@@ -1,11 +1,19 @@
 // Central Authentication and Role Management Utility
 // Ensures the database role is the single source of truth for dashboard redirection.
 
-const isLocal = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
-const API_LOCAL = "http://127.0.0.1:5000";
-const API_REMOTE = "https://hospital-resource-and-blood-bank.onrender.com";
+const isLocal =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
-const fetchWithTimeout = async (url, options = {}, timeoutMs = 2800) => {
+const API_LOCAL = "http://127.0.0.1:5000";
+const API_REMOTE =
+  process.env.REACT_APP_API_URL
+    ? (process.env.REACT_APP_API_URL.endsWith("/api")
+        ? process.env.REACT_APP_API_URL.replace(/\/api$/, "")
+        : process.env.REACT_APP_API_URL)
+    : "https://hospital-resource-and-blood-bank.onrender.com";
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 8000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -23,17 +31,20 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = 2800) => {
  * Supports: patient, donor, hospital_staff, blood_bank_staff, administrator
  */
 export function roleToDashboardPath(role) {
-  switch ((role || "").toLowerCase().trim()) {
+  const normalized = (role || "").toLowerCase().trim();
+  switch (normalized) {
     case "patient":
       return "/patient-dashboard";
     case "donor":
       return "/donor-dashboard";
     case "hospital_staff":
+    case "hospitalstaff":
     case "hospital":
     case "doctor":
       return "/hospital-dashboard";
     case "blood_bank_staff":
     case "bloodbank_staff":
+    case "bloodbankstaff":
     case "blood_bank":
     case "bloodbank":
       return "/bloodbank-dashboard";
@@ -52,23 +63,27 @@ export function roleToDashboardPath(role) {
  * Prevents stale roles from leaking into subsequent logins.
  */
 export function clearAuthSession() {
-  localStorage.removeItem("userFullName");
-  localStorage.removeItem("userEmail");
-  localStorage.removeItem("userRole");
-  localStorage.removeItem("clerkId");
-  localStorage.removeItem("pendingEmail");
-  localStorage.removeItem("pendingFullName");
-  localStorage.removeItem("pendingRole");
+  try {
+    localStorage.removeItem("userFullName");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("clerkId");
+    localStorage.removeItem("pendingEmail");
+    localStorage.removeItem("pendingFullName");
+    localStorage.removeItem("pendingRole");
+  } catch (_) {}
 }
 
 /**
  * Persists an authenticated user session to localStorage.
  */
 export function persistAuthSession({ clerkId, fullName, email, role }) {
-  if (clerkId)  localStorage.setItem("clerkId", clerkId);
-  if (fullName) localStorage.setItem("userFullName", fullName);
-  if (email)    localStorage.setItem("userEmail", email);
-  if (role)     localStorage.setItem("userRole", role.toLowerCase().trim());
+  try {
+    if (clerkId) localStorage.setItem("clerkId", clerkId);
+    if (fullName) localStorage.setItem("userFullName", fullName);
+    if (email) localStorage.setItem("userEmail", email);
+    if (role) localStorage.setItem("userRole", role.toLowerCase().trim());
+  } catch (_) {}
 }
 
 /**
@@ -76,12 +91,19 @@ export function persistAuthSession({ clerkId, fullName, email, role }) {
  * Queries multiple endpoints to guarantee role resolution.
  */
 export async function fetchUserProfileFromDatabase({ clerkId, email }) {
+  const trimmedClerkId = (clerkId || "").trim();
+  const trimmedEmail = (email || "").trim();
+
+  if (!trimmedClerkId && !trimmedEmail) {
+    return null;
+  }
+
   const bases = isLocal ? [API_LOCAL, API_REMOTE] : [API_REMOTE];
 
   // 1. Try by clerkId
-  if (clerkId) {
+  if (trimmedClerkId) {
     for (const base of bases) {
-      const res = await fetchWithTimeout(`${base}/api/users/profile/${encodeURIComponent(clerkId)}`);
+      const res = await fetchWithTimeout(`${base}/api/users/profile/${encodeURIComponent(trimmedClerkId)}`);
       if (res && res.ok) {
         try {
           const data = await res.json();
@@ -92,9 +114,9 @@ export async function fetchUserProfileFromDatabase({ clerkId, email }) {
   }
 
   // 2. Try by email
-  if (email) {
+  if (trimmedEmail) {
     for (const base of bases) {
-      const res = await fetchWithTimeout(`${base}/api/users/profile-by-email?email=${encodeURIComponent(email)}`);
+      const res = await fetchWithTimeout(`${base}/api/users/profile-by-email?email=${encodeURIComponent(trimmedEmail)}`);
       if (res && res.ok) {
         try {
           const data = await res.json();
@@ -105,17 +127,17 @@ export async function fetchUserProfileFromDatabase({ clerkId, email }) {
   }
 
   // 3. Try patient-specific record
-  if (clerkId) {
+  if (trimmedClerkId) {
     for (const base of bases) {
-      const res = await fetchWithTimeout(`${base}/api/patient/${encodeURIComponent(clerkId)}?email=${encodeURIComponent(email || "")}`);
+      const res = await fetchWithTimeout(`${base}/api/patient/${encodeURIComponent(trimmedClerkId)}?email=${encodeURIComponent(trimmedEmail)}`);
       if (res && res.ok) {
         try {
           const data = await res.json();
           if (data && (data.bloodRequests?.length || (data.profile && Object.keys(data.profile).length > 0))) {
             return {
-              clerkId,
+              clerkId: trimmedClerkId,
               fullName: data.profile?.fullName || "",
-              email: data.email || email || "",
+              email: data.email || trimmedEmail,
               role: "patient",
             };
           }
@@ -125,17 +147,17 @@ export async function fetchUserProfileFromDatabase({ clerkId, email }) {
   }
 
   // 4. Try donor-specific record
-  if (clerkId) {
+  if (trimmedClerkId) {
     for (const base of bases) {
-      const res = await fetchWithTimeout(`${base}/api/donor/${encodeURIComponent(clerkId)}`);
+      const res = await fetchWithTimeout(`${base}/api/donor/${encodeURIComponent(trimmedClerkId)}`);
       if (res && res.ok) {
         try {
           const data = await res.json();
           if (data && (data._id || data.profile)) {
             return {
-              clerkId,
+              clerkId: trimmedClerkId,
               fullName: data.profile?.fullName || "",
-              email: data.email || email || "",
+              email: data.email || trimmedEmail,
               role: "donor",
             };
           }
@@ -143,6 +165,22 @@ export async function fetchUserProfileFromDatabase({ clerkId, email }) {
       }
     }
   }
+
+  // 5. Fallback to cached profile in localStorage if matching
+  try {
+    const cachedRole = localStorage.getItem("userRole");
+    const cachedName = localStorage.getItem("userFullName");
+    const cachedEmail = localStorage.getItem("userEmail");
+    const cachedClerkId = localStorage.getItem("clerkId");
+    if (cachedRole && (trimmedClerkId === cachedClerkId || (trimmedEmail && trimmedEmail === cachedEmail))) {
+      return {
+        clerkId: cachedClerkId || trimmedClerkId,
+        fullName: cachedName || "User",
+        email: cachedEmail || trimmedEmail,
+        role: cachedRole.toLowerCase().trim(),
+      };
+    }
+  } catch (_) {}
 
   return null;
 }
@@ -152,8 +190,26 @@ export async function fetchUserProfileFromDatabase({ clerkId, email }) {
  * Does NOT assign a default donor role to every user.
  */
 export async function resolveUserRole({ clerkId, email, clerkUser }) {
+  let effectiveClerkId = clerkId || clerkUser?.id || "";
+  let effectiveEmail = email || clerkUser?.primaryEmailAddress?.emailAddress || clerkUser?.emailAddresses?.[0]?.emailAddress || "";
+
+  try {
+    if (!effectiveClerkId && typeof window !== "undefined" && window.Clerk?.user?.id) {
+      effectiveClerkId = window.Clerk.user.id;
+    }
+    if (!effectiveClerkId) {
+      effectiveClerkId = localStorage.getItem("clerkId") || "";
+    }
+    if (!effectiveEmail && typeof window !== "undefined" && window.Clerk?.user?.primaryEmailAddress?.emailAddress) {
+      effectiveEmail = window.Clerk.user.primaryEmailAddress.emailAddress;
+    }
+    if (!effectiveEmail) {
+      effectiveEmail = localStorage.getItem("userEmail") || "";
+    }
+  } catch (_) {}
+
   // 1. Query the database first
-  const dbProfile = await fetchUserProfileFromDatabase({ clerkId, email });
+  const dbProfile = await fetchUserProfileFromDatabase({ clerkId: effectiveClerkId, email: effectiveEmail });
   if (dbProfile && dbProfile.role) {
     return {
       role: dbProfile.role.toLowerCase().trim(),
@@ -166,43 +222,61 @@ export async function resolveUserRole({ clerkId, email, clerkUser }) {
   const clerkMetaRole =
     clerkUser?.unsafeMetadata?.role ||
     clerkUser?.publicMetadata?.role ||
-    window.Clerk?.user?.unsafeMetadata?.role ||
-    window.Clerk?.user?.publicMetadata?.role;
+    (typeof window !== "undefined" && window.Clerk?.user?.unsafeMetadata?.role) ||
+    (typeof window !== "undefined" && window.Clerk?.user?.publicMetadata?.role);
 
   if (clerkMetaRole) {
+    const roleStr = String(clerkMetaRole).toLowerCase().trim();
     return {
-      role: String(clerkMetaRole).toLowerCase().trim(),
-      profile: dbProfile,
+      role: roleStr,
+      profile: dbProfile || { clerkId: effectiveClerkId, email: effectiveEmail, role: roleStr },
       source: "clerk_metadata",
     };
   }
 
-  // 3. Check if patient-specific data exists in localStorage
-  if (clerkId && localStorage.getItem(`patient_profile_${clerkId}`)) {
-    return {
-      role: "patient",
-      profile: dbProfile,
-      source: "patient_cache",
-    };
-  }
+  // 3. Check existing session role in localStorage
+  try {
+    const existingStoredRole = localStorage.getItem("userRole");
+    if (existingStoredRole && existingStoredRole.trim()) {
+      const roleStr = existingStoredRole.toLowerCase().trim();
+      return {
+        role: roleStr,
+        profile: dbProfile || { clerkId: effectiveClerkId, email: effectiveEmail, role: roleStr },
+        source: "session_storage",
+      };
+    }
+  } catch (_) {}
 
-  // 4. Check existing session role in localStorage
-  const existingStoredRole = localStorage.getItem("userRole");
-  if (existingStoredRole && existingStoredRole.trim()) {
-    return {
-      role: existingStoredRole.toLowerCase().trim(),
-      profile: dbProfile,
-      source: "session_storage",
-    };
-  }
+  // 4. Check pending registration role
+  try {
+    const pendingRole = localStorage.getItem("pendingRole");
+    if (pendingRole && pendingRole.trim()) {
+      const roleStr = pendingRole.toLowerCase().trim();
+      return {
+        role: roleStr,
+        profile: dbProfile || { clerkId: effectiveClerkId, email: effectiveEmail, role: roleStr },
+        source: "pending_role",
+      };
+    }
+  } catch (_) {}
 
-  // 5. Check pending registration role
-  const pendingRole = localStorage.getItem("pendingRole");
-  if (pendingRole && pendingRole.trim()) {
+  // 5. Check if patient-specific data exists in localStorage
+  try {
+    if (effectiveClerkId && localStorage.getItem(`patient_profile_${effectiveClerkId}`)) {
+      return {
+        role: "patient",
+        profile: dbProfile || { clerkId: effectiveClerkId, email: effectiveEmail, role: "patient" },
+        source: "patient_cache",
+      };
+    }
+  } catch (_) {}
+
+  // 6. Email heuristics for Administrator
+  if (effectiveEmail && (effectiveEmail.toLowerCase().includes("admin") || effectiveEmail.toLowerCase().includes("superadmin"))) {
     return {
-      role: pendingRole.toLowerCase().trim(),
-      profile: dbProfile,
-      source: "pending_role",
+      role: "administrator",
+      profile: dbProfile || { clerkId: effectiveClerkId, email: effectiveEmail, role: "administrator" },
+      source: "email_heuristic",
     };
   }
 
@@ -212,4 +286,3 @@ export async function resolveUserRole({ clerkId, email, clerkUser }) {
     source: "unresolved",
   };
 }
-
