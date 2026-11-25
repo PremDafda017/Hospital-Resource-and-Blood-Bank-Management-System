@@ -194,10 +194,13 @@ function HospitalBloodRequests() {
   }, [isMuted]);
 
   const loadBloodRequests = useCallback(async function () {
-    const endpoints = [
-      "http://127.0.0.1:5000/api/blood-requests",
-      "https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests",
-    ];
+    const isLocal = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const endpoints = isLocal
+      ? [
+          "http://127.0.0.1:5000/api/blood-requests",
+          "https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests",
+        ]
+      : ["https://hospital-resource-and-blood-bank.onrender.com/api/blood-requests"];
 
     for (let i = 0; i < endpoints.length; i++) {
       const url = endpoints[i];

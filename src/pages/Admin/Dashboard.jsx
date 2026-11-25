@@ -75,7 +75,10 @@ const BG_COLOR = {
   "O+": RED, "O-": RED_DK
 };
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000/api";
+const isLocalHost = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = process.env.REACT_APP_API_URL
+  ? (process.env.REACT_APP_API_URL.endsWith("/api") ? process.env.REACT_APP_API_URL : `${process.env.REACT_APP_API_URL}/api`)
+  : (isLocalHost ? "http://127.0.0.1:5000/api" : "https://hospital-resource-and-blood-bank.onrender.com/api");
 
 // Helper to trigger direct CSV export download
 const exportToCSV = (data, filename = "export.csv") => {

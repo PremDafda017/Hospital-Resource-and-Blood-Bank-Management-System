@@ -1,6 +1,7 @@
 // Central Authentication and Role Management Utility
 // Ensures the database role is the single source of truth for dashboard redirection.
 
+const isLocal = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
 const API_LOCAL = "http://127.0.0.1:5000";
 const API_REMOTE = "https://hospital-resource-and-blood-bank.onrender.com";
 
@@ -75,7 +76,7 @@ export function persistAuthSession({ clerkId, fullName, email, role }) {
  * Queries multiple endpoints to guarantee role resolution.
  */
 export async function fetchUserProfileFromDatabase({ clerkId, email }) {
-  const bases = [API_LOCAL, API_REMOTE];
+  const bases = isLocal ? [API_LOCAL, API_REMOTE] : [API_REMOTE];
 
   // 1. Try by clerkId
   if (clerkId) {

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { apiFetch } from '../../../utils/apiConfig';
 
 const AuthContext = createContext(null);
 
@@ -16,7 +17,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const response = await fetch(`http://127.0.0.1:5000/api/users/profile/${user.id}`);
+        const response = await apiFetch(`/api/users/profile/${user.id}`);
         if (response.ok) {
           const data = await response.json();
           setUserProfile(data);

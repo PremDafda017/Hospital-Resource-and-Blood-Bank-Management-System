@@ -85,7 +85,8 @@ const MANDATORY_FIELD_DEFS = [
   { key: "emergencyContactRelationship", label: "Emergency Contact Relationship", section: "Emergency", type: "select" }
 ];
 
-const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000";
+const isLocal = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = process.env.REACT_APP_API_URL || (isLocal ? "http://127.0.0.1:5000" : "https://hospital-resource-and-blood-bank.onrender.com");
 const RENDER_API = "https://hospital-resource-and-blood-bank.onrender.com";
 
 const fetchWithFallback = async (endpoint, options = {}) => {

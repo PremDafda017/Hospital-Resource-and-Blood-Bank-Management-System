@@ -15,6 +15,7 @@ import {
   FaTrash
 } from 'react-icons/fa6';
 import DashboardLayout from '../../../components/DashboardLayout.jsx';
+import { apiFetch } from '../../../utils/apiConfig.js';
 import { bloodBankDatabase, states, getHospitalsByState } from '../../../data/hospitalData.js';
 
 /* Design Tokens matching Dashboard */
@@ -54,7 +55,7 @@ function Patients() {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const res = await fetch("http://127.0.0.1:5000/api/admin/patients-list");
+        const res = await apiFetch("/api/admin/patients-list");
         if (res.ok) {
           const data = await res.json();
           if (data.patients && data.patients.length > 0) {

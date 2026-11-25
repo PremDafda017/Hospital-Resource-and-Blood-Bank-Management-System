@@ -2,9 +2,13 @@
  * HemoCare Unified API & Real-Time Socket Configuration
  */
 
+const isLocal = 
+  typeof window !== "undefined" && 
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
 export const API_BASE_URL = 
   process.env.REACT_APP_API_URL || 
-  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+  (isLocal 
     ? "http://127.0.0.1:5000" 
     : "https://hospital-resource-and-blood-bank.onrender.com");
 

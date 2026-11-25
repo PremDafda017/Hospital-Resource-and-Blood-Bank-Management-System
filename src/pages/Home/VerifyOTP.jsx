@@ -77,10 +77,10 @@ function VerifyOTP() {
     const payload = JSON.stringify({ clerkId, fullName, email, role });
     const headers = { "Content-Type": "application/json" };
 
-    const endpoints = [
-      `${API_LOCAL}/api/users/create-profile`,
-      `${API_REMOTE}/api/users/create-profile`,
-    ];
+    const isLocal = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+    const endpoints = isLocal
+      ? [`${API_LOCAL}/api/users/create-profile`, `${API_REMOTE}/api/users/create-profile`]
+      : [`${API_REMOTE}/api/users/create-profile`];
 
     for (const url of endpoints) {
       try {

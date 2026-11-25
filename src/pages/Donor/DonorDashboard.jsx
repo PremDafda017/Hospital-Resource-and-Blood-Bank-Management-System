@@ -36,6 +36,7 @@ import CertificateGenerator from "./CertificateGenerator";
 import Notifications from "./Notifications";
 import NotificationBell from "../../components/NotificationBell";
 import { useNotification } from "../../contexts/NotificationContext";
+import { apiFetch } from "../../utils/apiConfig";
 
 const FONT = "'Inter','Segoe UI',system-ui,sans-serif";
 const RED = "#C41230";
@@ -203,7 +204,7 @@ function DonorDashboard() {
 
       // Load real notifications from database
       try {
-        const notifRes = await fetch(`http://127.0.0.1:5000/api/notifications/${user.id}?limit=5`);
+        const notifRes = await apiFetch(`/api/notifications/${user.id}?limit=5`);
         if (notifRes.ok) {
           const notifData = await notifRes.json();
           setNotifications(Array.isArray(notifData) ? notifData : notifData.notifications || []);
